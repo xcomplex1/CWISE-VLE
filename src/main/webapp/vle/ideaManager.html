@@ -18,7 +18,7 @@
   <!-- Chrome Frame is only invoked if meta element for compatibility mode is within the first 1K bytes code.google.com/p/chromium/issues/detail?id=23003 -->    
 
 
-  <title>Idea Basket!</title>
+  <title>想法籃</title>
   <meta name="description" content="WISE4 Idea Manager Tool (Idea Basket view)">
   <meta name="author" content="Jonathan Breitbart">
 
@@ -33,7 +33,7 @@
   <!-- CSS : implied media="all" -->
   <link rel="stylesheet" href="css/ideaManager/blue/style.css">
   <link rel="stylesheet" href="css/ideaManager/basket.css">
-  <link rel="stylesheet" href="css/ideaManager/custom-theme/jquery-ui-1.8.7.custom.css">
+  <link rel="stylesheet" href="/vlewrapper/vle/jquery/css/wise-theme/jquery-ui-1.8.17.custom.css">
   <link rel="stylesheet" href="css/ideaManager/jquery-validate/cmxformTemplate.css">
 
   <!-- Uncomment if you are specifically targeting less enabled mobile browsers
@@ -48,7 +48,7 @@
 	
 	<div id="container">
 		<header>
-			<h3>這個專案的想法</h3>
+			<h3 id='basketTitle'>這個專案的想法</h3>
 		</header>
 		  
 		<div id="main" role="main">
@@ -56,7 +56,7 @@
 				<span class="ui-button-text">新增想法 +</span>
 			</button>
 			<div id='ideas'>
-				<table id='basketIdeas' class='tablesorter' cellspacing='1'>
+				<table id='basketIdeas' class='tablesorter'>
 					<thead>
 						<tr>
 							<th class='ideas' title='點選排序'>您的想法</th>
@@ -74,11 +74,11 @@
 			</div>
 			
 			<div id='toggleDeleted'>
-				<img src='images/ideaManager/trash.png' alt='trash' /><span id='numDeleted' title='顯示/隱藏 刪除的想法'>0 刪除的想法 </span><span id='showDeleted' title='顯示/隱藏 刪除的想法'>(點選顯示)</span><!--<img class='arrow' src='images/arrow.png' alt='arrow' />-->
+				<img src='images/ideaManager/trash.png' alt='trash' /><span id='numDeleted' title='顯示/隱藏 刪除的想法'>垃圾桶(0) </span><span id='showDeleted' title='顯示/隱藏 刪除的想法'>(點選顯示)</span><!--<img class='arrow' src='images/arrow.png' alt='arrow' />-->
 			</div>
 			
 			<div id='trash'>
-				<table id='basketDeleted' class='tablesorter' cellspacing='1'>
+				<table id='basketDeleted' class='tablesorter'>
 					<thead>
 						<tr>
 							<th class='ideas' title='點選排序'>刪除想法</th>
@@ -105,17 +105,17 @@
 					<p><textarea id="text" name="text" rows='2' class="required" minlength="2" maxlength="150"></textarea></p>
 					<p style='height:24px; line-height:24px;'>
 						<label for="source">來源*： </label>
-						<select id="source" name="source" class="required" style='height:24px;'>
+						<select id="source" name="source" class="required">
 						  <option value="empty">選一個：</option>
-						  <option value="Evidence Step">證據步驟</option>
-						  <option value="Visualization or Model">視覺化或模型</option>
-						  <option value="Movie/Video">電影/電視</option>
-						  <option value="Everyday Observation">每日的觀察</option>
-						  <option value="School or Teacher">學校或老師</option>
-						  <option value="Other">其他</option>
+						  <option value="證據頁面">證據頁面</option>
+						  <option value="科學動畫或模型">科學動畫或模型</option>
+						  <option value="電影/電視">電影/電視</option>
+						  <option value="日常生活">日常生活</option>
+						  <option value="學校或老師">學校或老師</option>
+						  <option value="其他">其他</option>
 						</select>
 					</p>
-					<p id='otherSource'><label for="other">請詳細說明*： </label><input id='other' name='other' size='25' minlength='2' maxlength='25'></textarea></p>
+					<p id='otherSource'><label for="other">請詳細說明*： </label><input type='text' id='other' name='other' size='25' minlength='2' maxlength='25'></input></p>
 					
 					<p><label for="tags">關鍵字： </label><input id='tags' name='tags' size='20' maxlength='20'></input></p>
 					<p>
@@ -133,20 +133,20 @@
 		<form class="cmxform" id="editForm" method="get" action="">
 			<fieldset>
 					<p><label for="editText">在這裡輸入您的想法*：</label></p>
-					<p><textarea id="editText" name="text" rows='2' class="required" minlength="2" maxlength="150"></textarea></p>
+					<p><textarea id="editText" name="editText" rows='2' class="required" minlength="2" maxlength="150"></textarea></p>
 					<p style='height:24px; line-height:24px;'>
 						<label for="editSource">來源*： </label>
 						<select id="editSource" name="editSource" class="required" style='height:24px;'>
 						  <option value="empty">選一個：</option>
-						  <option value="Evidence Step">證據步驟</option>
-						  <option value="Visualization or Model">視覺化或模型</option>
-						  <option value="Movie/Video">電影/電視</option>
-						  <option value="Everyday Observation">每日的觀察</option>
-						  <option value="School or Teacher">學校或老師</option>
-						  <option value="Other">其他</option>
+						  <option value="證據頁面">證據頁面</option>
+						  <option value="科學動畫或模型">科學動畫或模型</option>
+						  <option value="電影/電視">電影/電視</option>
+						  <option value="日常生活">日常生活</option>
+						  <option value="學校或老師">學校或老師</option>
+						  <option value="其他">其他</option>
 						</select>
 					</p>
-					<p id='editOtherSource'><label for="editOther">請詳細說明*： </label><input id='editOther' name='editOther' size='25' minlength='2' maxlength='25'></textarea></p>
+					<p id='editOtherSource'><label for="editOther">請詳細說明*： </label><input type='text' id='editOther' name='editOther' size='25' minlength='2' maxlength='25'></input></p>
 					
 					<p><label for="editTags">關鍵字： </label><input id='editTags' name='editTags' size='20' maxlength='20'></input></p>
 					<p>
@@ -168,7 +168,7 @@
   <!-- Javascript at the bottom for fast page loading -->
 
   <script src="jquery/js/jquery-1.6.1.min.js"></script>
-  <script src="jquery/js/jquery-ui-1.8.7.custom.min.js"></script>
+  <script src="jquery/js/jquery-ui-1.8.17.custom.min.js"></script>
   <script src="jquery/js/jquery-validate/jquery.validate.pack.js"></script>
   <script src="jquery/js/jquery.form.js"></script>
   

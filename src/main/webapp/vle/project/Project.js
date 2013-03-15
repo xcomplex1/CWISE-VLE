@@ -17,6 +17,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 		var postLevel = 5; //default to post all steps
 		var totalProjectContent = totalProjectContent;
 		var constraints = [];
+		var usedNodeTypes = [];
 		
 		/* When parsing a minified project, looks up and returns each node's content
 		 * based on the given id.*/
@@ -75,6 +76,11 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 					}
 
 					if(currNode.type != 'DuplicateNode'){
+						if(usedNodeTypes.indexOf(currNode.type) == -1) {
+							//add current node type to our array of node types if it is not already in the array
+							usedNodeTypes.push(currNode.type);
+						}
+						
 						/* validate and set title attribute */
 						if(!currNode.title || currNode.title==''){
 							view.notificationManager.notify('No title attribute for node with id: ' + thisNode.id, 2);
@@ -98,7 +104,13 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 						if(!currNode.ref || currNode.ref==''){
 							view.notificationManager.notify('No filename specified for node with id: ' + thisNode.id + ' in the project file', 2);
 						} else {
-							thisNode.content = createContent(makeUrl(currNode.ref, thisNode), contentBaseUrl);
+							if(thisNode.view != null && thisNode.view.authoringMode) {
+								//we are in the authoring tool so we do not want to inject the contentBaseUrl
+								thisNode.content = createContent(makeUrl(currNode.ref, thisNode));
+							} else {
+								//we are in the vle so we want to inject the contentBaseUrl
+								thisNode.content = createContent(makeUrl(currNode.ref, thisNode), contentBaseUrl);								
+							}
 						}
 						
 						//set the peerReview attribute if available
@@ -639,7 +651,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 		 * (this does not include the unused nodes that are in the 
 		 * project.json nodes array)
 		 */
-		var getNodeIds = function(nodeTypesToExclude) {
+		var getNodeIds = function(onlyGetNodesWithGradingView) {
 			//get the project content
 			var project = content.getContentJSON();
 			
@@ -653,7 +665,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 			var startNode = getNodeById(startPoint);
 			
 			//get the leaf nodeIds
-			nodeIds = getNodeIdsHelper(nodeIds, startNode, nodeTypesToExclude);
+			nodeIds = getNodeIdsHelper(nodeIds, startNode, onlyGetNodesWithGradingView);
 			
 			//return the populated array containing nodeIds
 			return nodeIds;
@@ -666,7 +678,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 		 * @param nodeTypesToExclude a : delimited string of node types to exclude
 		 * @return an array containing all the leaf nodes 
 		 */
-		var getNodeIdsHelper = function(nodeIds, currentNode, nodeTypesToExclude) {
+		var getNodeIdsHelper = function(nodeIds, currentNode, onlyGetNodesWithGradingView) {
 			
 			if(currentNode.type == 'sequence') {
 				//current node is a sequence
@@ -680,7 +692,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 					var childNode = childNodes[x];
 					
 					//recursively call this function with the child node
-					nodeIds = getNodeIdsHelper(nodeIds, childNode, nodeTypesToExclude);
+					nodeIds = getNodeIdsHelper(nodeIds, childNode, onlyGetNodesWithGradingView);
 				}
 			} else {
 				//current node is a leaf node
@@ -690,10 +702,11 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 				
 				/*
 				 * if there are no node types to exclude or if the current node type
-				 * is not in the : delimited string of node types to exclude, we will
+				 * is not in the : delimited string of node types to exclude or if
+				 * the node type is FlashNode and grading is enabled, we will
 				 * add the node id to the array
 				 */
-				if(!nodeTypesToExclude || nodeTypesToExclude.indexOf(nodeType) == -1) {
+				if(!onlyGetNodesWithGradingView || (onlyGetNodesWithGradingView && currentNode.hasGradingView())) {
 					nodeIds.push(currentNode.id);					
 				}
 			}
@@ -726,11 +739,12 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 			
 			var newFeedback = "";
 			
+			// TODO: i18n
 			if(showAllWorkHtml.newFeedback != "") {
-				newFeedback = "<h2 class='showAllWorkH2'>New Feedback</h2><br><hr class='showAllWorkHR'><br>" + showAllWorkHtml.newFeedback;
+				newFeedback = "<div class='panelHeader'>New Feedback</div><div class='dialogSection'>" + showAllWorkHtml.newFeedback + "</div>";
 			}
 			
-			var allFeedback = "<h2 class='showAllWorkH2'>All Work</h2><br><hr class='showAllWorkHR'><br>" + showAllWorkHtml.allFeedback;
+			var allFeedback = "<div class='panelHeader'>My Work</div><div class='dialogSecton'>" + showAllWorkHtml.allFeedback + "</div>";
 			
 			return newFeedback + allFeedback;
 		};
@@ -757,7 +771,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 				 */
 				if(this.showAllWorkActivityCounter != 0) {
 					//we are not on the root node, we are on a sequence/activity
-					htmlSoFar.allFeedback += "<div class='showAllWorkActivity'><h3>" + this.showAllWorkActivityCounter + ". " + node.title + "</h3></div><br><hr class='showAllWorkHR'><br>";
+					htmlSoFar.allFeedback += "<div class='activityHeader'>" + node.title + "</div>";
 				}
 				
 				this.showAllWorkActivityCounter++;
@@ -771,6 +785,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 				// this is a leaf node
 				if(node.type != "HtmlNode" && node.type != "OutsideUrlNode") {
 					//only display non-HtmlNode steps
+					// TODO: exclude all nodes that return null for grading html
 					
 					var nodeId = node.id;
 					
@@ -795,20 +810,41 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 					
 					var stepHasNewFeedback = false;
 					
-					tempAllFeedback += "<div id=\"showallStep\"><a href=\"#\" onclick=\"eventManager.fire('renderNode', ['" + getPositionById(node.id) + "']); $('#showallwork').dialog('close');\">" + vlePosition + " " + node.title + "</a><div class=\"type\">"+node.getType(true)+"</div></div>";
-					tempNewFeedback += "<div id=\"showallStep\"><a href=\"#\" onclick=\"eventManager.fire('renderNode', ['" + getPositionById(node.id) + "']); $('#showallwork').dialog('close');\">" + vlePosition + " " + node.title + "</a><div class=\"type\">"+node.getType(true)+"</div></div>";
+					var title = '';
+					var nodeTitle = node.getTitle();
+					var currentStepNum = vlePosition;
+					if(project.autoStep) {
+						title += project.stepTerm + " " + currentStepNum + ": "; 
+					} else {
+						if(project.stepTerm && project.stepTerm != ''){
+							title += project.stepTerm + ': ';
+						};
+					};
+					
+					var titlePosition = getPositionById(node.id);
+					
+					if(!project.stepLevelNumbering){
+						titlePosition = '';
+					};
+					
+					title += view.navigationPanel.getTitlePositionFromLocation(titlePosition) + " " + nodeTitle;
+					
+					tempAllFeedback += "<div class='stepWork'><div class='sectionHead'><a onclick=\"eventManager.fire('renderNode', ['" + getPositionById(node.id) + "']); $('#showallwork').dialog('close');\">" + title + "</a><span class='nodeType'>("+node.getType(true)+")</span></div>";
+					tempNewFeedback += "<div class='stepWork'><div class='sectionHead'><a onclick=\"eventManager.fire('renderNode', ['" + getPositionById(node.id) + "']); $('#showallwork').dialog('close');\">" + title + "</a><span class='nodeType'>("+node.getType(true)+")</span></div>";
 				    if (showGrades) {
 				    	
-				    	tempAllFeedback += "<div class=\"showallStatus\">狀態： " + node.getShowAllWorkHtml(view) + "</div>";
+				    	//tempAllFeedback += "<div class='sectionContent'>Status: " + node.getShowAllWorkHtml(view) + "</div>";
+				    	tempAllFeedback += "<div class='sectionContent'>" + node.getShowAllWorkHtml(view) + "</div>";
 				    	
 				    	/*
 				    	 * we need to pass in a prefix to be prepended to the div that is made
 				    	 * otherwise there will be two divs with the same id and when we
 				    	 * render the work, it will only show up in one of the divs
 				    	 */
-				    	tempNewFeedback += "<div class=\"showallStatus\">狀態： " + node.getShowAllWorkHtml(view, "new_") + "</div>";
+				    	//tempNewFeedback += "<div class='sectionContent'>Status: " + node.getShowAllWorkHtml(view, "new_") + "</div>";
+				    	tempNewFeedback += "<div class='sectionContent'>" + node.getShowAllWorkHtml(view, "new_") + "</div>";
 						
-						commonFeedback += "<div><table id='teacherTable'>";
+						commonFeedback += "<div class='sectionContent'><table class='teacherFeedback'>";
 						
 						var runId = view.getConfig().getConfigParam('runId');
 						
@@ -848,7 +884,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 							//check if the annotation is new for the student
 							if(annotationScorePostTime > lastTimeVisited) {
 								//the annotation is new so we will add a [New] label to it that is red
-								newP = "<p style='display: inline; color: red;'> [New]</p>";
+								newP = "<p class='newAnnotation'> [New]</p>";
 								
 								stepHasNewFeedback = true;
 								
@@ -877,7 +913,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 							//check if the annotation is new for the student
 							if(annotationCommentPostTime > lastTimeVisited) {
 								//the annotation is new so we will add a [New] label to it that is red
-								newP = "<p style='display: inline; color: red;'> [New]</p>";
+								newP = "<p class='newAnnotation'> [New]</p>";
 								
 								stepHasNewFeedback = true;
 								
@@ -899,7 +935,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 						
 						commonFeedback += annotationHtml;
 						
-						commonFeedback += "</table></div><br><hr class='showAllWorkHR'><br>";
+						commonFeedback += "</table></div></div>";
 				    } else {
 				    	//note: I don't think this else branch is used anymore
 						var childHtmlSoFar = node.getShowAllWorkHtmlHelper(view);
@@ -960,6 +996,12 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 		
 		/* Returns an object representation of this project */
 		var projectJSON = function(){
+			if (typeof navMode == 'undefined') {
+				navMode = null;
+			}
+			if (typeof theme == 'undefined') {
+				theme = null;
+			}
 			/* create project object with variables from this project */
 			var project = {
 					autoStep: autoStep,
@@ -969,7 +1011,9 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 					constraints: constraints,
 					nodes: [],
 					sequences: [],
-					startPoint: ""
+					startPoint: "",
+					navMode: navMode,
+					theme: theme
 			};
 			
 			/* set start point */
@@ -1494,7 +1538,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 		 */
 		var getPreviousAndNextNodeIds = function(nodeId) {
 			//get all the nodeIds in the project ordered
-			var nodeIdsArray = getNodeIds("HtmlNode:OutsideUrlNode");
+			var nodeIdsArray = getNodeIds(true);
 			
 			//create the object that we will store the previous and next into
 			var previousAndNextNodeIds = new Object();
@@ -1868,6 +1912,37 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 			return uniqueTagMaps;
 		};
 		
+		var getAllGroupsUsed = function() {
+			var allGroupsUsed = [];
+			
+			//get all the step nodes
+			var nodes = allLeafNodes;
+			
+			//loop through all the step nodes
+			for(var x=0; x<nodes.length; x++) {
+				//get a node
+				var node = nodes[x];
+				
+				if(node != null) {
+					var nodeContentJSON = node.getContent().getContentJSON();
+					
+					if(nodeContentJSON != null && nodeContentJSON.groupsUsed != null) {
+						var nodeGroupsUsed = nodeContentJSON.groupsUsed;
+						
+						for(var y=0; y<nodeGroupsUsed.length; y++) {
+							var group = nodeGroupsUsed[y];
+							
+							if(allGroupsUsed.indexOf(group) == -1) {
+								allGroupsUsed.push(group);
+							}
+						}
+					}
+				}
+			}
+			
+			return allGroupsUsed;
+		};
+		
 		/**
 		 * Shallow compare the two arrays to see if all the elements
 		 * are the same
@@ -1927,6 +2002,16 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 			/* set constraints */
 			constraints = (project.constraints) ? project.constraints : [];
 			
+			/* set navigation mode */
+			if(project.navMode){
+				navMode = project.navMode;
+			}
+			
+			/* set theme */
+			if(project.theme){
+				theme = project.theme;
+			}
+			
 			/* create nodes for project and set rootNode*/
 			generateProjectNodes();
 			generateSequences();
@@ -1968,7 +2053,7 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 			/* Returns the node at the given position in the project if it exists, returns null otherwise */
 			getNodeByPosition:function(pos){return getNodeByPosition(pos);},
 			/* Returns an array containing all node ids of types that are not included in the provided nodeTypesToExclude */
-			getNodeIds:function(nodeTypesToExclude){return getNodeIds(nodeTypesToExclude);},
+			getNodeIds:function(onlyGetNodesWithGradingView){return getNodeIds(onlyGetNodesWithGradingView);},
 			/* Returns html showing all students work so far */
 			getShowAllWorkHtml:function(node,showGrades){return getShowAllWorkHtml(node,showGrades);},
 			/* Returns the first renderable node Id for this project */
@@ -2063,7 +2148,19 @@ function createProject(content, contentBaseUrl, lazyLoading, view, totalProjectC
 			//get all the unique tags in the project
 			getAllUniqueTagsInProject:function() {return getAllUniqueTagsInProject();},
 			//get all the unique tag maps in the project
-			getAllUniqueTagMapsInProject:function() {return getAllUniqueTagMapsInProject();}
+			getAllUniqueTagMapsInProject:function() {return getAllUniqueTagMapsInProject();},
+			/* returns the navigation mode of this project */
+			getNavMode:function(){return navMode;},
+			/* sets the navigation mode of this project */
+			setNavMode:function(n){navMode = n;},
+			/* returns the theme for this project */
+			getTheme:function(){return theme;},
+			/* sets the them for this project */
+			setTheme:function(t){theme = t;},
+			/* gets all the node types used in this project */
+			getUsedNodeTypes:function(){return usedNodeTypes;},
+			/* get all the groups that are used in the project */
+			getAllGroupsUsed:function(){return getAllGroupsUsed();}
 		};
 	}(content, contentBaseUrl, lazyLoading, view, totalProjectContent);
 };

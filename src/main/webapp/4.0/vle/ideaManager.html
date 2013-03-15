@@ -1,0 +1,210 @@
+﻿<!doctype html>  
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ --> 
+<!--[if lt IE 7 ]> <html lang="en" class="no-js ie6"> <![endif]-->
+<!--[if IE 7 ]>    <html lang="en" class="no-js ie7"> <![endif]-->
+<!--[if IE 8 ]>    <html lang="en" class="no-js ie8"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--> <html lang="en" class="no-js"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+
+  <!-- Always force latest IE rendering engine (even in intranet) & Chrome Frame 
+       Remove this if you use the .htaccess -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  <!-- encoding must be specified within the first 512 bytes www.whatwg.org/specs/web-apps/current-work/multipage/semantics.html#charset -->
+
+  <!-- meta element for compatibility mode needs to be before all elements except title & meta msdn.microsoft.com/en-us/library/cc288325(VS.85).aspx --> 
+  <!-- Chrome Frame is only invoked if meta element for compatibility mode is within the first 1K bytes code.google.com/p/chromium/issues/detail?id=23003 -->    
+
+
+  <title>Idea Basket!</title>
+  <meta name="description" content="WISE4 Idea Manager Tool (Idea Basket view)">
+  <meta name="author" content="Jonathan Breitbart">
+
+  <!--  Mobile viewport optimized: j.mp/bplateviewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Place favicon.ico & apple-touch-icon.png in the root of your domain and delete these references 
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png"> -->
+
+
+  <!-- CSS : implied media="all" -->
+  <link rel="stylesheet" href="css/ideaManager/blue/style.css">
+  <link rel="stylesheet" href="css/ideaManager/basket.css">
+  <link rel="stylesheet" href="css/ideaManager/custom-theme/jquery-ui-1.8.7.custom.css">
+  <link rel="stylesheet" href="css/ideaManager/jquery-validate/cmxformTemplate.css">
+
+  <!-- Uncomment if you are specifically targeting less enabled mobile browsers
+  <link rel="stylesheet" media="handheld" href="css/handheld.css?v=2">  -->
+ 
+  <!-- All JavaScript at the bottom, except for Modernizr which enables HTML5 elements & feature detects 
+  <script src="js/libs/modernizr-1.6.min.js"></script> -->
+
+</head>
+
+<body>
+	
+	<div id="container">
+		<header>
+			<h3>這個專案的想法</h3>
+		</header>
+		  
+		<div id="main" role="main">
+			<button id="addNew" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false">
+				<span class="ui-button-text">新增想法 +</span>
+			</button>
+			<div id='ideas'>
+				<table id='basketIdeas' class='tablesorter' cellspacing='1'>
+					<thead>
+						<tr>
+							<th class='ideas' title='點選排序'>您的想法</th>
+							<th class='source' title='點選排序'>來源</th>
+							<th class='tags' title='點選排序'>關鍵字</th>
+							<th class='flag' title='點選排序'>標籤</th>
+							<th class='delete'>刪除</th>
+						</tr>
+					</thead>
+					<tbody>
+						
+					</tbody>
+				</table>
+				<div id='ideasEmpty' class='empty'>您的想法籃是空的。 點選 "新增想法" 來開始增加想法。</div>
+			</div>
+			
+			<div id='toggleDeleted'>
+				<img src='images/ideaManager/trash.png' alt='trash' /><span id='numDeleted' title='顯示/隱藏 刪除的想法'>0 刪除的想法 </span><span id='showDeleted' title='顯示/隱藏 刪除的想法'>(點選顯示)</span><!--<img class='arrow' src='images/arrow.png' alt='arrow' />-->
+			</div>
+			
+			<div id='trash'>
+				<table id='basketDeleted' class='tablesorter' cellspacing='1'>
+					<thead>
+						<tr>
+							<th class='ideas' title='點選排序'>刪除想法</th>
+							<th class='source' title='點選排序'>來源</th>
+							<th class='tags' title='點選排序'>關鍵字</th>
+							<th class='flag' title='點選排序'>標籤</th>
+							<th class='delete'>恢復</th>
+						</tr>
+					</thead>
+					<tbody>
+						
+					</tbody>
+				</table>
+				
+				<div id='deletedEmpty' class='empty'>垃圾桶是空的</div>
+			</div>
+		</div>
+	</div> <!--! end of #container -->
+	
+	<div id='ideaDialog' style='display:none;'>
+		<form class="cmxform" id="ideaForm" method="get" action="">
+			<fieldset>
+					<p><label for="text">在這裡輸入您的想法*：</label></p>
+					<p><textarea id="text" name="text" rows='2' class="required" minlength="2" maxlength="150"></textarea></p>
+					<p style='height:24px; line-height:24px;'>
+						<label for="source">來源*： </label>
+						<select id="source" name="source" class="required" style='height:24px;'>
+						  <option value="empty">選一個：</option>
+						  <option value="Evidence Step">證據步驟</option>
+						  <option value="Visualization or Model">視覺化或模型</option>
+						  <option value="Movie/Video">電影/電視</option>
+						  <option value="Everyday Observation">每日的觀察</option>
+						  <option value="School or Teacher">學校或老師</option>
+						  <option value="Other">其他</option>
+						</select>
+					</p>
+					<p id='otherSource'><label for="other">請詳細說明*： </label><input id='other' name='other' size='25' minlength='2' maxlength='25'></textarea></p>
+					
+					<p><label for="tags">關鍵字： </label><input id='tags' name='tags' size='20' maxlength='20'></input></p>
+					<p>
+						<label for="flag">選一個*： </label>
+						<input type="radio" name="flag" value="blank" class="required" checked style="margin-left:0;"></input><span style="vertical-align:top; line-height:20px;"> 無</span>
+						<input type="radio" name="flag" value="important"></input><img src='./images/ideaManager/important.png' alt='重要的' /><span style="vertical-align:top; line-height:20px;">重要</span>
+						<input type="radio" name="flag" value="question"></input><img src='./images/ideaManager/question.png' alt='有疑問的' /><span style="vertical-align:top; line-height:20px;">不確定</span>
+						<!-- <input type="radio" name="flag" value="check"><img src='images/ideaManager/check.png' alt='check' /> -->
+					</p>
+			</fieldset>
+		</form>
+	</div>
+	
+	<div id='editDialog' style='display:none;'>
+		<form class="cmxform" id="editForm" method="get" action="">
+			<fieldset>
+					<p><label for="editText">在這裡輸入您的想法*：</label></p>
+					<p><textarea id="editText" name="text" rows='2' class="required" minlength="2" maxlength="150"></textarea></p>
+					<p style='height:24px; line-height:24px;'>
+						<label for="editSource">來源*： </label>
+						<select id="editSource" name="editSource" class="required" style='height:24px;'>
+						  <option value="empty">選一個：</option>
+						  <option value="Evidence Step">證據步驟</option>
+						  <option value="Visualization or Model">視覺化或模型</option>
+						  <option value="Movie/Video">電影/電視</option>
+						  <option value="Everyday Observation">每日的觀察</option>
+						  <option value="School or Teacher">學校或老師</option>
+						  <option value="Other">其他</option>
+						</select>
+					</p>
+					<p id='editOtherSource'><label for="editOther">請詳細說明*： </label><input id='editOther' name='editOther' size='25' minlength='2' maxlength='25'></textarea></p>
+					
+					<p><label for="editTags">關鍵字： </label><input id='editTags' name='editTags' size='20' maxlength='20'></input></p>
+					<p>
+						<label for="editFlag">選一個*： </label>
+						<input type="radio" name="editFlag" value="blank" class="required" checked style="margin-left:0;"></input><span style="vertical-align:top; line-height:20px;"> 無</span>
+						<input type="radio" name="editFlag" value="important"></input><img src='./images/ideaManager/important.png' alt='重要的' /><span style="vertical-align:top; line-height:20px;">重要</span>
+						<input type="radio" name="editFlag" value="question"></input><img src='./images/ideaManager/question.png' alt='有疑問的' /><span style="vertical-align:top; line-height:20px;">不確定</span>
+						<!-- <input type="radio" name="editFlag" value="check"><img src='images/ideaManager/check.png' alt='check' /> -->
+					</p>
+			</fieldset>
+		</form>
+	</div>
+	
+	<div id='deleteDialog' style='display:none; text-align:center;'>
+		<div class='ui-state-highlight' style="padding:.5em;"><span class="ui-icon ui-icon-info" style="margin-right: .3em; float:left;"></span><span>您確定要刪除這個想法嗎？</span></div>
+		<div style="padding:.5em;">如果您改變心意還是可以從丟棄的想法中恢復資料。</div>
+	</div>
+	
+  <!-- Javascript at the bottom for fast page loading -->
+
+  <script src="jquery/js/jquery-1.6.1.min.js"></script>
+  <script src="jquery/js/jquery-ui-1.8.7.custom.min.js"></script>
+  <script src="jquery/js/jquery-validate/jquery.validate.pack.js"></script>
+  <script src="jquery/js/jquery.form.js"></script>
+  
+  <!-- scripts concatenated and minified via ant build script
+  <script src="js/plugins.js"></script>
+  end concatenated and minified scripts-->
+  
+  <script src="jquery/js/jsonplugin.js"></script>
+  <script type="text/javascript" src="jquery/js/jquery.tablesorter.min.js"></script> 
+  <script src="ideaBasket/basket.js"></script>
+  <script src="ideaBasket/ideaBasketScript.js"></script>
+  <script src="ideaBasket/ideaBasketScriptLauncher.js"></script>
+  
+  <!--[if lt IE 7 ]>
+    <script src="js/libs/dd_belatedpng.js"></script>
+    <script>DD_belatedPNG.fix('img, .png_bg'); // Fix any <img> or .png_bg bg-images. Also, please read goo.gl/mZiyb </script>
+  <![endif]-->
+
+  <!-- yui profiler and profileviewer - remove for production -->
+  <!--<script src="js/profiling/yahoo-profiling.min.js"></script>
+  <script src="js/profiling/config.js"></script>-->
+  <!-- end profiling code -->
+
+
+  <!-- asynchronous google analytics: mathiasbynens.be/notes/async-analytics-snippet 
+       change the UA-XXXXX-X to be your site's ID -->
+  <!--<script>
+   var _gaq = [['_setAccount', 'UA-XXXXX-X'], ['_trackPageview']];
+   (function(d, t) {
+    var g = d.createElement(t),
+        s = d.getElementsByTagName(t)[0];
+    g.async = true;
+    g.src = ('https:' == location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    s.parentNode.insertBefore(g, s);
+   })(document, 'script');
+  </script>-->
+  
+</body>
+</html>

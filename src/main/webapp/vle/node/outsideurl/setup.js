@@ -1,4 +1,4 @@
-﻿var coreScripts = [
+var coreScripts = [
 	'vle/node/outsideurl/OutsideUrlNode.js',
 	'vle/node/outsideurl/outsideUrlEvents.js'
 ];
@@ -22,8 +22,11 @@ var dependencies = [
 ];
 
 var nodeClasses = [
-	{nodeClass:'www', nodeClassText:'WWW網頁'}
+	{nodeClass:'www', nodeClassText:'WWW Page'}
 ];
+
+var nodeIconPath = 'node/outsideurl/icons/';
+componentloader.addNodeIconPath('OutsideUrlNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);

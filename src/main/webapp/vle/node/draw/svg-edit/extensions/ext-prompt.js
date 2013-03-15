@@ -1,4 +1,4 @@
-/*
+﻿/*
  * ext-prompt.js
  *
  * Licensed under the Apache License, Version 2
@@ -18,9 +18,9 @@ svgEditor.addExtension("Prompt", function(S) {
 	
 	function addLink(){
 		var linktext = '<div id="tool_prompt" class="extension_link">' +
-			'<a class="label tool_prompt" title="Review Instructions">Review Instructions</a>' +
+			'<a class="label tool_prompt" title="說明">先按這裡看說明</a>' +
 			'<img class="tool_prompt" src="/vlewrapper/vle/node/draw/svg-edit/extensions/prompt.png" ' + // image path edited for wise4
-			'title="Review Instructions" alt="icon" />' +
+			'title="說明" alt="icon" />' +
 			'</div>';
 	
 		$('#tools_top').append(linktext);
@@ -29,7 +29,7 @@ svgEditor.addExtension("Prompt", function(S) {
 	};
 	
 	function setupDialog(){
-		var dialogtxt = '<div id="prompt_dialog" title="Instructions" style="display:none;">' +
+		var dialogtxt = '<div id="prompt_dialog" title="說明" style="display:none;">' +
 			'<div id="prompt_text" class="ui-dialog-content-content">' + prompt + '</div></div>';
 		
 		$('#svg_editor').append(dialogtxt);
@@ -41,7 +41,7 @@ svgEditor.addExtension("Prompt", function(S) {
 			autoOpen:false,
 			width:650,
 			buttons: {
-				'OK': function() {
+				'確定': function() {
 					$(this).dialog('close');
 				}
 			}

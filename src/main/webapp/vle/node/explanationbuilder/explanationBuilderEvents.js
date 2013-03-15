@@ -27,6 +27,16 @@ View.prototype.explanationBuilderDispatcher = function(type,args,obj){
 		obj.ExplanationBuilderNode.updateBackgroundImageUrl();
 	} else if(type == 'explanationBuilderUpdateInstructions') {
 		obj.ExplanationBuilderNode.updateInstructions();
+	} else if(type == 'explanationBuilderUpdateEnableStudentTextAreaCheckBox') {
+		obj.ExplanationBuilderNode.updateEnableStudentTextAreaCheckBox();
+	} else if(type == 'explanationBuilderBrowseClicked'){
+		obj.ExplanationBuilderNode.browseImageAssets();
+	} else if(type=='explanationBuilderUpdateWorkRequired') {
+		obj.ExplanationBuilderNode.updateWorkRequired();
+	} else if(type=='explanationBuilderUpdateBgAlign') {
+		obj.ExplanationBuilderNode.updateBgAlign();
+	} else if(type=='explanationBuilderUpdateAttribute'){
+		obj.ExplanationBuilderNode.updateAttribute();
 	}
 };
 
@@ -42,7 +52,12 @@ var events = [
 	 */
 	'explanationBuilderUpdatePrompt',
 	'explanationBuilderUpdateBackgroundImageUrl',
-	'explanationBuilderUpdateInstructions'
+	'explanationBuilderUpdateInstructions',
+	'explanationBuilderUpdateEnableStudentTextAreaCheckBox',
+	'explanationBuilderBrowseClicked',
+	'explanationBuilderUpdateWorkRequired',
+	'explanationBuilderUpdateBgAlign',
+	'explanationBuilderUpdateAttribute'
 ];
 
 /*

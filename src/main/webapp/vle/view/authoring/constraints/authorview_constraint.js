@@ -91,7 +91,7 @@ View.prototype.Constraint.getConstraintHTML = function(node){
 		for(var i=0;i<constraintsForNode.length;i++){
 			constraintHTML += '<li id="constraintListEntry_' + position + '_' + constraintsForNode[i].id + 
 				'" onclick="eventManager.fire(\'constraintEntryClicked\',[\'' + position + '\',\'' + constraintsForNode[i].id + '\'])">' + 
-				this.getHumanType(constraintsForNode[i].getType()) + '  <input type="button" class="constraintButton" value="移除" ' + 
+				this.getHumanType(constraintsForNode[i].getType()) + '  <input type="button" class="constraintButton" value="Remove" ' + 
 				'onclick="eventManager.fire(\'constraintRemoveConstraint\',[\'' + position + '\',\'' + constraintsForNode[i].id + '\'])"/></li>';
 		}
 		constraintHTML += '</ul></div>';
@@ -347,7 +347,7 @@ View.prototype.Constraint.setNavigationOptionsHTML = function(position){
 		'可以瀏覽與實作步驟</select></div><div>選擇選單限制： <select id="selectMenuRestriction_' + position + 
 		'"><option value="1">無效的 - 被影響的步驟在選單中將沒有效用</option><option value="2">不顯示 ' +
 		'- 步驟將不顯示在選單中</option><option value="0">無限制 - 學生可以正常瀏覽步驟 ' + 
-		'</option></select></div>';
+		'normally</option></select></div>';
 		
 	$('#navigationOptionsDiv_' + position).html(html);
 };

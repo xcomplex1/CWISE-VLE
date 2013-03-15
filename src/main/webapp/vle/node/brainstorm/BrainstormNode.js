@@ -53,6 +53,40 @@ BrainstormNode.prototype.parseDataJSONObj = function(stateJSONObj) {
 
 NodeFactory.addNode('BrainstormNode', BrainstormNode);
 
+/**
+ * Renders the student work into the div. The grading tool will pass in a
+ * div id to this function and this function will insert the student data
+ * into the div.
+ * 
+ * @param divId the id of the div we will render the student work into
+ * @param nodeVisit the student work
+ * @param childDivIdPrefix (optional) a string that will be prepended to all the 
+ * div ids use this to prevent DOM conflicts such as when the show all work div
+ * uses the same ids as the show flagged work div
+ * @param workgroupId the id of the workgroup this work belongs to
+ * 
+ * TODO: rename TemplateNode
+ * Note: you may need to add code to this function if the student
+ * data for your step is complex or requires additional processing.
+ * look at SensorNode.renderGradingView() as an example of a step that
+ * requires additional processing
+ */
+BrainstormNode.prototype.renderGradingView = function(divId, nodeVisit, childDivIdPrefix, workgroupId) {
+	/*
+	 * Get the latest student state object for this step
+	 * TODO: rename templateState to reflect your new step type
+	 * 
+	 * e.g. if you are creating a quiz step you would change it to quizState
+	 */
+	var brainstormResponse = nodeVisit.getLatestWork();
+	
+	if(brainstormResponse != null) {
+		
+		//put the student work into the div
+		$('#' + divId).html(brainstormResponse);		
+	}
+};
+
 BrainstormNode.prototype.getHTMLContentTemplate = function() {
 	var content = null;
 	if(this.isUsingServer()) {

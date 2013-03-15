@@ -20,10 +20,7 @@ function OpenResponseNode(nodeType, view) {
 	this.view = view;
 	this.type = nodeType;
 	this.prevWorkNodeIds = [];
-	this.exportableToNodes = new Array(			
-			"NoteNode", 
-			"OpenResponseNode", 
-			"SVGDrawNode");	
+	this.importableFromNodes = new Array("NoteNode","OpenResponseNode");	
 	this.importableFileExtensions = new Array(
 			"jpg", "png");
 };
@@ -73,60 +70,30 @@ OpenResponseNode.prototype.getPeerReviewOtherStudentWork = function(otherStudent
 };
 
 /**
- * Returns true iff this node can export work to the specified node.
- * @param exportToNode node to export work into
- * @return true/false
- */
-OpenResponseNode.prototype.canExportWork = function(exportToNode) {
-	return this.exportableToNodes &&
-		this.exportableToNodes.indexOf(exportToNode.type) > -1;
-};
-
-/**
- * Returns a string of the work so that it can be imported by the specified exportToNode
- * @param exportToNode node that will import the return value of this method
- * @return null if this node cannot export work to the exportToNode
- */
-OpenResponseNode.prototype.exportWork = function(exportToNode) {	
-	if (this.canExportWork(exportToNode)) {
-	    var nodeVisitArray = this.view.state.getNodeVisitsByNodeId(this.id);
-	    if (nodeVisitArray.length > 0) {
-	        var states = [];
-	        var latestNodeVisit = nodeVisitArray[nodeVisitArray.length -1];
-	        for (var i = 0; i < nodeVisitArray.length; i++) {
-	            var nodeVisit = nodeVisitArray[i];
-	            for (var j = 0; j < nodeVisit.nodeStates.length; j++) {
-	                states.push(nodeVisit.nodeStates[j]);
-	            }
-	        }
-	        var latestState = states[states.length - 1];
-	        var studentWork = latestState.getStudentWork();
-	        
-	        if (exportToNode.type == "SVGDrawNode") {
-	        	var svgString = '<text x="250" y="150" font-family="Verdana" font-size="35" fill="black" >'
-				+ studentWork
-				+ '</text>';
-				return svgString;
-	        } else {
-	        	return studentWork;
-	        }
-	    };			
-	};
-	return null;
-};
-
-/**
  * Imports and inserts the work from the specified importFromNode
- * @param importFromNode node that will export the data for this node to import
+ * @param importFromNode node that has the data for this node to import
  * @return
  */
 OpenResponseNode.prototype.importWork = function(importFromNode) {
-	var studentWork = importFromNode.exportWork(this);
-	if (studentWork != null) {
-		if(this.contentPanel && this.contentPanel.or) {
-			this.contentPanel.or.appendResponse(studentWork);
-		}
-	};
+	if (this.canImportWork(importFromNode)) {
+		var studentWorkState = this.view.state.getLatestWorkByNodeId(importFromNode.id);
+		if (studentWorkState != null) {
+			var studentWork = studentWorkState.response;
+
+			if(studentWork != null && studentWork.constructor.toString().indexOf("Array") != -1) {
+				/*
+				 * response is an array so we will use the toString() of the array
+				 * which should give us just the text within it
+				 */
+				studentWork = studentWork.toString();
+
+				if(this.contentPanel && this.contentPanel.or) {
+					this.contentPanel.or.appendResponse(studentWork);
+				}
+			}
+				
+		};		
+	}
 };
 
 /**
@@ -160,6 +127,44 @@ OpenResponseNode.prototype.importFile = function(filename) {
 	return false;
 };
 
+
+/**
+ * Sets up a WorkOnXConstraint before rendering so that students will
+ * not be able to navigate to any other step before completing work on
+ * this step if that was specified in the content.
+ * 
+ * @param contentPanel
+ * @param studentWork
+ */
+OpenResponseNode.prototype.render = function(contentPanel,studentWork, disable) {
+	// add constraints
+	this.addConstraints();
+	
+	/* call super */
+	Node.prototype.render.call(this, contentPanel, studentWork, disable);
+};
+
+/**
+ * Adds a new constraint for this open response if the content specifies that
+ * student must complete work before exiting to another step
+ */
+OpenResponseNode.prototype.addConstraints = function() {
+	if (this.content.getContentJSON().isMustCompleteAllPartsBeforeExit) {
+		this.view.eventManager.fire('addConstraint',{type:'WorkOnXConstraint', x:{id:this.id, mode:'node'}, id:this.utils.generateKey(20)});
+	}
+};
+
+/**
+ * Override of Node.processStateConstraints
+ * Checks to see if the work was completed. If it was, then no constraint is needed.
+ * If not, then we need to add a constraint.
+ */
+OpenResponseNode.prototype.processStateConstraints = function() {
+	if(!this.isCompleted()){
+		this.addConstraints();
+	}
+};
+
 /**
  * Called when the step is exited. This is used for auto-saving.
  */
@@ -169,6 +174,219 @@ OpenResponseNode.prototype.onExit = function() {
 		//tell the content panel to save
 		this.contentPanel.save();
 	};
+};
+
+/**
+ * Renders the student work into the div. The grading tool will pass in a
+ * div id to this function and this function will insert the student data
+ * into the div.
+ * 
+ * @param divId the id of the div we will render the student work into
+ * @param nodeVisit the student work
+ * @param childDivIdPrefix (optional) a string that will be prepended to all the 
+ * div ids use this to prevent DOM conflicts such as when the show all work div
+ * uses the same ids as the show flagged work div
+ * @param workgroupId the id of the workgroup this work belongs to
+ * 
+ * TODO: rename TemplateNode
+ * Note: you may need to add code to this function if the student
+ * data for your step is complex or requires additional processing.
+ * look at SensorNode.renderGradingView() as an example of a step that
+ * requires additional processing
+ */
+OpenResponseNode.prototype.renderGradingView = function(divId, nodeVisit, childDivIdPrefix, workgroupId) {
+	/*
+	 * Get the latest student state object for this step
+	 * TODO: rename templateState to reflect your new step type
+	 * 
+	 * e.g. if you are creating a quiz step you would change it to quizState
+	 */
+	var openResponseState = nodeVisit.getLatestWork();
+	
+	/*
+	 * get the step work id from the node visit in case we need to use it in
+	 * a DOM id. we don't use it in this case but I have retrieved it in case
+	 * someone does need it. look at SensorNode.js to view an example of
+	 * how one might use it.
+	 */
+	var stepWorkId = nodeVisit.id;
+	
+	/*
+	 * TODO: rename templateState to match the variable name you
+	 * changed in the previous line above
+	 */
+	var studentWork = openResponseState.response;
+	
+	//get the string value of the student work in case student work is an array
+	studentWork = this.getStudentWorkString(studentWork);
+	
+	//get the step content
+	var contentJSON = this.content.getContentJSON();
+	
+	if(contentJSON.cRater != null) {
+		//this step is a CRater step so we will get he CRater grading view
+		studentWork = this.getCRaterGradingView(nodeVisit);
+	}
+	
+	//put the student work into the div
+	$('#' + divId).html(studentWork);
+};
+
+/**
+ * Get the CRater grading view which will display the individual
+ * check answer submits and the score and the feedback
+ * @param nodeVisit the node visit
+ * @return the html that will display the CRater grading view
+ */
+OpenResponseNode.prototype.getCRaterGradingView = function(nodeVisit) {
+	var html = '';
+	
+	//get the step work id
+	var stepWorkId = nodeVisit.id;
+	
+	//get the step content
+	var contentJSON = this.content.getContentJSON();
+	
+	//get the CRater annotation for this step work
+	var cRaterAnnotation = this.view.annotations.getAnnotationByStepWorkIdType(stepWorkId, 'cRater');
+	
+	//get the node states
+	var nodeStates = nodeVisit.nodeStates;
+	
+	//the counter for the check answer submits
+	var checkAnswerCounter = 1;
+	
+	if(nodeStates != null && nodeStates.length > 0) {
+		/*
+		 * loop through all the node states so that we show all the individual check answer submits.
+		 * the newest node states will show up at the top and the oldest will show up at the bottom.
+		 */
+		for(var x=0; x<nodeStates.length; x++) {
+			var htmlForNodeState = '';
+			
+			//get a node state
+			var nodeState = nodeStates[x];
+			
+			//get the timestamp
+			var nodeStateTimestamp = nodeState.timestamp;
+			
+			//get the text the student typed
+			var studentWork = nodeState.response;
+			
+			//get the string value of the student work in case student work is an array
+			studentWork = this.getStudentWorkString(studentWork);
+			
+			var annotationRevision = null;
+			
+			if(cRaterAnnotation != null && cRaterAnnotation.value != null) {
+				//there was a CRater annotation
+				
+				/*
+				 * get the value of the annotation. the value of the annotation
+				 * is an array that can contain annotation revisions if the student
+				 * checked their answer multiple times within the same node visit
+				 */
+				var valueArray = cRaterAnnotation.value;
+				
+				//loop through all the values in the array
+				for(var y=0; y<valueArray.length; y++) {
+					//get an annotation revision
+					var tempAnnotationRevision = valueArray[y];
+					
+					if(tempAnnotationRevision != null) {
+						//get the node state id which is the timestamp when the node state was created
+						var nodeStateId = tempAnnotationRevision.nodeStateId;
+						
+						if(nodeStateTimestamp == nodeStateId) {
+							/*
+							 * the node state timestamp matches the annotation revision timestamp
+							 * so we have found the annotation for our node state
+							 */
+							annotationRevision = tempAnnotationRevision;
+							break;
+						}
+					}
+				}
+			}
+			
+			if(annotationRevision == null) {
+				//there was no CRater annotation for this node state
+				
+				//display the save answer for the node visit
+				htmlForNodeState += 'Save Answer';
+				htmlForNodeState += '<br>';
+				htmlForNodeState += studentWork;
+			} else {
+				//there was a CRater annotation for this node state
+				
+				//display the check answer number for the node visit
+				htmlForNodeState += 'Check Answer #' + checkAnswerCounter;
+				checkAnswerCounter++;
+				
+				htmlForNodeState += '<br>';
+				htmlForNodeState += studentWork;
+				htmlForNodeState += '<br>';
+				
+				//display the CRater score
+				htmlForNodeState += 'Auto-Score: ' + annotationRevision.score;
+				
+				/*
+				 * get the CRater feedback the student received, if any.
+				 * displayCRaterFeedbackToStudent must be enabled in order
+				 * for the cRaterFeedbackText to be set in the node state.
+				 */
+				var feedbackText = nodeState.cRaterFeedbackText;
+				
+				if(feedbackText != null) {
+					htmlForNodeState += '<br>';
+
+					//display the feedback
+					htmlForNodeState += 'Auto-Feedback: ' + feedbackText;					
+				}
+			}
+
+			htmlForNodeState += '<br><br>';
+			
+			//prepend the html for this node state so that newest node state is displayed at the top
+			html = htmlForNodeState + html;
+		}
+	}
+	
+	return html;
+};
+
+/**
+ * Get the student work as a string in case student work is an array
+ * @param studentWork a string or an array containing the student work text
+ * @return the student work as a string
+ */
+OpenResponseNode.prototype.getStudentWorkString = function(studentWork) {
+	if(studentWork != null && studentWork.constructor.toString().indexOf("Array") != -1) {
+		/*
+		 * response is an array so we will use the toString() of the array
+		 * which should give us just the text within it
+		 */
+		studentWork = studentWork.toString();
+	}
+	
+	return studentWork;
+};
+
+/**
+ * Get the html string representation of the student work
+ * @param work the student node state that we want to display
+ * @return an html string that will display the student work
+ */
+OpenResponseNode.prototype.getHtmlView = function(work) {
+	var latestState = work;
+	var html = '';
+	
+	if(latestState != null && typeof latestState == 'object') {
+		//get the student response as a string
+		html = latestState.response + '';
+	}
+	
+	return html;
 };
 
 OpenResponseNode.prototype.getHTMLContentTemplate = function() {

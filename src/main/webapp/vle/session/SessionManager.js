@@ -73,9 +73,9 @@ SessionManager.prototype.checkSession = function() {
 			// this means that student has been idling too long and has been logged out of the session
 			// so we should take them back to the homepage.
 			if(notificationManager){
-				notificationManager.notify("You have been inactive for too long and have been logged out. Please log back in to continue.",3);
+				notificationManager.notify("您太久沒有動作所以已經登出，請重新登入繼續使用。",3);
 			} else {
-				alert("You have been inactive for too long and have been logged out. Please log back in to continue.");
+				alert("您太久沒有動作所以已經登出，請重新登入繼續使用。");
 			}
 			this.view.onWindowUnload(true);
 		} else if ((Date.parse(new Date()) - this.lastSuccessfulRequest) > this.sessionTimeoutWarning) {
@@ -91,7 +91,7 @@ SessionManager.prototype.checkSession = function() {
 			};
 			$('#sessionMessageDiv').html("您已經一段時間沒有動作。過久沒有動作會自動登出WISE！");
 			$('#sessionMessageDiv').dialog(
-					{autoOpen:true, draggable:true, modal:true, title:'連線逾時', width:400, position:['center','top'], buttons: {'繼續保持登入!':renewSessionSubmit}, close:renewSessionClose}
+					{autoOpen:true, draggable:true, modal:true, title:'連線逾時', width:400, position:['center','center'], zIndex:10000, buttons: {'繼續保持登入!':renewSessionSubmit}, close:renewSessionClose}
 			);
 		} else {
 			// they're fine, within the timeout interval. no need to renew session or logout.

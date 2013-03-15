@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <!--[if lt IE 7 ]> <html lang="en" class="no-js ie6"> <![endif]--> <!--[if IE 7 ]>    <html lang="en" class="no-js ie7"> <![endif]--> <!--[if IE 8 ]>    <html lang="en" class="no-js ie8"> <![endif]--> <!--[if IE 9 ]>    <html lang="en" class="no-js ie9"> <![endif]-->
 <!--[if (gt IE 9)|!(IE)]><!--> <html lang="en" class="no-js"> <!--<![endif]-->
 <head>
@@ -17,8 +17,7 @@
   <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
   <![endif]-->
 </head>
-<body>
-  <h1>編輯MySystem</h1>
+<body>  
   <script type="text/html">
   <div class="options_block">
     <h2>選項</h2>
@@ -37,8 +36,8 @@
   <div class="options_block">
     <h2>節點類型</h2>
     {{#collection contentBinding="MSA.modulesController" tagName="ul"}}
-      {{view SC.TextField valueBinding="parentView.content.name" placeholder="name"}}
-      {{view SC.TextField valueBinding="parentView.content.image" placeholder="image"}}
+      {{view MSA.TextField valueBinding="parentView.content.name" placeholder="名稱"}}
+      {{view MSA.TextField valueBinding="parentView.content.image" placeholder="圖片"}}
       {{#view SC.Button target="MSA.modulesController" action="removeItem" itemBinding="parentView.content"}}
       移除
       {{/view}}
@@ -51,33 +50,41 @@
   </div>
   
   <div class="options_block">
-    <h2>能量類型</h2>
+    <h2>連結類型</h2>
     {{#collection contentBinding="MSA.energyTypesController" tagName="ul"}}
-      {{view SC.TextField valueBinding="parentView.content.label" placeholder="標籤"}}
-      {{view SC.TextField valueBinding="parentView.content.color" placeholder="顏色"}}
+      {{view MSA.TextField valueBinding="parentView.content.label" placeholder="標籤"}}
+      {{view MSA.TextField valueBinding="parentView.content.color" placeholder="顏色"}}
       {{#view SC.Button target="MSA.energyTypesController" action="removeItem" itemBinding="parentView.content"}}
-      remove
+      移除
       {{/view}}
     {{/collection}}
     {{#view SC.Button 
       target="MSA.energyTypesController"
       action="createItem" class="add_button"}}
-      新增能量類型
+      新增連結類型
     {{/view}}
   </div>
   
   <div class="options_block">
     <h2>最小需求</h2>
     {{#if MSA.minRequirementsController.hasRequirements}}
-      <span style="padding-left: 10px;">
-        回饋： {{view SC.TextField valueBinding="MSA.activity.minimumRequirementsFeedback" placeholder="您的圖示沒有包含足夠的訊息" id="minimumFeedback"}}
-      </span>
+      <p style="padding-left: 10px;">
+        回饋： 
+        <br/>
+        {{
+          view MSA.TextArea 
+          valueBinding = "MSA.activity.minimumRequirementsFeedback" 
+          placeholder  = "您的圖示沒有包含足夠的訊息" 
+          id           = "minimumFeedback"
+        }}
+        <br/><br/>
+      </p>
     {{/if}}
     {{#collection contentBinding="MSA.minRequirementsController" tagName="ul"}}
         圖示
         {{collection SCUtil.Select contentBinding="MSA.minRequirementsController.shouldOptions" valueBinding="parentView.content.shouldOption"}} 包含
         {{collection SCUtil.Select contentBinding="MSA.minRequirementsController.comparisons" valueBinding="parentView.content.comparison"}}
-        {{view SC.TextField valueBinding="parentView.content.number" placeholder="number"}}<br/>
+        {{view MSA.TextField valueBinding="parentView.content.number" placeholder="number" size="1"}}<br/>
         {{collection SCUtil.Select contentBinding="MSA.minRequirementsController.nodeTypes" valueBinding="parentView.content.type"}}
         <!-- button to show/hide the rest of the options if we could use an if statement then we could
              check for the status of the property, and show one button in one case and another button in another case
@@ -91,7 +98,7 @@
         {{#if "content.hasLink"}}
           {{collection SCUtil.Select contentBinding="MSA.minRequirementsController.linkDirections" valueBinding="parentView.parentView.content.linkDirection"}}
           {{collection SCUtil.Select contentBinding="MSA.minRequirementsController.nodeTypes" valueBinding="parentView.parentView.content.otherNodeType"}}
-          使用能量類型： {{collection SCUtil.Select contentBinding="MSA.minRequirementsController.energyTypes" valueBinding="parentView.parentView.content.energyType"}}
+          使用連結類型： {{collection SCUtil.Select contentBinding="MSA.minRequirementsController.energyTypes" valueBinding="parentView.parentView.content.energyType"}}
         {{else}}
           {{#view SC.Button
             targetBinding="parentView.parentView.content"
@@ -115,53 +122,122 @@
   
   <div class="options_block">
     <h2>回饋</h2>
+      <div style="padding-left: 10px;">
+        <p>
+          只報告 
+          {{view MSA.TextField valueBinding="MSA.activity.maxFeedbackItems" placeholder="#" id="feedbackLimit" size = "1" }}
+          回饋項目
+        </p>
+    
+        <p>
+          回饋板大小：
+          寬：
+          {{
+            view MSA.TextField 
+            valueBinding = "MSA.activity.feedbackPanelWidth"
+            placeholder  = "500"
+            id           = "feedbackPanelWidth"
+            size         = "3"
+          }}
+          高： 
+          {{
+            view MSA.TextField 
+            valueBinding = "MSA.activity.feedbackPanelHeight"
+            placeholder  = "250"
+            id           = "feedbackPanelHeight"
+            size         = "3"
+          }}
+        </p>
+        <p>
+          全部條件符合實回饋：
+          <br/>
+          {{ 
+            view MSA.TextArea 
+            valueBinding ="MSA.activity.correctFeedback" 
+            placeholder  = "您的圖示沒有明顯的問題。" 
+            id           = "correctFeedback"
+          }}
+          <br/><br/>
+        </p>
+    </div>
+  </div>
+
+  <div class="options_block">
+    <h2>最多提交次數</h2>
     <div style="padding-left: 10px;">
-      通過所有規定時所給的回饋：
-        <div style="padding-left: 10px; width: 800px;">
-          {{view SC.TextField valueBinding="MSA.activity.correctFeedback" placeholder="您的圖示沒有明顯的問題。" id="correctFeedback"}}
-        </div>
-      只報告
-        {{view SC.TextField valueBinding="MSA.activity.maxFeedbackItems" placeholder="#" id="feedbackLimit" style="width: 800px;"}}
-      回饋項目
+      <p>
+        限制學生提交次數：
+          {{
+            view MSA.TextField 
+            valueBinding = "MSA.activity.maxSubmissionClicks"
+            placeholder  = "#"
+            id           = "maxSubmissionClicks"
+            size         = "2"
+          }}
+      </p>
+      <p>
+        如果學生提交太多次，顯示：
+        <br/>
+        {{
+          view MSA.TextArea
+          valueBinding = "MSA.activity.maxSubmissionFeedback"
+          placeholder  = "您已經提交太多次了。請繼續實作但沒有提示。"
+          id           = "maxSubmissionFeedback"
+        }}
+        <br/><br/>
+      </p>
     </div>
   </div>
   
   <div class="options_block">
     <h2>圖示規則</h2>
     {{#collection contentBinding="MSA.diagramRulesController" tagName="ol" attributeBindings="start" start="0"}}
-        圖示 
-        {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.shouldOptions" valueBinding="parentView.content.shouldOption"}} 包含
-        {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.comparisons" valueBinding="parentView.content.comparison"}}
-        {{view SC.TextField valueBinding="parentView.content.number" placeholder="number"}}<br/>
-        {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.nodeTypes" valueBinding="parentView.content.type"}}
-        <!-- button to show/hide the rest of the options if we could use an if statement then we could
-             check for the status of the property, and show one button in one case and another button in another case
+        <div class="diagram_rule">
+          <div class="diagram_rule_name">
+            <span class="label">規則名稱：</span>
+            <span class="value">
+              {{view MSA.TextField valueBinding="parentView.content.name" placeholder="name"}}
+            </span>
+          </div>
+          圖示 
+          {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.shouldOptions" valueBinding="parentView.content.shouldOption"}} 包含
+          {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.comparisons" valueBinding="parentView.content.comparison"}}
+          {{view MSA.TextField valueBinding="parentView.content.number" placeholder="number" size="1"}}<br/>
+          {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.nodeTypes" valueBinding="parentView.content.type"}}
+          <!-- button to show/hide the rest of the options if we could use an if statement then we could
+               check for the status of the property, and show one button in one case and another button in another case
 
-             not exactly why we need parentView.parentView here, my guess is that the if wraps this in another view so we
-             need parentView.parentView to get all the way up to the itemView 
-           
-             I tried adding a button to hide the link options again but the value bindings did not correctly update the views after they
-             were shown, hidden and shown again.  Changing the view after the show, hide, show did update the model object though
-        -->
-        {{#if "content.hasLink"}}
-          {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.linkDirections" valueBinding="parentView.parentView.content.linkDirection"}}
-          {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.nodeTypes" valueBinding="parentView.parentView.content.otherNodeType"}}
-          使用能量類型： {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.energyTypes" valueBinding="parentView.parentView.content.energyType"}}
-        {{else}}
-          {{#view SC.Button
-            targetBinding="parentView.parentView.content"
-            action="toggleHasLink"}}
-            允許連結條件
-          {{/view}} 
-        {{/if}}
-        <br/>
-        若無則顯示給使用者：
-        {{view SC.TextField valueBinding="parentView.content.suggestion"}}
-        {{#view SC.Button target="MSA.diagramRulesController" action="removeItem" itemBinding="parentView.content"}}
-        移除圖示規則
-        {{/view}}
-        {{#view SC.Button target="MSA.diagramRulesController" action="moveItemUp" itemBinding="parentView.content"}} ↑ {{/view}}
-        {{#view SC.Button target="MSA.diagramRulesController" action="moveItemDown" itemBinding="parentView.content"}} ↓ {{/view}}
+               not exactly why we need parentView.parentView here, my guess is that the if wraps this in another view so we
+               need parentView.parentView to get all the way up to the itemView 
+             
+               I tried adding a button to hide the link options again but the value bindings did not correctly update the views after they
+               were shown, hidden and shown again.  Changing the view after the show, hide, show did update the model object though
+          -->
+          {{#if "content.hasLink"}}
+            {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.linkDirections" valueBinding="parentView.parentView.content.linkDirection"}}
+            {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.nodeTypes" valueBinding="parentView.parentView.content.otherNodeType"}}
+            使用連結類型： {{collection SCUtil.Select contentBinding="MSA.diagramRulesController.energyTypes" valueBinding="parentView.parentView.content.energyType"}}
+          {{else}}
+            {{#view SC.Button
+              targetBinding="parentView.parentView.content"
+              action="toggleHasLink"}}
+              允許連結條件
+            {{/view}} 
+          {{/if}}
+          <br/><br/>
+          若無則顯示給使用者： 
+          <br/>
+          {{
+            view MSA.TextArea 
+            valueBinding = "parentView.content.suggestion"
+          }}
+          <br/><br/>
+          {{#view SC.Button target="MSA.diagramRulesController" action="removeItem" itemBinding="parentView.content"}}
+          移除圖示規則
+          {{/view}}
+          {{#view SC.Button target="MSA.diagramRulesController" action="moveItemUp" itemBinding="parentView.content"}} ↑ {{/view}}
+          {{#view SC.Button target="MSA.diagramRulesController" action="moveItemDown" itemBinding="parentView.content"}} ↓ {{/view}}
+        </div>
     {{/collection}}
     {{#view SC.Button 
       target="MSA.diagramRulesController"
@@ -178,29 +254,41 @@
 
 Javascipt for custom rules. e.g.
 <br/>
-<code><pre>
-var rule_a = rules.objectAt(0).check(nodes);
-var rule_b = rules.objectAt(1).check(nodes);
-var rule_c = rules.objectAt(2).check(nodes);
-if(! ((rule_a && rule_b) || rule_c)) {
-  suggestions.pushObject(rules.objectAt(2).get('suggestion'));
-}
-</pre></code>
-
-        <br/>
+<pre>
+  // sample use:
+  if (Rules.extraLinks()) {
+    Rules.addSuggestion("You have some extra links!");
+  }
+  if (!Rules.iconsUsedOnce()) {
+    Rules.addSuggestion("You can only use each icon once.");
+  }
+  if (!Rules.hasTransformation()) {
+    Rules.addSuggestion("How is energy transformed?");
+  }
+</code>
+</pre>
+<br/>
         <div id="customRuleEvaluator">
-          {{view SC.TextArea valueBinding="MSA.activity.customRuleEvaluator"}}
+          {{
+            view MSA.TextArea 
+            valueBinding  = "MSA.activity.customRuleEvaluator"
+            wrap          = "off" 
+            rows          = "20"
+            cols          = "72" 
+          }}
+          {{#view SC.Button target="MSA.customRuleController" action="editCustomRule"}} edit {{/view}}
         </div>
-      {{/if}}
-    </div>
-  
+    {{/if}}
+  </div>
+
+<div class="options_block">
   <h2>狀態</h2>
   <pre style="font-size: 80%">
   {{MSA.dataController.data}}
   </pre>
-  </script>
+</div>
+</script>
   
-
 
 
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>

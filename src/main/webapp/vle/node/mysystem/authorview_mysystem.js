@@ -63,7 +63,18 @@ View.prototype.MySystemNode.populatePrompt = function() {
  * Updates the html with the user entered prompt
  */
 View.prototype.MySystemNode.updatePrompt = function(){
-	this.content.prompt = document.getElementById('promptInput').value;
+	/* update content */
+	var content = '';
+	if(typeof tinymce != 'undefined' && $('#promptInput').tinymce()){
+		content = $('#promptInput').tinymce().getContent();
+	} else {
+		content = $('#promptInput').val();
+	}
+	// strip out any urls with the full project path (and replace with 'assets/file.jpg')
+	var assetPath = this.view.getProjectFolderPath() + 'assets/';
+	var assetPathExp = new RegExp(assetPath,"gi");
+	content.replace(assetPathExp,"assets/");
+	this.content.prompt = content;
 	
 	/* fire source updated event */
 	this.view.eventManager.fire('sourceUpdated');
@@ -83,9 +94,9 @@ View.prototype.MySystemNode.generateModules = function(){
 	parent.appendChild(createBreak());
 	
 	if(this.content.modules.length>0){
-		var modsText = document.createTextNode("現有模組");
+		var modsText = document.createTextNode("現有節點");
 	} else {
-		var modsText = document.createTextNode("新增模組");
+		var modsText = document.createTextNode("新增節點");
 	};
 	
 	parent.appendChild(modsText);
@@ -94,12 +105,12 @@ View.prototype.MySystemNode.generateModules = function(){
 	//create current mod elements
 	for(var a=0;a<this.content.modules.length;a++){
 		var modDiv = createElement(document, 'div', {id: 'modDiv_' + a});
-		var modText = document.createTextNode('模組');
+		var modText = document.createTextNode('節點');
 		var nameText = document.createTextNode("名稱： ");
 		var imageText = document.createTextNode("圖片： ");
 		var nameInput = createElement(document, 'input', {id: 'nameInput_' + a, type: 'text', value: this.content.modules[a].name, onchange: 'eventManager.fire("mysystemFieldUpdated",["name","' + a + '"])'});
 		var imageInput = createElement(document, 'input', {id: 'imageInput_' + a, type: 'text', value: this.content.modules[a].image, onchange: 'eventManager.fire("mysystemFieldUpdated",["image","' + a + '"])'});
-		var removeButt = createElement(document, 'input', {type: 'button', id: 'removeButt', value: '移除模組', onclick: 'eventManager.fire("mysystemRemoveMod","' + a + '")'});
+		var removeButt = createElement(document, 'input', {type: 'button', id: 'removeButt', value: '移除節點', onclick: 'eventManager.fire("mysystemRemoveMod","' + a + '")'});
 		
 		parent.appendChild(modDiv);
 		modDiv.appendChild(modText);
@@ -116,7 +127,7 @@ View.prototype.MySystemNode.generateModules = function(){
 	};
 	
 	//create buttons to create new modules
-	var createButt = createElement(document, 'input', {type:'button', value:'新增模組', onclick:'eventManager.fire("mysystemAddNew")'});
+	var createButt = createElement(document, 'input', {type:'button', value:'新增節點', onclick:'eventManager.fire("mysystemAddNew")'});
 	parent.appendChild(createButt);
 };
 

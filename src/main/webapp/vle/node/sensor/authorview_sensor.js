@@ -59,8 +59,8 @@ View.prototype.SensorNode.generatePage = function(view){
 	//create new
 	var pageDiv = createElement(document, 'div', {id:'dynamicPage', style:'width:100%;height:100%'});
 	var promptText = document.createTextNode("給予學生的提示：");
-	var linesText = document.createTextNode("學生回應欄位大小 (# 列):");
-	var richTextEditorText = document.createTextNode("使用完整文字編輯器");
+	var linesText = document.createTextNode("Size of Student Response Box (# rows):");
+	var richTextEditorText = document.createTextNode("Use Rich Text Editor");
 	
 	pageDiv.appendChild(promptText);
 	pageDiv.appendChild(createBreak());
@@ -106,7 +106,7 @@ View.prototype.SensorNode.generatePage = function(view){
 	}
 	
 	//create the graph title input
-	var graphTitleText = document.createTextNode("圖形標題：");
+	var graphTitleText = document.createTextNode("儀器記錄標題：");
 	var graphTitleInput = createElement(document, 'input', {type: 'input', id: 'graphTitleInput', name: 'graphTitleInput', value: graphTitleValue, size: 60, onchange: 'eventManager.fire("sensorUpdateGraphTitle")'});
 	
 	//insert the graph title input
@@ -125,7 +125,7 @@ View.prototype.SensorNode.generatePage = function(view){
 	
 	//create the check box to require prediction before enter
 	var requirePredictionBeforeEnterCheckBox = createElement(document, 'input', {id: 'requirePredictionBeforeEnterCheckBox', type: 'checkbox', onclick: 'eventManager.fire("sensorUpdateRequirePredictionBeforeEnter")'});
-	var requirePredictionBeforeEnterText = document.createTextNode('輸入前需要預測 (您必須指定"Show Previous Work"步驟)');
+	var requirePredictionBeforeEnterText = document.createTextNode('輸入前需要預測 (您必須指定"顯示先前實作"步驟)');
 	
 	//create the check box to lock the prediction on collection start
 	var lockPredictionOnCollectionStartCheckBox = createElement(document, 'input', {id: 'lockPredictionOnCollectionStartCheckBox', type: 'checkbox', onclick: 'eventManager.fire("sensorUpdateLockPredictionOnCollectionStart")'});
@@ -330,10 +330,10 @@ View.prototype.SensorNode.generateStarter = function(){
 	var starterOnClickInput = createElement(document, 'input', {type: 'radio', name: 'starterRadio', onclick: 'eventManager.fire("openResponseStarterOptionChanged")', value: '1'});
 	var starterImmediatelyInput = createElement(document, 'input', {type: 'radio', name: 'starterRadio', onclick: 'eventManager.fire("openResponseStarterOptionChanged")', value: '2'});
 	var starterSentenceInput = createElement(document, 'textarea', {id: 'starterSentenceInput', cols: '60', rows: '4', wrap: 'soft', onchange: 'eventManager.fire("openResponseStarterSentenceUpdated")'});
-    var noStarterInputText = document.createTextNode('不要使用起始句');
-	var starterOnClickInputText = document.createTextNode('在要求時顯示起始句');
-	var starterImmediatelyInputText = document.createTextNode('立即顯示起始句');
-	var starterSentenceText = document.createTextNode('起始句： ');
+	var noStarterInputText = document.createTextNode('Do not use starter sentence');
+	var starterOnClickInputText = document.createTextNode('Starter sentence available upon request');
+	var starterImmediatelyInputText = document.createTextNode('Starter sentence shows immediately');
+	var starterSentenceText = document.createTextNode('Starter sentence: ');
 	
 	starterDiv.appendChild(noStarterInput);
 	starterDiv.appendChild(noStarterInputText);

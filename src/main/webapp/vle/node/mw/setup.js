@@ -4,7 +4,7 @@
 ];
 
 var studentVLEScripts = [
-	'vle/jquery/js/jquery-1.6.1.min.js',
+	scriptloader.jquerySrc,
 	'vle/node/mw/mw.js'
 ];
 
@@ -27,6 +27,9 @@ var css = [
 var nodeClasses = [
 	{nodeClass:'simulation', nodeClassText:'嵌入MW'}
 ];
+
+var nodeIconPath = 'node/mw/icons/';
+componentloader.addNodeIconPath('MWNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreScripts);

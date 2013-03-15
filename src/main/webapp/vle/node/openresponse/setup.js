@@ -17,10 +17,10 @@ var coreMinScripts = [
 ];
 
 var studentVLEScripts = [
+	scriptloader.jquerySrc,
+	scriptloader.jqueryUISrc,
 	'vle/node/common/nodehelpers.js',
 	'vle/common/helperfunctions.js',
-	'vle/jquery/js/jquery-1.6.1.min.js',
-	'vle/jquery/js/jquery-ui-1.8.7.custom.min.js',
 	'vle/jquery/js/jsonplugin.js',
 	'vle/node/openresponse/openresponsestate.js',
 	'vle/node/openresponse/openresponse.js',
@@ -40,13 +40,15 @@ var gradingScripts = [
 
 var dependencies = [
 	{child:"vle/node/openresponse/OpenResponseNode.js", parent:["vle/node/Node.js"]},
-	{child:"vle/node/openresponse/NoteNode.js", parent:["vle/node/Node.js", "vle/node/openresponse/OpenResponseNode.js"]}
+	{child:"vle/node/openresponse/NoteNode.js", parent:["vle/node/Node.js", "vle/node/openresponse/OpenResponseNode.js"]},
+	{child:"vle/jquery/tinymce/jscripts/tiny_mce/jquery.tinymce.js",parent:[scriptloader.jquerySrc]}
 ];
 
 var css = [
+	scriptloader.jqueryUICss,
 	"vle/node/common/css/htmlAssessment.css",
 	"vle/node/openresponse/openresponse.css",
-	"vle/jquery/css/custom-theme/jquery-ui-1.8.7.custom.css"
+	"vle/css/globalstyles.css"
 ];
 
 var openResponseNodeClasses = [
@@ -56,6 +58,10 @@ var openResponseNodeClasses = [
 var noteNodeClasses = [
 	{nodeClass:'note', nodeClassText:'反思筆記(彈跳視窗)'}
 ];
+
+var nodeIconPath = 'node/openresponse/icons/';
+componentloader.addNodeIconPath('NoteNode', nodeIconPath);
+componentloader.addNodeIconPath('OpenResponseNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);

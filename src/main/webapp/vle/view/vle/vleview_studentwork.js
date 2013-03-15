@@ -60,24 +60,35 @@ View.prototype.postCurrentNodeVisit = function() {
 	//obtain the json string representation of the node visit
 	var nodeVisitData = encodeURIComponent($.stringify(currentNodeVisit));
 	
-	if(this.getUserAndClassInfo() != null) {
-		this.connectionManager.request('POST', 3, url, 
-				{id: stepWorkId, 
-				runId: this.getConfig().getConfigParam('runId'), 
-				userId: this.getUserAndClassInfo().getWorkgroupId(), 
-				data: nodeVisitData
-				}, 
-				this.processPostResponse, 
-				{vle: this, nodeVisit:currentNodeVisit});
+	// Only POST this nodevisit if this nodevisit is not currently being POSTed to the server.
+	if (this.isInPOSTInProgressArray(currentNodeVisit)) {
+		return;
 	} else {
-		this.connectionManager.request('POST', 3, url, 
-				{id: stepWorkId, 
-				runId: this.getConfig().getConfigParam('runId'), 
-				userId: '-2', 
-				data: prepareDataForPost(diff)
-				}, 
-				this.processPostResponse);
-	};
+		// add  this nodevisit to postInProgress array
+		this.addToPOSTInProgressArray(currentNodeVisit);
+
+		if(this.getUserAndClassInfo() != null) {
+			this.connectionManager.request('POST', 3, url, 
+					{id: stepWorkId, 
+					runId: this.getConfig().getConfigParam('runId'), 
+					userId: this.getUserAndClassInfo().getWorkgroupId(), 
+					data: nodeVisitData
+					}, 
+					this.processPostResponse, 
+					{vle: this, nodeVisit:currentNodeVisit},
+					this.processPostFailResponse);
+		} else {
+			this.connectionManager.request('POST', 3, url, 
+					{id: stepWorkId, 
+					runId: this.getConfig().getConfigParam('runId'), 
+					userId: '-2', 
+					data: prepareDataForPost(diff)
+					}, 
+					this.processPostResponse,
+					null,
+					this.processPostFailResponse);
+		};
+	}
 };
 
 /**
@@ -120,7 +131,16 @@ View.prototype.postUnsavedNodeVisit = function(nodeVisit, sync) {
 									userId: this.getUserAndClassInfo().getWorkgroupId(),
 									data: postData};
 	
-	this.connectionManager.request('POST', 3, url, postStudentDataUrlParams, this.processPostResponse, {vle: this, nodeVisit:nodeVisit}, null, sync);
+	// Only POST this nodevisit if this nodevisit is not currently being POSTed to the server.
+	if (this.isInPOSTInProgressArray(nodeVisit)) {
+		return;
+	} else {
+		//var timeout = 3*1000; // timeout is 3 seconds
+		var timeout = null;
+		// add  this nodevisit to postInProgress array
+		this.addToPOSTInProgressArray(nodeVisit);
+		this.connectionManager.request('POST', 3, url, postStudentDataUrlParams, this.processPostResponse, {vle: this, nodeVisit:nodeVisit}, this.processPostFailResponse, sync, null);		
+	}
 };
 
 
@@ -156,6 +176,8 @@ View.prototype.processPostResponse = function(responseText, responseXML, args){
 	var responseJSONObj = $.parseJSON(responseText);
 	var id = responseJSONObj.id;
 	var visitPostTime = responseJSONObj.visitPostTime;
+	var cRaterItemId = responseJSONObj.cRaterItemId;
+	var isCRaterSubmit = responseJSONObj.isCRaterSubmit;
 	
 	/*
 	 * this is for resolving node visits that used to end up with null
@@ -177,9 +199,47 @@ View.prototype.processPostResponse = function(responseText, responseXML, args){
 	//set the post time
 	args.nodeVisit.visitPostTime = visitPostTime;
 	
+	// remove nodeVisit from postInProgress array
+	args.vle.removeFromPOSTInProgressArray(args.nodeVisit);
+	
+	// if cRaterItemId is in the response and it was a CRater submit, make a request to GET the
+	// CRater Annotation
+	if(cRaterItemId != null && isCRaterSubmit != null && isCRaterSubmit) {
+		var nodeVisit = args.nodeVisit;
+		var latestState = nodeVisit.getLatestState();
+		var nodeStateTimestamp = latestState.timestamp;
+		
+		args.vle.getCRaterResponse(id, nodeStateTimestamp);
+	}
+	
 	//fire the event that says we are done processing the post response
 	eventManager.fire('processPostResponseComplete');
 };
+
+
+/**
+ * Handles the FAIL response from any time we post student data to the server.
+ * @param responseText a json string containing the response data
+ * @param responseXML
+ * @param args any args required by this callback function which
+ * 		were passed in when the request was created
+ */
+View.prototype.processPostFailResponse = function(responseText, args){
+	notificationManager.notify("processPostFailResponse, responseText:" + responseText, 4);
+	notificationManager.notify("processPostFailResponse, nodeVisit: " + args.nodeVisit, 4);
+	
+	/*
+	 * display a message to the student to ask them to refresh 
+	 * their browser in case they have lost connection to the
+	 * server
+	 */
+	notificationManager.notify("Warning: Your work from the previous step may not have been saved. Please refresh your browser and make sure it was saved.", 3);
+	
+	// remove this nodevisit from postInProgressArray
+	args.vle.removeFromPOSTInProgressArray(args.nodeVisit);
+};
+
+
 
 /**
  * Retrieve all the node states for a specific node in an array
@@ -360,7 +420,7 @@ View.prototype.viewStudentAssets = function(launchNode) {
 	var addSelectedFileText = this.getI18NString("student_assets_add_selected_file");
 	var deleteSelectedFileText = this.getI18NString("student_assets_delete_selected_file");
 	var doneText = this.getI18NString("done");
-	$('#studentAssetsDiv').dialog({autoOpen:false,closeText:'',resizable:false,width:600,position:['center',50],modal:false,title:this.getI18NString("student_assets_my_files"), 
+	$('#studentAssetsDiv').dialog({autoOpen:false,closeText:'',resizable:false,width:600,show:{effect:"fade",duration:200},hide:{effect:"fade",duration:200},modal:false,title:this.getI18NString("student_assets_my_files"), 
 			buttons:[{text:deleteSelectedFileText,click:remove},{text:doneText,click:done}]});
 
 	/*
@@ -542,6 +602,197 @@ View.prototype.getTeamProjectCompletionPercentage = function() {
 	return teamPercentProjectCompleted;	
 };
 
+/**
+ * Returns true iff specified nodeVisit exists in postInProgressArray
+ * @param nodeVisit
+ */
+View.prototype.isInPOSTInProgressArray = function(nodeVisit) {
+	if (this.postInProgressArray == null) {
+		return false;
+	}
+	for (var i=0; i < this.postInProgressArray.length; i++) {
+		var nodeVisitToCheck = this.postInProgressArray[i];
+		if ($.stringify(nodeVisit) == $.stringify(nodeVisitToCheck)) {
+			return true;
+		}
+	}
+	return false;
+};
+
+/**
+ * Add specified nodeVisit to postInProgressArray
+ * If nodeVisit exists in the postInProgressArray, do nothing
+ * @param nodeVisit
+ */
+View.prototype.addToPOSTInProgressArray = function(nodeVisit) {
+	if (this.postInProgressArray == null) {
+		this.postInProgressArray = [];
+	}
+	if (!this.isInPOSTInProgressArray(nodeVisit)) {
+		this.postInProgressArray.push(nodeVisit);		
+	}
+};
+
+/**
+ * Removes specified nodeVisit from postInProgressArray
+ * If nodeVisit does not exist in the postInProgressArray, do nothing
+ * @param nodeVisit
+ */
+View.prototype.removeFromPOSTInProgressArray = function(nodeVisit) {
+	if (this.postInProgressArray == null) {
+		return;
+	}
+	for (var i=0; i < this.postInProgressArray.length; i++) {
+		var nodeVisitToCheck = this.postInProgressArray[i];
+		if ($.stringify(nodeVisit) == $.stringify(nodeVisitToCheck)) {
+			this.postInProgressArray.splice(i,1);
+		}
+	}
+};
+
+/**
+ * Make a request to GET the CRater response. This invokes the VLEAnnotationController
+ * with a GET request and returns an Annotation with the CRater score/response.
+ * @param stepWorkId
+ * @param nodeStateId
+ */
+View.prototype.getCRaterResponse = function(stepWorkId, nodeStateId) {
+	var postAnnotationsURL = this.getConfig().getConfigParam('getAnnotationsUrl');
+	
+	var getCRaterResponseArgs = {
+		stepWorkId:stepWorkId,
+		nodeStateId:nodeStateId,
+		annotationType:"cRater"
+	};
+	
+	//make the call to GET the annotation
+	this.connectionManager.request('GET', 1, postAnnotationsURL, getCRaterResponseArgs, this.getCRaterResponseCallback, [this, stepWorkId, nodeStateId], this.getCRaterResponseCallbackFail);
+};
+
+/**
+ * Success callback for the CRater Annotation request. Displays the Annotation immediately
+ * if specified in the callee's step content.
+ * @param responseText
+ * @param responseXML
+ * @param args
+ */
+View.prototype.getCRaterResponseCallback = function(responseText, responseXML, args) {
+	if (responseText != null) {
+		try {
+			var annotationJSON = JSON.parse(responseText);
+			var nodeId = annotationJSON.nodeId;
+			
+			// display feedback immediately, if specified in the content
+			var vle = args[0];
+			var nodeStateId = args[2];
+			// check the step content to see if we need to display the CRater feedback to the student.
+			var cRaterJSON = vle.getProject().getNodeById(nodeId).content.getContentJSON().cRater;
+			
+			//var displayCRaterFeedbackImmediately = cRaterJSON.displayCRaterFeedbackImmediately;
+			var displayCRaterScoreToStudent = cRaterJSON.displayCRaterScoreToStudent;
+			var displayCRaterFeedbackToStudent = cRaterJSON.displayCRaterFeedbackToStudent;
+			
+			var cRaterAnnotationJSON = vle.getCRaterNodeStateAnnotationByNodeStateId(annotationJSON,nodeStateId);
+			var cRaterAnnotation = Annotation.prototype.parseDataJSONObj(annotationJSON);
+			
+			//add the CRater annotation to our local collection of annotations
+			vle.annotations.updateOrAddAnnotation(cRaterAnnotation);
+			
+			if (displayCRaterScoreToStudent || displayCRaterFeedbackToStudent) {
+				//we will display the score or feedback (or both) to the student
+				
+				var concepts = cRaterAnnotationJSON.concepts;
+				
+				// now find the feedback that the student should see
+				var scoringRules = cRaterJSON.cRaterScoringRules;
+
+				//get the feedback for the given concepts the student satisfied
+				var feedbackTextObject = vle.getFeedbackFromScoringRules(scoringRules, concepts);
+				
+				//get the feedback text and feedback id
+				var feedbackText = feedbackTextObject.feedbackText;
+				var feedbackId = feedbackTextObject.feedbackId;
+				
+				var message = "";
+				
+				if(displayCRaterScoreToStudent) {
+					//display the score
+					message += "You got a score of " + cRaterAnnotationJSON.score;
+				}
+				
+				if(displayCRaterFeedbackToStudent) {
+					//display the feedback
+					if(displayCRaterScoreToStudent) {
+						message += "\n";
+					}
+					
+					message += "Feedback: " + feedbackText;
+
+					/*
+					 * we are displaying the CRater feedback to the student so we will
+					 * update the node state with the CRater feedback so we know which
+					 * feedback the student received.
+					 */
+					
+					//get the current node visit
+					var currentNodeVisit = vle.state.getCurrentNodeVisit();
+					
+					//get the current node state
+					var latestNodeState = currentNodeVisit.getLatestState();
+					
+					//insert the feedback text and feedback id into the node state
+					latestNodeState.cRaterFeedbackText = feedbackText;
+					latestNodeState.cRaterFeedbackId = feedbackId;
+					
+					/*
+					 * save the current node visit again so the stepwork row in the 
+					 * database will be updated to include the feedback text and feedback id
+					 */
+					vle.postCurrentNodeVisit(vle.state.getCurrentNodeVisit());
+				}
+				
+				if(message != null && message != "") {
+					// display the feedback button
+					vle.displayNodeAnnotation(nodeId);  // display annotation for the current step, if any
+
+					//popup the message to the student
+					eventManager.fire("showNodeAnnotations",[nodeId]);
+				}
+			}			
+		} catch(err) {
+			/*
+			 * failed to parse JSON. this can occur if the item id is invalid which
+			 * causes an error to be returned from the server instead of the JSON
+			 * that we expect.
+			 */
+		}
+	}
+};
+
+/**
+ * Returns the specified NodeState annotation object within the stepwork cRater annotation object
+ */
+View.prototype.getCRaterNodeStateAnnotationByNodeStateId = function(cRaterAnnotationJSON, nodeStateId) {
+	var annotationValues = cRaterAnnotationJSON.value;
+	for (var i=0; i < annotationValues.length; i++) {
+		var annotationValue = annotationValues[i];
+		if (annotationValue.nodeStateId == nodeStateId) {
+			return annotationValue;
+		}
+	}
+	return null;
+};
+
+/**
+ * Error callback for the CRater Annotation request.
+ * @param responseText
+ * @param responseXML
+ * @param args
+ */
+View.prototype.getCRaterResponseCallbackFail = function(responseText, responseXML, args) {
+	//console.log("fail");
+	//console.log(responseText);
+};
 
 //used to notify scriptloader that this script has finished loading
 if(typeof eventManager != 'undefined'){

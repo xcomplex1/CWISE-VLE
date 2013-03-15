@@ -578,6 +578,7 @@ View.prototype.getIdeaBasketByWorkgroupId = function(workgroupId) {
  * @param nodeType the type of the node
  * @return whether this node type implements renderGradingView()
  */
+/*
 View.prototype.isSelfRenderingGradingViewNodeType = function(nodeType) {
 	var isSelfRenderingGradingView = false;
 	
@@ -600,6 +601,7 @@ View.prototype.isSelfRenderingGradingViewNodeType = function(nodeType) {
 	
 	return isSelfRenderingGradingView;
 };
+*/
 
 /**
  * Get the max possible score for the project
@@ -625,7 +627,7 @@ View.prototype.getMaxScoreForProject = function() {
  */
 View.prototype.utils.getExtension = function(text){
 	var ndx = text.lastIndexOf('.');
-	if(ndx){
+	if(-1 < ndx){
 		return text.substring(ndx + 1, text.length);
 	};
 
@@ -636,12 +638,23 @@ View.prototype.utils.getExtension = function(text){
  * Callback function for when the dynamically created frame for uploading assets has recieved
  * a response from the request. Notifies the response and removes the frame.
  */
-View.prototype.assetUploaded = function(e){
-	var htmlFrame = e.target;
-	var frame = window.frames[e.target.id];
+View.prototype.assetUploaded = function(target,view){
+	var htmlFrame = target;
+	var frame = window.frames[target.id];
 	
 	if(frame.document && frame.document.body && frame.document.body.innerHTML != ''){
-		notificationManager.notify(frame.document.body.innerHTML, 3, 'uploadMessage', 'notificationDiv');
+		var message = "";
+		
+		if(frame.document.body.innerHTML != null && frame.document.body.innerHTML.indexOf("server has encountered an error") != -1) {
+			//the server returned a generic error page
+			message = "Error: an error occurred while trying to upload your file, please make sure you do not try to upload files larger than 10 mb";
+		} else {
+			//there was no error so we will display the message that we received
+			message = frame.document.body.innerHTML;
+		}
+		
+		//display the message in the upload manager
+		notificationManager.notify(message, 3, 'uploadMessage', 'notificationDiv');
 		
 		/* set source to blank in case of page reload */
 		htmlFrame.src = 'about:blank';
@@ -650,10 +663,10 @@ View.prototype.assetUploaded = function(e){
 		//eventManager.fire('assetUploadCancel');
 		
 		// refresh edit asset dialog
-		if (e.target.getAttribute('type')=="student") {
+		if (target.getAttribute('type')=="student") {
 			eventManager.fire('viewStudentAssets');			
 		} else {
-			eventManager.fire('viewAssets');
+			eventManager.fire('viewAssets',view.assetEditorParams);
 		}
 		$('#assetProcessing').hide();
 		
@@ -767,6 +780,516 @@ View.prototype.escapeIdForJquery = function(id) {
 	id = id.replace(/\./g, '\\.');
 	
 	return id;
+};
+
+/**
+ * Make a CRater verify request for the given item id
+ * @param itemId the item id to verify
+ */
+View.prototype.makeCRaterVerifyRequest = function(itemId) {
+	//get the url to our servlet that will make the request to the CRater server for us
+	var cRaterRequestUrl = this.config.getConfigParam('cRaterRequestUrl');
+	
+	var requestArgs = {
+		cRaterRequestType:'verify',
+		itemId:itemId
+	};
+	
+	var responseText = this.connectionManager.request('GET', 1, cRaterRequestUrl, requestArgs, this.makeCRaterVerifyRequestCallback, {vle:this}, this.makeCRaterVerifyRequestCallbackFail, true);
+};
+
+/**
+ * The success callback function when making a CRater verify request
+ * @param responseText
+ * @param responseXML
+ * @param args
+ * @returns
+ */
+View.prototype.makeCRaterVerifyRequestCallback = function(responseText, responseXML, args) {
+	var vle = args.vle;
+	
+	//remember the response text in a variable in the vle so we can access it later
+	vle.cRaterResponseText = responseText;
+};
+
+/**
+ * The fail callback function when making a CRater verify request
+ * @param responseText
+ * @param args
+ */
+View.prototype.makeCRaterVerifyRequestCallbackFail = function(responseText, args) {
+	alert('Error: CRater verify request failed');
+};
+
+/**
+ * Check the xml response text to see if the item id is valid
+ * @param responseText the xml response text
+ * @returns whether the crater item is valid or not
+ */
+View.prototype.checkCRaterVerifyResponse = function(responseText) {
+	var isValid = false;
+	
+	/*
+	 * find the text that contains the avail field
+	 * e.g. 
+	 * <item id="Photo_Sun" avail="Y">
+	 */
+	var availMatch = responseText.match(/avail="(\w*)"/);
+	
+	
+	if(availMatch != null && availMatch.length > 1) {
+		/*
+		 * check the match
+		 * e.g.
+		 * availMatch[0] = avail="Y"
+		 * availMatch[1] = Y
+		 */
+		var availValue = availMatch[1];
+		
+		if(availValue != null && availValue == 'Y') {
+			//item id is valid
+			isValid = true;
+		}
+	}
+	
+	return isValid;
+};
+
+
+/**
+ * Get the scoring rules from the crater item verification response xml
+ * @param xml the string with the xml response text from the verify request 
+ */
+View.prototype.getCRaterScoringRulesFromXML = function(xml) {
+	var cRaterScoringRules = [];
+	var zeroScoreScoringRule = false;
+	
+	/*
+	 * find all the scoring rule values
+	 * e.g.
+	 * <scoring_rules>
+	 * <scoring_rule concepts="1-4" nummatches="4" rank="1" score="4"/>
+	 * <scoring_rule concepts="1" nummatches="1" rank="2" score="3"/>
+	 * <scoring_rule concepts="2-4" nummatches="3" rank="3" score="3"/>
+	 * <scoring_rule concepts="2-4" nummatches="1" rank="4" score="2"/>
+	 * <scoring_rule concepts="5" nummatches="1" rank="5" score="1"/>
+	 * </scoring_rules>
+	 */
+	var scoringRules = xml.match(/scoring_rule.*"/g);
+	
+	if(scoringRules != null) {
+		//loop through all the scoring rules
+		for(var x=0; x<scoringRules.length; x++) {
+			
+			var currScoreRule = {};
+			
+			//get a concepts rule e.g. concepts="1-4"
+			var scoringRule = scoringRules[x];
+						
+			//create a match to extract the concept value
+			var conceptsMatch = scoringRule.match(/concepts="(.*?)"/);
+			
+			if(conceptsMatch != null && conceptsMatch.length > 1) {
+				/*
+				 * get the concepts
+				 * conceptsMatch[0] = concepts="1-4"
+				 * conceptsMatch[1] = 1-4
+				 */
+				var concepts = conceptsMatch[1];
+				
+				currScoreRule.concepts = concepts;
+			}
+
+			// create a match to extract the nummatches value
+			var nummatchesMatch = scoringRule.match(/nummatches="(\d*)"/);
+			
+			if(nummatchesMatch != null && nummatchesMatch.length > 1) {
+				/*
+				 * get the nummatches
+				 * nummatchesMatch[0] = nummatches="1"
+				 * nummatchesMatch[1] = 1
+				 */
+				var nummatches = nummatchesMatch[1];
+				
+				currScoreRule.numMatches = nummatches;
+			}
+			
+			
+			//create a match to extract the rank value
+			var rankMatch = scoringRule.match(/rank="(\d*)"/);
+			
+			if(rankMatch != null && rankMatch.length > 1) {
+				/*
+				 * get the rank
+				 * rankMatch[0] = rank="1"
+				 * rankMatch[1] = 1
+				 */
+				var rank = rankMatch[1];
+				
+				currScoreRule.rank = rank;
+			}
+
+			//create a match to extract the score value
+			var scoreMatch = scoringRule.match(/score="(\d*)"/);
+			
+			if(scoreMatch != null && scoreMatch.length > 1) {
+				/*
+				 * get the score
+				 * scoreMatch[0] = score="1"
+				 * scoreMatch[1] = 1
+				 */
+				var score = scoreMatch[1];
+				
+				currScoreRule.score = score;
+				
+				if(score == 0) {
+					//we have found a zero score scoring rule
+					zeroScoreScoringRule = true;
+				}
+			}
+			
+			//set an array as the feedback. put an empty string into the array for the feedback. 
+			currScoreRule.feedback = [this.createCRaterFeedbackTextObject()];
+			
+			cRaterScoringRules.push(currScoreRule);
+		}
+		
+		if(!zeroScoreScoringRule) {
+			//we did not find a zero score scoring rule so we will add one
+			
+			//create the scoring rule
+			var zeroScoreRule = {};
+			zeroScoreRule.concepts = "";
+			zeroScoreRule.numMatches = "";
+			zeroScoreRule.rank = "";
+			zeroScoreRule.score = "0";
+			zeroScoreRule.feedback = [this.createCRaterFeedbackTextObject()];
+			
+			//add the scoring rule to the array of scoring rules
+			cRaterScoringRules.push(zeroScoreRule);
+		}
+	}
+	
+	return cRaterScoringRules;
+};
+
+/**
+ * Create an object that we will put into the feedback array.
+ * This object will contain the fields feedbackText and feedbackId.
+ * @param feedbackText an optional argument that we will set the
+ * feedback text to
+ * @returns an object containing the fields feedbackText and feedbackid
+ */
+View.prototype.createCRaterFeedbackTextObject = function(feedbackText) {
+	//generate a random alphanumeric value e.g. 7fEEeHE73R
+	var feedbackId = this.utils.generateKey();
+	
+	if(feedbackText == null) {
+		//set the default feedbackText value
+		feedbackText = "";
+	}
+	
+	//create the feedback object
+	var feedbackObject = {
+		feedbackText:feedbackText,
+		feedbackId:feedbackId
+	};
+	
+	return feedbackObject;
+};
+
+/**
+ * Get the max score from the xml
+ * @param xml the string with the xml response text from the verify request 
+ */
+View.prototype.getCRaterMaxScoreFromXML = function(xml) {
+	var maxScore = null;
+	
+	/*
+	 * find all the scoring rule values
+	 * e.g.
+	 * <scoring_rules>
+	 * <scoring_rule concepts="1-4" nummatches="4" rank="1" score="4"/>
+	 * <scoring_rule concepts="1" nummatches="1" rank="2" score="3"/>
+	 * <scoring_rule concepts="2-4" nummatches="3" rank="3" score="3"/>
+	 * <scoring_rule concepts="2-4" nummatches="1" rank="4" score="2"/>
+	 * <scoring_rule concepts="5" nummatches="1" rank="5" score="1"/>
+	 * </scoring_rules>
+	 */
+	var scoringRules = xml.match(/score="\d*"/g);
+	
+	if(scoringRules != null) {
+		//loop through all the scoring rules
+		for(var x=0; x<scoringRules.length; x++) {
+			//get a scoring rule e.g. score="4"
+			var scoreRule = scoringRules[x];
+			
+			//create a match to extract the score value
+			var scoreMatch = scoreRule.match(/score="(\d*)"/);
+			
+			if(scoreMatch != null && scoreMatch.length > 1) {
+				/*
+				 * get the score
+				 * scoreMatch[0] = score="4"
+				 * scoreMatch[1] = 4
+				 */
+				var score = parseInt(scoreMatch[1]);
+				
+				//check if we need to update the max score value
+				if(score > maxScore) {
+					maxScore = score;
+				}
+			}
+		}		
+	}
+	
+	return maxScore;
+};
+
+
+/**
+ * Returns the string of concepts converted into an array
+ * @param conceptsString, can be "1,2,3" or "1-4" or "1-4,7" or ""
+ * @return array [1,2,3], [1,2,3,4], [1,2,3,4,7], []
+ */
+View.prototype.convertCRaterConceptsToArray = function(conceptsString) {
+	var allConcepts = [];
+	if (conceptsString && conceptsString != "") {
+		var conceptsArr = conceptsString.split(",");
+		for (var i=0; i<conceptsArr.length; i++) {
+			var conceptsElement = conceptsArr[i];
+			if (conceptsElement.indexOf("-") >= 0) {
+				var conceptsElementArr = conceptsElement.split("-");		
+				for (var k=conceptsElementArr[0]; k <= conceptsElementArr[1]; k++) {
+					allConcepts.push(parseInt(k));							
+				}
+			} else {
+				allConcepts.push(parseInt(conceptsElement));			
+			}
+		}
+	}
+	return allConcepts;
+};
+
+/**
+ * Return true iff the specified studentConcepts exactly matches the specified ruleConcepts
+ * @param studentConcepts string of concepts the student got. like "1,2"
+ * @param ruleConcepts string of concepts in the rule. looks like "1", "1,2", "1-4"
+ */
+View.prototype.satisfiesCRaterRulePerfectly = function(studentConcepts, ruleConcepts) {
+	var studentConceptsArr = this.convertCRaterConceptsToArray(studentConcepts);
+	var ruleConceptsArr = this.convertCRaterConceptsToArray(ruleConcepts);
+	return (studentConceptsArr.length == ruleConceptsArr.length && studentConceptsArr.compare(ruleConceptsArr));
+};
+
+/**
+ * Return true iff the specified studentConcepts matches the specified ruleConcepts numMatches or more times
+ * @param studentConcepts string of concepts the student got
+ * @param ruleConcepts string of concepts in the rule
+ * @param numMatches number of concepts that need to match to be true.
+ */
+View.prototype.satisfiesCRaterRule = function(studentConcepts, ruleConcepts, numMatches) {
+	var studentConceptsArr = this.convertCRaterConceptsToArray(studentConcepts);
+	var ruleConceptsArr = this.convertCRaterConceptsToArray(ruleConcepts);
+	var countMatchSoFar = 0;  // keep track of matched concepts
+	for (var i=0; i < studentConceptsArr.length; i++) {
+		var studentConcept = studentConceptsArr[i];
+		if (ruleConceptsArr.indexOf(studentConcept) >= 0) {
+			countMatchSoFar++;
+		}
+	}
+	return countMatchSoFar >= numMatches;
+};
+
+/**
+ * Get the feedback for the given concepts
+ * @param scoringRules an array of scoring rules
+ * @param concepts a string containing the concepts
+ * @returns the feedback
+ */
+View.prototype.getFeedbackFromScoringRules = function(scoringRules, concepts) {
+	var feedbackSoFar = "No Feedback";
+	var maxScoreSoFar = 0;
+	
+	if (scoringRules) {
+		//loop through all the scoring rules
+		for (var i=0; i < scoringRules.length; i++) {
+			//get a scoring rule
+			var scoringRule = scoringRules[i];
+			
+			if (this.satisfiesCRaterRulePerfectly(concepts, scoringRule.concepts)) {
+				//the concepts perfectly match this scoring rule
+				
+				//if this scoring rule has more than one feedback, choose one randomly
+				feedbackSoFar = this.chooseFeedbackRandomly(scoringRule.feedback);
+				
+				//no longer need to check other rules if we have a pefect match
+				break;
+			} else if (scoringRule.score > maxScoreSoFar && this.satisfiesCRaterRule(concepts, scoringRule.concepts, parseInt(scoringRule.numMatches))) {
+				/*
+				 * the concepts match this scoring rule but we still need to
+				 * look at the other scoring rules to make sure there aren't
+				 * any better matches that will give the student a better score
+				 */
+				
+				//if this scoring rule has more than one feedback, choose one randomly
+				feedbackSoFar = this.chooseFeedbackRandomly(scoringRule.feedback);
+				maxScoreSoFar = scoringRule.score;
+			}
+		}
+	}
+	
+	return feedbackSoFar;
+};
+
+/**
+ * If the feedback is an array we will choose one of the elements at random.
+ * If the feedback is a string we will just return the string.
+ * @param feedback a string or an array of strings
+ * @return a feedback string
+ */
+View.prototype.chooseFeedbackRandomly = function(feedback) {
+	var chosenFeedback = "";
+	
+	if(feedback == null) {
+		//feedback is null
+	} else if(feedback.constructor.toString().indexOf("String") != -1) {
+		//feedback is a string
+		chosenFeedback = feedback;
+	} else if(feedback.constructor.toString().indexOf("Array") != -1) {
+		//feedback is an array
+		
+		if(feedback.length > 0) {
+			/*
+			 * randomly choose one of the elements in the array
+			 * Math.random() returns a value between 0 and 1
+			 * Math.random() * feedback.length returns a value between 0 and feedback.length (not inclusive)
+			 * Math.floor(Math.random() * feedback.length) returns an integer between 0 and feedback.length (not inclusive)
+			 */
+			var index = Math.floor(Math.random() * feedback.length);
+			chosenFeedback = feedback[index];
+		}
+	}
+	
+	return chosenFeedback;
+};
+
+/*
+ * Returns Annotations by specified annotationType
+ * @param annotationType annotation type
+ */
+View.prototype.getAnnotationsByType = function(annotationType) {
+	this.runAnnotations = {};  // looks like {"groups":["A","D","Branch1-A","Branch2-X"] }
+	var processGetAnnotationResponse = function(responseText, responseXML, args) {
+		var thisView = args[0];
+		
+		//parse the xml annotations object that contains all the annotations
+		thisView.runAnnotations = Annotations.prototype.parseDataJSONString(responseText);
+	};
+
+	var annotationsUrlParams = {
+				runId: this.getConfig().getConfigParam('runId'),
+				toWorkgroup: this.getUserAndClassInfo().getWorkgroupId(),
+				fromWorkgroups: this.getUserAndClassInfo().getAllTeacherWorkgroupIds(),
+				periodId:this.getUserAndClassInfo().getPeriodId(),
+				annotationType:annotationType
+			};
+	var fHArgs = null;
+	var synchronous = true;	
+	this.connectionManager.request('GET', 3, this.getConfig().getConfigParam('getAnnotationsUrl'), 
+					annotationsUrlParams, processGetAnnotationResponse, [this], fHArgs, synchronous);
+
+	// lookup the annotationKey in the runAnnotations obj. runAnnotationsObj should be set by this point.
+	return this.runAnnotations;
+};
+
+/*
+ * Finds and initializes any DOM elements with the 'tooltip' class and 
+ * initializes the tooltip plugin for each.
+ * 
+ * Tooltip options can be customized by adding additional attributes to the
+ * target DOM element:
+ * - tooltip-event:'click' sets the tooltip to render on mouse click (vs. hover,
+ * which is the default)
+ * - tooltip-anchor:'top', tooltip-anchor:'bottom', and tooltip-anchor':left' set
+ * the position of the tooltip to top, bottom, and left respectively (default is right)
+ * - tooltip-maxW:'XXXpx' sets the max-width of the tooltip element to XXX pixels
+ * (default is 200px); 
+ */
+View.prototype.insertTooltips = function(){
+	// for all DOM elements with the 'tooltip' class, initialize miniTip (http://goldfirestudios.com/blog/81/miniTip-jQuery-Plugin)
+	$('.tooltip').each(function(){
+		// setup miniTip options
+		var anchor = 'e', event = 'hover', aHide = false, maxW = '200px';
+		if($(this).attr('tooltip-event') == 'click'){
+			event = 'click';
+		}
+		if($(this).attr('tooltip-anchor') == 'top'){
+			anchor = 'n';
+		} else if ($(this).attr('tooltip-anchor') == 'bottom'){
+			anchor = 's';
+		} else if ($(this).attr('tooltip-anchor') == 'left'){
+			anchor = 'w';
+		}
+		if($(this).attr('tooltip-maxW') && $(this).attr('tooltip-maxW').match(/^[0-9]+px$/)){
+			maxW = $(this).attr('tooltip-maxW');
+		} 
+		// initialize miniTip on element
+		$(this).miniTip({
+			anchor:anchor,
+			event:event,
+			aHide:aHide,
+			maxW:maxW,
+			delay:100,
+			offset:1
+		});
+		// remove all tooltip attributes from DOM element
+		$(this).removeAttr('tooltip-event').removeAttr('tooltip-anchor').removeAttr('tooltip-maxW');
+	});
+};
+
+/**
+ * If the given item is a non-whitespace only string, return true.
+ */
+View.prototype.utils.isNonWSString = function(item){
+	if(typeof item == 'string' && /\S/.test(item)){
+		return true;
+	};
+	
+	return false;
+};
+
+/**
+ * Capitalizes the first letter of the given string.
+ * @returns string The new string
+ */
+View.prototype.utils.capitalize = function(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
+/**
+ * Generates and returns a random key of the given length if
+ * specified. If length is not specified, returns a key 10
+ * characters in length.
+ */
+View.prototype.utils.generateKey = function(length){
+	this.CHARS = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r", "s","t",
+	              "u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O",
+	              "P","Q","R","S","T", "U","V","W","X","Y","Z","0","1","2","3","4","5","6","7","8","9"];
+	
+	/* set default length if not specified */
+	if(!length){
+		length = 10;
+	}
+	
+	/* generate the key */
+	var key = '';
+	for(var a=0;a<length;a++){
+		key += this.CHARS[Math.floor(Math.random() * (this.CHARS.length - 1))];
+	};
+	
+	/* return the generated key */
+	return key;
 };
 
 /* used to notify scriptloader that this script has finished loading */

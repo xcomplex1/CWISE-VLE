@@ -7,6 +7,15 @@
 		obj.showFlaggedWork();
 	} else if (type == 'showNavigationTree') {
 		obj.showNavigationTree();
+	} else if (type == 'showNodeAnnotations') {
+		var nodeIdToShow = args[0];
+		// if annotations panel is already open, do not open up another annotations panel
+		if ($("#nodeAnnotationsPanel_"+nodeIdToShow) && 
+				$("#nodeAnnotationsPanel_"+nodeIdToShow).data("dialog") && 
+				$("#nodeAnnotationsPanel_"+nodeIdToShow).data("dialog").isOpen()) {
+			return;
+		}
+		obj.showNodeAnnotations(nodeIdToShow);
 	} else if (type == 'showStepHints') {
 		// if hint is already open, do not open up another hint
 		if ($("#hintsPanel") && 
@@ -15,8 +24,6 @@
 			return;
 		}
 		obj.showStepHints();
-	} else if (type == 'adjustHintSize') {
-		obj.adjustHintSize();
 	} else if(type=='getIdeaBasket') {
 		obj.getIdeaBasket();
 	} else if(type=='ideaBasketChanged') {
@@ -63,58 +70,9 @@ View.prototype.showNavigationTree = function() {
 };
 
 /**
- * Sets size of hint panel to match size of the displayed content.
- * @return
- */
-View.prototype.adjustHintSize = function() {
-	var defaultWidth = 400;
-	var defaultHeight = 250;
-	var widthSoFar = 0;
-	var heightSoFar = 0;	
-	var widthBuffer = 50;    
-	var heightBuffer = 150;
-	$("#hintsPanel").find(".hintText").filter(":visible").children().each(function() { 
-		//console.log("width:" +$(this).width());
-		//console.log("height:" +$(this).height());
-		if ($(this).width() > widthSoFar) {
-			widthSoFar = $(this).width();
-		}
-		heightSoFar += $(this).height();		
-	});	
-	if (widthSoFar + widthBuffer > defaultWidth) {
-		 $('#hintsPanel').dialog("option", "width",widthSoFar+widthBuffer);		
-	} else {
-		 $('#hintsPanel').dialog("option", "width",defaultWidth);		
-	}
-	if (heightSoFar + heightBuffer > defaultHeight) {
-		$('#hintsPanel').dialog("option", "height",heightSoFar+heightBuffer);
-	} else {
-		$('#hintsPanel').dialog("option", "height",defaultHeight);
-	}
-};
-
-/**
- * Display hints for the current step.
- * Hints will popup in a dialog and each hint will
- * be in its own tab
- */
-View.prototype.showStepHints = function() {
-	$('#hintsLink').stop();
-	$('#hintsLink').css('background-color','#FFFA7F');
-	//$('#hintsLink').css('color','#333333');
-	
-	var currentNode = this.getCurrentNode();
-	
-	// show the notes panel
-    $('#hintsPanel').dialog('open');
-		
-	// log when hint was opened
-	var hintState = new HINTSTATE({action:"hintopened",nodeId:currentNode.id});
-	currentNode.view.pushHintState(hintState);
-	eventManager.fire('adjustHintSize');	
-};
-/**
  * Display the flagged work for the project.
+ * 
+ * TODO: i18n
  */
 View.prototype.displayFlaggedWork = function() {
 	var flaggedWorkHtml = "";
@@ -143,8 +101,7 @@ View.prototype.displayFlaggedWork = function() {
 		//get all the node ids in the project
 		var nodeIds = this.getProject().getNodeIds();
 		
-		flaggedWorkHtml += "<div>";
-		flaggedWorkHtml += "<p><b>選擇一個步驟</b></p>";
+		flaggedWorkHtml += "<div id='chooseStep'>選擇一個步驟: ";
 		
 		//select box for the student to choose which step's flagged work to look at
 		flaggedWorkHtml += "<select id='flagNodeIdSelect' onchange='eventManager.fire(\"displayFlaggedWorkForNodeId\")'>";
@@ -169,14 +126,14 @@ View.prototype.displayFlaggedWork = function() {
 				
 				//add an option into the select box
 				flaggedWorkHtml += "<option value=" + nodeId + ">";
-				flaggedWorkHtml += stepTerm + " " + position + ": " + node.title + " (" + node.type + ")";
+				flaggedWorkHtml += stepTerm + " " + position + ": " + node.title;
 				flaggedWorkHtml += "</option>";
 			}
 		}
 		
 		flaggedWorkHtml += "</select>";
 		flaggedWorkHtml += "</div>";
-		flaggedWorkHtml += "<br>";
+		flaggedWorkHtml += "<div class='dialogContent'>";
 		
 		//div that we will use to display the flagged work
 		flaggedWorkHtml += "<div id='flaggedWorkForNodeIdDiv'></div>";
@@ -188,13 +145,16 @@ View.prototype.displayFlaggedWork = function() {
 	//check if the showflaggedwork div exists
     if($('#showflaggedwork').size()==0){
     	//the show flaggedworkdiv does not exist so we will create it
-    	$('<div id="showflaggedwork" style="text-align:left"></div>').dialog({autoOpen:false,closeText:'',width:'96%',height:(document.height * .96),modal:true,title:'標記作業',zindex:9999});
+    	$('<div id="showflaggedwork" style="text-align:left"></div>').dialog({autoOpen:false,closeText:'',modal:true,show:{effect:"fade",duration:200},hide:{effect:"fade",duration:200},title:'教師標記作業',zindex:9999});
     }
     
     //set the html into the div
     $('#showflaggedwork').html(flaggedWorkHtml);
     
     //make the div visible
+    var docHeight = $(document).height()-25;
+	var docWidth = $(document).width()-25;
+	$('#showflaggedwork').dialog({height:docHeight,width:docWidth});
     $('#showflaggedwork').dialog('open');
 
 	//display the flagged work for the node id that is selected in the select box
@@ -211,117 +171,120 @@ View.prototype.displayFlaggedWorkForNodeId = function(nodeId) {
 		nodeId = $('#flagNodeIdSelect').val();
 	}
 	
-	//get the node
-	var node = this.getProject().getNodeById(nodeId);
-	
-	//get all the flags for the current node
-	var flagsForNodeId = this.flags.getAnnotationsByNodeId(nodeId);
-	
-	//get the position
-	var position = this.getProject().getVLEPositionById(nodeId);
-	
-	var flaggedWorkHtml = "";
-	
-	//display the step position, title, and type
-	flaggedWorkHtml += "<div><br><b><u>" + position + " " + node.title + " (" + node.type + ")" + "</u></b><br><br>";
-	
-	//display the prompt for the step
-	flaggedWorkHtml += "Prompt:<br/>";
-	flaggedWorkHtml += node.getPrompt() + "<br/><br/></div><hr size=4 noshade><br/>";
-	
-	var flaggedWorkAnswers = "";
-	
-	//loop through all the flags for the current node
-	for(var y=0; y<flagsForNodeId.length; y++) {
-		//get a flag
-		var flagForNodeId = flagsForNodeId[y];
+	if(nodeId){
+		//get the node
+		var node = this.getProject().getNodeById(nodeId);
 		
-		//get the work that was flagged
-		var flaggedWork = flagForNodeId.data.getLatestWork();
-		var flaggedWorkPostTime = flagForNodeId.postTime;
+		//get all the flags for the current node
+		var flagsForNodeId = this.flags.getAnnotationsByNodeId(nodeId);
 		
-		if(flaggedWorkAnswers != "") {
-			//add line breaks to separate the multiple answers that were flagged
-			flaggedWorkAnswers += "<br/><br/>";
+		//get the position
+		var position = this.getProject().getVLEPositionById(nodeId);
+		
+		var flaggedWorkHtml = "";
+		
+		//display the step position, title, and type
+		//flaggedWorkHtml += "<div class='panelHeader'>" + position + " " + node.title + "</div>";
+		
+		//display the prompt for the step
+		if(node.getPrompt() && node.getPrompt() != ''){
+			flaggedWorkHtml += "<div class='panelHeader'>Question/Instructions:</div>";
+			flaggedWorkHtml += "<div class='dialogSection'><div class='sectionContent showallLatestWork'>" + node.getPrompt() + "</div></div>";
 		}
 		
-		flaggedWorkAnswers += "<div style='border-width:thin; border-style:solid'>";
+		flaggedWorkHtml += "<div class='panelHeader'>Sample Responses:</div><div class='dialogSection'>";
 		
-		//display the flagged work/answer
-		flaggedWorkAnswers += "<div>Answer (Team Anonymous " + (y + 1) + "):</div><br/>";
-		if (node.type == "MySystemNode") {
-			var contentBaseUrl = this.config.getConfigParam('getContentBaseUrl');
-			var divId = "mysystemDiagram_"+flaggedWorkPostTime;
-			flaggedWorkAnswers += "<div id='"+divId+"' contentBaseUrl='"+contentBaseUrl+"' class='mysystem' style=\"height:350px;\">" + flaggedWork + "</div>";
-		} else if (node.type == "SVGDrawNode") {
-    		var contentBaseUrl = this.config.getConfigParam('getContentBaseUrl');
-			var divId = "svgDraw_"+flaggedWorkPostTime;
-			flaggedWork = node.translateStudentWork(flaggedWork);
-			var divStyle = "height:270px; width:360px; border:1px solid #aaa; background-color:#fff;";
-			flaggedWorkAnswers += "<div id='"+divId+"' contentBaseUrl='"+contentBaseUrl+"' class='svgdraw2' style=\"" + divStyle + "\">" + flaggedWork + "</div>";
-    	} else if(this.isSelfRenderingGradingViewNodeType(node.type)) {
-    		flaggedWorkAnswers += "<div id='flaggedStudentWorkDiv_" + flagForNodeId.stepWorkId + "'></div>";
-    	} else {
-			flaggedWorkAnswers += "<div>"+flaggedWork+"</div>";
-		}
+		var flaggedWorkAnswers = "";
 		
-		flaggedWorkAnswers += "</div>";
-	}
-	
-	flaggedWorkHtml += flaggedWorkAnswers;
-
-	//add the html to the flagged work div
-	$('#flaggedWorkForNodeIdDiv').html(flaggedWorkHtml);
-	
-    // inject svgdrawings
-    $('.svgdraw2').each(function(){
-		var svgString = String($(this).html());
-		var contentBaseUrl = $(this).attr("contentBaseUrl");
-		svgString = Utils.decode64(svgString);
-		// shrink svg image to fit
-		svgString = svgString.replace(/(<image.*xlink:href=)"(.*)"(.*\/>)/gmi, '$1'+'"'+contentBaseUrl+'$2'+'"'+'$3');
-		svgString = svgString.replace('<svg width="600" height="450"', '<svg width="360" height="270"');
-		svgString = svgString.replace(/<g>/gmi,'<g transform="scale(0.6)">');
-		var svgXml = Utils.text2xml(svgString); // convert to xml
-		$(this).html('');
-		$(this).append(document.importNode(svgXml.documentElement, true)); // add svg to cell
-	});
-    
-    // print mysystem...should happen after opening showflaggedwork dialog
-	$(".mysystem").each(function() {
-		var json_str = $(this).html();
-		$(this).html("");
-		var divId = $(this).attr("id");
-		var contentBaseUrl = $(this).attr("contentBaseUrl");
-		try {
-			new MySystemPrint(json_str,divId,contentBaseUrl);
-		} catch (err) {
-			// do nothing
-		}
-	});
-	
-	//loop through all the flags for the current node
-	for(var y=0; y<flagsForNodeId.length; y++) {
-		//get a flag
-		var flagForNodeId = flagsForNodeId[y];
-		
-		//only perform this for sensor nodes until we implement it for all other steps
-		if(this.isSelfRenderingGradingViewNodeType(node.type)) {
-
-			//get the nodevisit from the flag
-			var nodeVisit = flagForNodeId.data;
+		//loop through all the flags for the current node
+		for(var y=0; y<flagsForNodeId.length; y++) {
+			//get a flag
+			var flagForNodeId = flagsForNodeId[y];
 			
-			if(nodeVisit != null) {
-				/*
-				 * get the step work id and set it into the nodevisit
-				 * because for some reason it does not have its id set
-				 */
-				nodeVisit.id = flagForNodeId.stepWorkId;
+			//get the work that was flagged
+			var flaggedWork = flagForNodeId.data.getLatestWork();
+			var flaggedWorkPostTime = flagForNodeId.postTime;
+			
+			flaggedWorkAnswers += "<div class='stepWork'>";
+			
+			//display the flagged work/answer
+			flaggedWorkAnswers += "<div class='sectionHead'>Team " + (y + 1) + " (Anonymous):</div>";
+			flaggedWorkAnswers += "<div class='sectionContent'>";
+			if (node.type == "MySystemNode") {
+				var contentBaseUrl = this.config.getConfigParam('getContentBaseUrl');
+				var divId = "mysystemDiagram_"+flaggedWorkPostTime;
+				flaggedWorkAnswers += "<div id='"+divId+"' contentBaseUrl='"+contentBaseUrl+"' class='mysystem showallLatestWork' style=\"height:350px;\">" + flaggedWork + "</div>";
+			} else if (node.type == "SVGDrawNode") {
+				// TODO: remove (move to SVGDrawNode.js)
+	    		var contentBaseUrl = this.config.getConfigParam('getContentBaseUrl');
+				var divId = "svgDraw_"+flaggedWorkPostTime;
+				flaggedWork = node.translateStudentWork(flaggedWork);
+				var divStyle = "height:270px; width:360px; border:1px solid #aaa; background-color:#fff;";
+				flaggedWorkAnswers += "<div id='"+divId+"' contentBaseUrl='"+contentBaseUrl+"' class='svgdraw2 showallLatestWork' style=\"" + divStyle + "\">" + flaggedWork + "</div>";
+			} else if(node.hasGradingView()) {
+	    		flaggedWorkAnswers += "<div class='showallLatestWork' id='flaggedStudentWorkDiv_" + flagForNodeId.stepWorkId + "'></div>";
+	    	} else {
+				flaggedWorkAnswers += "<div class='showallLatestWork'>"+flaggedWork+"</div>";
+			}
+			
+			flaggedWorkAnswers += "</div></div>";
+		}
+		
+		flaggedWorkHtml += flaggedWorkAnswers;
+	
+		//add the html to the flagged work div
+		$('#flaggedWorkForNodeIdDiv').html(flaggedWorkHtml);
+		
+	    // inject svgdrawings
+	    $('.svgdraw2').each(function(){
+			var svgString = String($(this).html());
+			var contentBaseUrl = $(this).attr("contentBaseUrl");
+			svgString = Utils.decode64(svgString);
+			// shrink svg image to fit
+			svgString = svgString.replace(/(<image.*xlink:href=)"(.*)"(.*\/>)/gmi, '$1'+'"'+contentBaseUrl+'$2'+'"'+'$3');
+			svgString = svgString.replace('<svg width="600" height="450"', '<svg width="360" height="270"');
+			svgString = svgString.replace(/<g>/gmi,'<g transform="scale(0.6)">');
+			var svgXml = Utils.text2xml(svgString); // convert to xml
+			$(this).html('');
+			$(this).append(document.importNode(svgXml.documentElement, true)); // add svg to cell
+		});
+	    
+	    // print mysystem...should happen after opening showflaggedwork dialog
+		$(".mysystem").each(function() {
+			var json_str = $(this).html();
+			$(this).html("");
+			var divId = $(this).attr("id");
+			var contentBaseUrl = $(this).attr("contentBaseUrl");
+			try {
+				new MySystemPrint(json_str,divId,contentBaseUrl);
+			} catch (err) {
+				// do nothing
+			}
+		});
+		
+		//loop through all the flags for the current node
+		for(var y=0; y<flagsForNodeId.length; y++) {
+			//get a flag
+			var flagForNodeId = flagsForNodeId[y];
+			
+			//only perform this for nodes that have a grading view
+			if(node.hasGradingView()) {
+	
+				//get the nodevisit from the flag
+				var nodeVisit = flagForNodeId.data;
 				
-				var workgroupId = parseInt(flagForNodeId.toWorkgroup);
-				
-				//render the work into the div to display it
-				node.renderGradingView("flaggedStudentWorkDiv_" + nodeVisit.id, nodeVisit, "flag_", workgroupId);					
+				if(nodeVisit != null) {
+					/*
+					 * get the step work id and set it into the nodevisit
+					 * because for some reason it does not have its id set
+					 */
+					nodeVisit.id = flagForNodeId.stepWorkId;
+					
+					var workgroupId = parseInt(flagForNodeId.toWorkgroup);
+					
+					//render the work into the div to display it
+					node.renderGradingView("flaggedStudentWorkDiv_" + nodeVisit.id, nodeVisit, "flag_", workgroupId);					
+				}
 			}
 		}
 	}
@@ -378,8 +341,8 @@ View.prototype.displayShowAllWork = function() {
 	    
 	    var vleState = this.state;
 	    
-	    //get all the nodeIds in the projecte except HtmlNodes
-	    var nodeIds = this.getProject().getNodeIds("HtmlNode");
+	    //get all the nodeIds in the projecte except nodes that do not have a grading view
+	    var nodeIds = this.getProject().getNodeIds(true);
 	    
 	    var numStepsCompleted = 0;
 	    
@@ -402,23 +365,32 @@ View.prototype.displayShowAllWork = function() {
 		var teamPercentProjectCompleted = Math.floor((numStepsCompleted / nodeIds.length) * 100) + "%";
 	    
 		// var closeButton1 = "<a href='#' class='container-close'>Close</a>";
-		
-	    var scoresDiv1 = "<table id='showAllWorkScoresTable'><tr><td class='scoreHeader' colspan='4'>目前分數 & 進展</td></tr>";
+		// TODO: i18n
+	    var scoresDiv1 = "<table class='wisetable'>";
 	    
-	    var scoresDiv2 = "<tr><td>教師評悶</td><td>電腦評分</td><td>總分</td><td>% 專題完成度</td></tr>";
+	    var scoresDiv2 = "<thead><tr><th>教師評分</th><th>電腦評分</th><th>總分</th><th>% 專題完成度</th></tr></thead>";
 	    	
-	    var scoresDiv3 = "<tr><td class='scoreValue'>" + totalScoreForWorkgroup + "/" + totalPossibleForWorkgroup + "</td><td class='scoreValue'>無</td><td class='scoreValue'>" + totalScoreForWorkgroup + "/" + totalPossibleForProject + "</td><td class='scoreValue'>" + teamPercentProjectCompleted + "</td></tr></table>";
-
+	    var scoresDiv3 = "<tr><td class='scoreValue'>" + totalScoreForWorkgroup + "/" + totalPossibleForWorkgroup + "</td><td class='scoreValue'>無</td><td class='scoreValue'>" + totalScoreForWorkgroup + "/" + totalPossibleForProject + "</td><td class='scoreValue'><div class='pValue'>" + teamPercentProjectCompleted + "</div><div id='teamProgress' class='progress'></td></tr></table>";
 	    
-		allWorkHtml = "<div id=\"showWorkContainer\">" + scoresDiv1 + scoresDiv2 + scoresDiv3 + "<br><hr class='showAllWorkHR'><br>" + this.project.getShowAllWorkHtml(this.project.getRootNode(), true) + "</div>";
-
+		allWorkHtml = "<div id='showWorkContainer' class='dialogContent'>" + scoresDiv1 + scoresDiv2 + scoresDiv3 + this.project.getShowAllWorkHtml(this.project.getRootNode(), true) + "</div>";
+		
 	    if($('#showallwork').size()==0){
-	    	$('<div id="showallwork"></div>').dialog({autoOpen:false,closeText:'',width:'96%',height:(document.height * .96),modal:true,title:'我的作業(使用教師回饋與評分)'});
+	    	$('<div id="showallwork"></div>').dialog({autoOpen:false,closeText:'',modal:true,show:{effect:"fade",duration:200},hide:{effect:"fade",duration:200},title:'我的作業(使用教師回饋與評分)'});
 	    }	    
 	    
 	    $('#showallwork').html(allWorkHtml);
 	    
+	    //the default bar size, we will use this for the thickness of the hr
+		var percentBarSize = 0;
+		
+		//check if the percent complete is 0%
+		if(teamPercentProjectCompleted != '0%') {
+			//set the thickness to 3
+			percentBarSize = 3;
+		}
+	    
 	    // inject svgdrawings
+		// TODO: show snapshots (if enabled); move this to SVGDrawNode.js renderGradingView
 	    $('.svgdraw').each(function(){
 			var svgString = String($(this).html());
 			var contentBaseUrl = $(this).attr("contentBaseUrl");
@@ -432,7 +404,17 @@ View.prototype.displayShowAllWork = function() {
 			$(this).append(document.importNode(svgXml.documentElement, true)); // add svg to cell
 		});
 	    
+	    var docHeight = $(document).height()-25;
+		var docWidth = $(document).width()-25;
+		$('#showallwork').dialog({height:docHeight,width:docWidth});
 	    $('#showallwork').dialog('open');
+	    $('#showallwork').scrollTop(0);
+	    
+	    //display the percentage and jqueryui progressbar
+		var completedVal = parseInt(teamPercentProjectCompleted.replace('%',''));
+		var item = document.getElementById("teamProgress");
+		$(item).progressbar({value: completedVal});
+		
 	    // print mysystem...should happen after opening showallworkdialog
 		$(".mysystem").each(function() {
 			var json_str = $(this).html();
@@ -454,8 +436,8 @@ View.prototype.displayShowAllWork = function() {
 			//get a node object
 			var node = this.project.getNodeById(nodeIds[x]);
 
-			//only perform this for sensor nodes until we implement it for all other steps
-			if(this.isSelfRenderingGradingViewNodeType(node.type)) {
+			//only perform this for steps that have a grading view
+			if(node.hasGradingView()) {
 				//get the node id
 				var nodeId = node.id;
 				
@@ -503,15 +485,14 @@ View.prototype.getAnnotations = function(callerId) {
 		thisView.annotationsRetrieved = true;
 		eventManager.fire('getAnnotationsComplete', callerId);
 	};
-
+	
 	var annotationsUrlParams = {
 				runId: this.getConfig().getConfigParam('runId'),
 				toWorkgroup: this.getUserAndClassInfo().getWorkgroupId(),
 				fromWorkgroups: this.getUserAndClassInfo().getAllTeacherWorkgroupIds(),
 				periodId:this.getUserAndClassInfo().getPeriodId()
 			};
-	
-	this.connectionManager.request('GET', 3, this.getConfig().getConfigParam('getAnnotationsUrl'), annotationsUrlParams, processGetAnnotationResponse, [this, callerId]);
+	this.connectionManager.request('GET', 3, this.getConfig().getConfigParam('getAnnotationsUrl'), annotationsUrlParams, processGetAnnotationResponse, [this, callerId], null, true);
 };
 
 /**
@@ -641,6 +622,77 @@ View.prototype.checkForNewTeacherAnnotations = function() {
 };
 
 /**
+ * Creates a label and an input DOM element for the specified idea attribute
+ * @param attribtue JS object with the attribute settings
+ * @returns jQuery DOM element
+ */
+View.prototype.createAddAnIdeaAttribute = function(attribute){
+	var inputContent = '', dialog = 'addAnIdea';
+	var type = attribute.type;
+	var labelText = attribute.name, requiredClass = '';
+	if(attribute.isRequired){
+		labelText += '*';
+		requiredClass = 'required';
+	}
+	var idName = dialog + '_' + type + '_' + attribute.id;
+	var $inputLabel = null, $input = null, $custom = null;
+	if(type=='label' || type=='source'){
+		$inputLabel = $('<label for="' + idName + '">' + labelText + ': </label>');
+		$input = $(document.createElement('select')).attr('id', idName).attr('name', idName).addClass(requiredClass);
+		$input.append('<option value="">Choose One:</option>');
+		for(var a=0;a<attribute.options.length;a++){
+			var option = '<option value="' + attribute.options[a] + '">' + attribute.options[a] + '</option>';
+			$input.append(option);
+		}
+		if('allowCustom' in attribute && attribute.allowCustom){
+			$input.append('<option value="Other">Other</option>');
+			$custom = $(document.createElement('div')).attr('id',dialog + '_other_' + attribute.id).addClass('attributeOther');
+			$custom.append('<label for="' + dialog + '_other_' + attribute.id +'">Please specify: </label>');
+			$customInput = $('<input type="text" name="' + dialog + '_other_' + attribute.id +'" class="other required inactive" size="25" minlength="2" maxlength="25"></input>').addClass(requiredClass);
+			$custom.append($customInput);
+			$input.change(function(){
+				if($(this).val() == 'Other'){
+					$custom.children().removeClass('inactive');
+					$custom.show();
+				} else {
+					$custom.hide();
+					$custom.children().addClass('inactive');
+				}
+			});
+		}
+	} else if (type=='tags') {
+		$inputLabel = $('<div><label for="' + idName + '">' + labelText + ' (select all that apply): </label><div>');
+		$input = $(document.createElement('div'));
+		if(attribute.isRequired){
+			requiredClass = 'require-one';
+		}
+		for(var x=0;x<attribute.options.length;x++){
+			var option = $('<input type="checkbox" name="' + idName + '" value="' + attribute.options[x] + '" class="' + requiredClass + '">' + '<span>' + attribute.options[x] + '</span>');
+			$input.append(option);
+		}
+	} else if(type=='icon'){
+		$inputLabel = $('<div><label for="' + idName + '">' + labelText + ' (select one): </label><div>');
+		$input = $(document.createElement('div'));
+		for(var x=0;x<attribute.options.length;x++){
+			var text = 'None';
+			if(attribute.options[x] != 'blank'){
+				text = '<img src="./images/ideaManager/' + attribute.options[x] + '.png" alt="' + attribute.options[x] + '" />';
+			}
+			var option = $('<input type="radio" name="' + idName + '" value="' + attribute.options[x] + '" class="' + requiredClass + '"><span>' + text + '</span>');
+			$input.append(option);
+		}
+	}
+	
+	if($inputLabel && $input){
+		inputContent = $(document.createElement('div')).addClass('attribute').addClass(type).attr('id',dialog + '_attribute_' + attribute.id).append($inputLabel).append($input);
+		if($custom){
+			inputContent.append($custom);
+		}
+	}
+	return inputContent;
+};
+
+/**
  * Displays the Add an Idea dialog popup so the student can create a new Idea
  */
 View.prototype.displayAddAnIdeaDialog = function() {
@@ -657,96 +709,185 @@ View.prototype.displayAddAnIdeaDialog = function() {
 	//check if the addAnIdeaDiv exists
 	if($('#addAnIdeaDiv').size()==0){
 		//it does not already exist so we will create it
-    	$('<div id="addAnIdeaDiv" style="text-align:left"></div>').dialog({autoOpen:false,closeText:'',width:470,height:240,resizable:false,modal:false,title:this.getI18NString("idea_basket_add_an_idea"),position:[300,40],buttons:[{text:this.getI18NString("ok"),click:function() {eventManager.fire("addIdeaToBasket");}},{text:this.getI18NString("cancel"),click:function() {$(this).dialog("close");}}]});
+		var title = this.getI18NString("idea_basket_add_an_idea");
+		if('ideaManagerSettings' in this.projectMetadata.tools){
+			var imSettings = this.projectMetadata.tools.ideaManagerSettings;
+			if('addIdeaTerm' in imSettings && this.utils.isNonWSString(imSettings.addIdeaTerm)){
+				title = imSettings.addIdeaTerm;
+			}
+		}
+    	$('<div id="addAnIdeaDiv" style="text-align:left"></div>').dialog({autoOpen:false,closeText:'',width:470,height:'auto',resizable:false,show:{effect:"fade",duration:200},hide:{effect:"fade",duration:200},modal:false,title:title,position:'center',
+    		buttons:[
+    		         {text:this.getI18NString("ok"),click:function() {eventManager.fire("addIdeaToBasket");}},
+    		         {text:this.getI18NString("cancel"),click:function() {$(this).dialog("close");}}
+    		         ],
+    		open: function(event,ui){
+    			$.validator.addMethod('require-one', function (value) {
+  		          return $('.require-one:checked').size() > 0; }, 'Please select at least one (1).');
+	  			var checkboxes = $('#ideaForm .require-one');
+	  			var checkbox_names = $.map(checkboxes, function(e,i) { return $(e).attr("name"); }).join(" ");
+	
+	  			$('#addAnIdeaForm').validate({
+	  				groups: { checks: checkbox_names },
+	  				errorPlacement: function(error, element) {
+	  		             if (element.attr("type") == "checkbox" || element.attr('type') == 'radio'){
+	  		            	 error.insertAfter(element.parent().children(':last'));
+	  		             } else {
+	  		            	 error.insertAfter(element);
+	  		             }
+	  				},
+	  				ignore: '.inactive'
+	  			});
+    		}
+    	});
     }
     
     //the html we will insert into the popup
     var addAnIdeaHtml = "";
     
-    addAnIdeaHtml += "<form class='cmxform' id='ideaForm' method='get' action=''>";
-    addAnIdeaHtml += "<fieldset>";
-    addAnIdeaHtml += "			<p><label for='text'>在這裡輸入您的想法*：</label><input id='addAnIdeaText' type='text' name='text' size='30' class='required' minlength='2' maxlength='150'></input></p>";
-    addAnIdeaHtml += "			<table>";
-    addAnIdeaHtml += "				<tr>";
-    addAnIdeaHtml += "					<td>";
-    addAnIdeaHtml += "			<p style:'height:24px; line-height:24px;'>";
-    addAnIdeaHtml += "				<label for='source'>來源*： </label>";
-    addAnIdeaHtml += "				<select id='addAnIdeaSource' name='source' class='required' style='height:24px;'>";
-    addAnIdeaHtml += "				  <option value='empty'>選一個：</option>";	
-    addAnIdeaHtml += "				  <option value='Evidence Step'>證據步驟</option>";
-    addAnIdeaHtml += "				  <option value='Visualization or Model'>視覺化或模型</option>";
-    addAnIdeaHtml += "				  <option value='Movie/Video'>電影/電視</option>";
-    addAnIdeaHtml += "				  <option value='Everyday Observation'>每日的觀察</option>";
-    addAnIdeaHtml += "				  <option value='School or Teacher'>學校或老師</option>";
-    addAnIdeaHtml += "				  <option value='Other'>其他</option>";
-    addAnIdeaHtml += "				</select>";
-    addAnIdeaHtml += "			</p>";
-    addAnIdeaHtml += "					</td>";
-    addAnIdeaHtml += "					<td>";
-    addAnIdeaHtml += "			<p id='addAnIdeaOtherSource' style='display:none'><label for='other'>Specify*: </label><input id='addAnIdeaOther' name='other' size='15' minlength='2' maxlength='25'></input></p>";
-    addAnIdeaHtml += "					</td>";
-    addAnIdeaHtml += "				</tr>";
-    addAnIdeaHtml += "			</table>";
-    addAnIdeaHtml += "			<p><label for='tags'>關鍵字： </label><input id='addAnIdeaTags' name='tags' size='20' maxlength='20'></input></p>";
-    addAnIdeaHtml += "				<p>";
-	addAnIdeaHtml += "				<label for='flag'>標籤(選一個)*： </label>";
-	addAnIdeaHtml += "				<input type='radio' name='addAnIdeaFlag' value='blank' class='required' checked style='margin-left:0;'><span style='vertical-align:top; line-height:24px;'> 無</span>";
-   	addAnIdeaHtml += "				<input type='radio' name='addAnIdeaFlag' value='important'><img src='images/ideaManager/important.png' alt='重要的' /><span style='vertical-align:top; line-height:24px;'>重要</span>";
-    addAnIdeaHtml += "				<input type='radio' name='addAnIdeaFlag' value='question'><img src='images/ideaManager/question.png' alt='有疑問的' /><span style='vertical-align:top; line-height:24px;'>不確定</span>";
-    //addAnIdeaHtml += "				<input type='radio' name='addAnIdeaFlag' value='check'><img src='images/ideaManager/check.png' alt='check' />";
-    addAnIdeaHtml += "				</p>";
-    addAnIdeaHtml += "	</fieldset>";
-    addAnIdeaHtml += "</form>";
+    var imVersion = 1, imSettings = {};
+    if('ideaManagerSettings' in this.projectMetadata.tools){
+    	imSettings = this.projectMetadata.tools.ideaManagerSettings;
+    	imVersion = this.projectMetadata.tools.ideaManagerSettings.version;
+    }
+    
+    if(imVersion > 1){
+    	addAnIdeaHtml = $("<form class='cmxform' id='addAnIdeaForm' method='get' action=''></form>");
+    	var fieldset = $(document.createElement('fieldset'));
+    	fieldset.append("<div><label for='text'>Type your " + imSettings.ideaTerm + " here*:</label><input id='addAnIdeaText' type='text' name='text' size='30' class='required' minlength='2' maxlength='150'></input></div>");
+    	var attributes = imSettings.ideaAttributes;
+    	for(var i=0;i<attributes.length;i++){
+    		fieldset.append(this.createAddAnIdeaAttribute(attributes[i]));
+    	}
+    	addAnIdeaHtml.append(fieldset);
     	
-    //insert the html into the popup
-    $('#addAnIdeaDiv').html(addAnIdeaHtml);
+    	//insert the html into the popup
+        $('#addAnIdeaDiv').html('').append(addAnIdeaHtml);
+    } else {
+    	addAnIdeaHtml += "<form class='cmxform' id='addAnIdeaForm' method='get' action=''>";
+        addAnIdeaHtml += "<fieldset>";
+    	addAnIdeaHtml += "			<p><label for='text'>在這裡輸入您的想法*：</label><input id='addAnIdeaText' type='text' name='text' size='30' class='required' minlength='2' maxlength='150'></input></p>";
+    	addAnIdeaHtml += "			<table>";
+        addAnIdeaHtml += "				<tr>";
+    	addAnIdeaHtml += "					<td>";
+        addAnIdeaHtml += "			<p style:'height:24px; line-height:24px;'>";
+        addAnIdeaHtml += "				<label for='source'>來源*： </label>";
+        addAnIdeaHtml += "				<select id='addAnIdeaSource' name='source' class='required' style='height:24px;'>";
+        addAnIdeaHtml += "				  <option value='empty'>選一個：</option>";	
+        addAnIdeaHtml += "				  <option value='Evidence Step'>證據步驟</option>";
+        addAnIdeaHtml += "				  <option value='Visualization or Model'>視覺化或模型</option>";
+        addAnIdeaHtml += "				  <option value='Movie/Video'>電影/電視</option>";
+        addAnIdeaHtml += "				  <option value='Everyday Observation'>每日的觀察</option>";
+        addAnIdeaHtml += "				  <option value='School or Teacher'>學校或老師</option>";
+        addAnIdeaHtml += "				  <option value='Other'>Other</option>";
+        addAnIdeaHtml += "				</select>";
+        addAnIdeaHtml += "			</p>";
+        addAnIdeaHtml += "					</td>";
+        addAnIdeaHtml += "					<td>";
+        addAnIdeaHtml += "			<p id='addAnIdeaOtherSource' style='display:none'><label for='other'>Specify*: </label><input id='addAnIdeaOther' name='other' size='15' minlength='2' maxlength='25'></input></p>";
+        addAnIdeaHtml += "					</td>";
+        addAnIdeaHtml += "				</tr>";
+        addAnIdeaHtml += "			</table>";
+        addAnIdeaHtml += "			<p><label for='tags'>關鍵字： </label><input id='addAnIdeaTags' name='tags' size='20' maxlength='20'></input></p>";
+        addAnIdeaHtml += "				<p>";
+    	addAnIdeaHtml += "				<label for='flag'>標籤(選一個)*： </label>";
+    	addAnIdeaHtml += "				<input type='radio' name='addAnIdeaFlag' value='blank' class='required' checked style='margin-left:0;'><span style='vertical-align:top; line-height:24px;'> 無</span>";
+       	addAnIdeaHtml += "				<input type='radio' name='addAnIdeaFlag' value='important'><img src='images/ideaManager/important.png' alt='重要的' /><span style='vertical-align:top; line-height:24px;'>重要</span>";
+        addAnIdeaHtml += "				<input type='radio' name='addAnIdeaFlag' value='question'><img src='images/ideaManager/question.png' alt='有疑問的' /><span style='vertical-align:top; line-height:24px;'>不確定</span>";
+        //addAnIdeaHtml += "				<input type='radio' name='addAnIdeaFlag' value='check'><img src='images/ideaManager/check.png' alt='check' />";
+        addAnIdeaHtml += "				</p>";
+        addAnIdeaHtml += "	</fieldset>";
+        addAnIdeaHtml += "</form>";
+        
+        //insert the html into the popup
+        $('#addAnIdeaDiv').html(addAnIdeaHtml);
+        
+        //display or hide the specify other source field when Other is chosen or not chosen
+		$('#addAnIdeaSource').change(function(){
+			if($('#addAnIdeaSource').val()=='Other'){
+				$('#addAnIdeaOtherSource').show();
+				$('#addAnIdeaOther').addClass('required');
+			} else {
+				$('#addAnIdeaOtherSource').hide();
+				$('#addAnIdeaOther').removeClass('required');
+			}
+		});
+    }
 	
+    // close all dialogs
+    this.eventManager.fire('closeDialogs');
+    
 	//make the popup visible
 	$('#addAnIdeaDiv').dialog('open');
-	
-	//display or hide the specify other source field when Other is chosen or not chosen
-	$('#addAnIdeaSource').change(function(){
-		if($('#addAnIdeaSource').val()=='Other'){
-			$('#addAnIdeaOtherSource').show();
-			$('#addAnIdeaOther').addClass('required');
-		} else {
-			$('#addAnIdeaOtherSource').hide();
-			$('#addAnIdeaOther').removeClass('required');
+};
+
+/**
+ * Get the array of attributes specified in the add idea dialog
+ * @returns attributes Array of attributes for the idea
+ */
+View.prototype.getIdeaAttributes = function(){
+	var attributes = [], form = $('#addAnIdeaForm'), mode = 'addAnIdea';
+	$('.attribute',form).each(function(){
+		var attribute = {};
+		var attrId = $(this).attr('id').replace(mode + '_attribute_','');
+		var type = '';
+		if($(this).hasClass('label')){
+			type = 'label';
+		} else if($(this).hasClass('source')){
+			type = 'source';
+		} else if($(this).hasClass('icon')){
+			type = 'icon';
+			attribute.value = $('[name=' + mode + '_' + type + '_' + attrId + ']:checked').val();
+		} if($(this).hasClass('tags')){
+			type = 'tags';
+			var tags = [];
+			$('[name=' + mode + '_' + type + '_' + attrId + ']:checked').each(function(){
+				tags.push($(this).val());
+			});
+			attribute.value = tags;
 		}
+		if(type=='label' || type=='source'){
+			if($('#' + mode + '_' + type + '_' + attrId).val() == 'Other'){
+				attribute.value = 'Other: ' + $('input[name="' + mode + '_other_' + attrId + '"]').val();
+			} else {
+				attribute.value = $('#' + mode + '_' + type + '_' + attrId).val();
+			} 
+		}
+		attribute.id = attrId, attribute.type = type;
+		attributes.push(attribute);
 	});
+	return attributes;
 };
 
 /**
  * Add the idea to the basket and save the basket back to the server
  */
 View.prototype.addIdeaToBasket = function() {
-	//get the values the student entered
-	var text = $('#addAnIdeaText').val();
+	var view = this;
+	var imVersion = 1;
+	if('ideaManagerSettings' in this.projectMetadata.tools){
+		imVersion = this.projectMetadata.tools.ideaManagerSettings.version;
+	}
 	
-	if(text == "") {
-		alert("請在想法區中輸入文字");
-	} else {
-		
-		var source = $('#addAnIdeaSource').val();
-		if(source == 'empty'){
-			alert('請選擇您的想法來源');
-		} else {
-			var tags = $('#addAnIdeaTags').val();
-			var flag = $("input[@name=addAnIdeaFlag]:checked").val();
-			
-			//get the node id, node name and vle position for the step
-			var nodeId = this.getCurrentNode().id;
-			var nodeName = this.getCurrentNode().getTitle();
-			var vlePosition = this.getProject().getVLEPositionById(nodeId);
-			
-			//prepend the vlePosition so nodeName will now look something like "2.3: How Airbags Work"
-			nodeName = vlePosition + ": " + nodeName;
+	//get the node id, node name and vle position for the step
+	var nodeId = this.getCurrentNode().id;
+	var nodeName = this.getCurrentNode().getTitle();
+	var vlePosition = this.getProject().getVLEPositionById(nodeId);
 	
-			//get the idea basket
-			var ideaBasket = this.ideaBasket;
+	//prepend the vlePosition so nodeName will now look something like "2.3: How Airbags Work"
+	nodeName = vlePosition + ": " + nodeName;
+
+	//get the idea basket
+	var ideaBasket = this.ideaBasket;
+	
+	if(imVersion > 1){
+		if($("#addAnIdeaForm").validate().form()){
+			//get the values the student entered
+			var text = $('#addAnIdeaText').val();
+			var attributes = view.getIdeaAttributes();
 			
 			//create and add the new idea to the basket
-			ideaBasket.addIdeaToBasketArray(text,source,tags,flag,nodeId,nodeName);
+			ideaBasket.addIdeaToBasketArrayV2(text,attributes,nodeId,nodeName);
 			
 			ideaBasket.saveIdeaBasket(this);
 			
@@ -755,6 +896,43 @@ View.prototype.addIdeaToBasket = function() {
 			
 			// update idea count on toolbar
 			ideaBasket.updateToolbarCount(1,true);
+		}
+	} else {
+		//get the values the student entered
+		var text = $('#addAnIdeaText').val();
+		
+		if(text == "") {
+			alert("請在想法區中輸入文字");
+		} else {
+			
+			var source = $('#addAnIdeaSource').val();
+			if(source == "Other") {
+				var otherText = $('#addAnIdeaOther').val();
+				if(view.utils.isNonWSString(otherText)){
+					source = "Other: " + otherText;
+				} else {
+					alert("請輸入您的想法來源。");
+					return;
+				}
+			}
+			
+			if(source == 'empty'){
+				alert('請選擇一個您的想法來源。');
+			} else {
+				var tags = $('#addAnIdeaTags').val();
+				var flag = $("input[@name=addAnIdeaFlag]:checked").val();
+				
+				//create and add the new idea to the basket
+				ideaBasket.addIdeaToBasketArray(text,source,tags,flag,nodeId,nodeName);
+				
+				ideaBasket.saveIdeaBasket(this);
+				
+				//close the create an idea popup
+				$('#addAnIdeaDiv').dialog('close');		
+				
+				// update idea count on toolbar
+				ideaBasket.updateToolbarCount(1,true);
+			}
 		}
 	}
 };
@@ -819,7 +997,16 @@ View.prototype.displayIdeaBasket = function() {
 		//it does not exist so we will create it
 		$('#w4_vle').append('<div id="ideaBasketDiv"></div>');
 		$('#ideaBasketDiv').html('<iframe id="ideaBasketIfrm" name="ideaBasketIfrm" frameborder="0" width="100%" height="99%"></iframe><div id="ideaBasketOverlay" style="display:none;"></div>');
-		$('#ideaBasketDiv').dialog({autoOpen:false,closeText:'',resizable:true,modal:true,width:800,height:500,position:'center',title:this.getI18NString("idea_basket"),close:this.ideaBasketDivClose,
+		
+		var title = this.getI18NString("idea_basket");
+		if('ideaManagerSettings' in this.projectMetadata.tools){
+			var imSettings = this.projectMetadata.tools.ideaManagerSettings;
+			if('basketTerm' in imSettings && this.utils.isNonWSString(imSettings.basketTerm)){
+				title = imSettings.basketTerm;
+			}
+		}
+		
+		$('#ideaBasketDiv').dialog({autoOpen:false,closeText:'',resizable:true,modal:true,show:{effect:"fade",duration:200},hide:{effect:"fade",duration:200},position:'center',title:title,open:this.ideaBasketDivOpen,close:this.ideaBasketDivClose,
 			// because idea basket content is delivered in an iframe
 			// need to show transparent div overlay when dragging/resizing dialog
 			// so that iframe does not catch mouse movements and interupt dragging/resizing
@@ -843,7 +1030,15 @@ View.prototype.displayIdeaBasket = function() {
 	 * if it's already open, we don't have to do anything
 	 */
 	if($('#ideaBasketDiv').is(':hidden')) {
+		// close all dialogs
+		this.eventManager.fire('closeDialogs');
+		
 		//open the dialog
+		var docHeight = $(document).height()-25;
+		if(docHeight>499){
+			docHeight = 500;
+		}
+		$('#ideaBasketDiv').dialog({width:800,height:docHeight});
 		$('#ideaBasketDiv').dialog('open');
 		
 		if($('#ideaBasketIfrm').attr('src') == null) {
@@ -860,9 +1055,26 @@ View.prototype.displayIdeaBasket = function() {
 			 * the ideaManager.html has already previously been loaded
 			 * so we just need to reload the idea basket contents
 			 */
-			window.frames['ideaBasketIfrm'].loadIdeaBasket(ideaBasketJSONObj, true);
+			var imSettings = null;
+			if('ideaManagerSettings' in this.projectMetadata.tools){
+				imSettings = this.projectMetadata.tools.ideaManagerSettings;
+			}
+			window.frames['ideaBasketIfrm'].loadIdeaBasket(ideaBasketJSONObj, true, this, imSettings);
 		}		
 	}
+};
+
+/**
+ * Called when the idea basket dialog popup is opened
+ */
+View.prototype.ideaBasketDivOpen = function() {
+	/*
+	 * remove href attribute in 'X' close link of ui-dialog, as clicking
+	 * X to close dialog results in window request for '/vlewrapper/vle/#'
+	 * after deleting/restoring an idea in the basket for some unknown
+	 * reason when in preview mode
+	 */
+	$('.ui-dialog-titlebar-close',$(this).parent()).removeAttr('href');
 };
 
 /**
@@ -991,8 +1203,13 @@ View.prototype.loadIdeaBasket = function() {
 	//generate the JSON object for the idea basket
 	var ideaBasketJSONObj = $.parseJSON(ideaBasketJSON);
 	
+	var imSettings = null;
+	if('ideaManagerSettings' in this.projectMetadata.tools){
+		imSettings = this.projectMetadata.tools.ideaManagerSettings;
+	}
+	
 	//load the idea basket into the iframe
-	window.frames['ideaBasketIfrm'].loadIdeaBasket(ideaBasketJSONObj, true, this);
+	window.frames['ideaBasketIfrm'].loadIdeaBasket(ideaBasketJSONObj, true, this, imSettings);
 };
 
 /**
@@ -1005,7 +1222,11 @@ View.prototype.loadIdeaBasket = function() {
  * @return a new IdeaBasket with fields populated
  */
 View.prototype.createIdeaBasket = function(ideaBasketJSONObj) {
-	return new IdeaBasket(ideaBasketJSONObj);
+	var imSettings = null;
+	if('ideaManagerSettings' in this.projectMetadata.tools){
+		imSettings = this.projectMetadata.tools.ideaManagerSettings
+	}
+	return new IdeaBasket(ideaBasketJSONObj,null,null,imSettings);
 };
 
 /* used to notify scriptloader that this script has finished loading */

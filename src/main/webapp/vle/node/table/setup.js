@@ -20,6 +20,8 @@
 var coreMinScripts = ['vle/node/table/table_core_min.js'];
 
 var studentVLEScripts = [
+	scriptloader.jquerySrc,
+	scriptloader.jqueryUISrc,
  	/*
      * TODO: rename template
      * TODO: rename template.js
@@ -35,9 +37,7 @@ var studentVLEScripts = [
      * For example if you are creating a quiz node you would change it to
      * 'vle/node/quiz/quizstate.js'
 	 */
-	'vle/node/table/tablestate.js',
-	'vle/jquery/js/jquery-1.6.1.min.js',
-	'vle/jquery/js/jquery-ui-1.8.7.custom.min.js'
+	'vle/node/table/tablestate.js'
 ];
 
 var authorScripts = [
@@ -85,6 +85,9 @@ var dependencies = [
 var nodeClasses = [
 	{nodeClass:'table', nodeClassText:'表格'}
 ];
+
+var nodeIconPath = 'node/table/icons/';
+componentloader.addNodeIconPath('TableNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);

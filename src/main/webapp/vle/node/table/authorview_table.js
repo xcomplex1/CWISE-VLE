@@ -591,7 +591,7 @@ View.prototype.TableNode.updateNumRows = function() {
 			
 			if(numRows < this.content.numRows) {
 				
-				var performUpdate = confirm('您確定要縮減列的數目？ 縮減後您將失去這列的資料。');
+				var performUpdate = confirm('Are you sure you want to decrease the number of rows? You will lose the data in the rows that will be truncated.');
 				
 				if(performUpdate) {
 					/*

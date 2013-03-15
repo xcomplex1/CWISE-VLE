@@ -130,23 +130,78 @@ OPENRESPONSE.prototype.getResponse = function() {
  * 
  * Then disable the textarea and save button and show the edit button
  */
-OPENRESPONSE.prototype.save = function(saveAndLock) {
+OPENRESPONSE.prototype.save = function(saveAndLock,checkAnswer) {
 	/*
 	 * check if the save button is available. if it is available
 	 * it means the student has modified the response. if it
 	 * is not available, it means the student has not made any
 	 * changes so we do not to do anything.
 	 */
-	if (this.isSaveAvailable() || this.isSaveAndLockAvailable()) {
+	if (this.isSaveAvailable() || this.isSaveAndLockAvailable() || this.isCheckAnswerAvailable()) {
 		var response = "";
 		
 		/* set html to textarea if richtexteditor exists */
 		response = this.getResponse();
 		
 		//check if the student changed their response
-		if(this.isResponseChanged() || saveAndLock) {
+		if(this.isResponseChanged() || saveAndLock || checkAnswer) {
 			//response was changed so we will create a new state and save it
 			var orState = new OPENRESPONSESTATE([response]);
+			
+			//set the cRaterItemId into the node state if this step is a CRater item
+			if(this.content.cRater != null && this.content.cRater.cRaterItemId != null
+					&& this.content.cRater.cRaterItemId != '') {
+				
+				if(checkAnswer && !isNaN(parseInt(this.content.cRater.maxCheckAnswers))) {
+					/*
+					 * the student has clicked check answer and there is a max 
+					 * number of check answer submits specified for this step
+					 */
+					
+					//create the message to display to the student to notify them that there are a limited number of check answers
+					var numChancesLeft = this.content.cRater.maxCheckAnswers - (parseInt(this.getNumberOfCRaterSubmits()));
+					var submitCheckAnswerMessage = 'You have ' + numChancesLeft;
+					if (numChancesLeft > 1) {
+						submitCheckAnswerMessage += ' chances';
+					} else {
+						submitCheckAnswerMessage += ' chance';
+					}
+					submitCheckAnswerMessage += ' to receive feedback on your answer so this should be your best work!\n\n';	
+					submitCheckAnswerMessage += 'Are you ready to receive feedback on this answer?';
+							
+					//popup a confirm dialog
+					var submitCheckAnswer = confirm(submitCheckAnswerMessage);
+					
+					if(!submitCheckAnswer) {
+						//the student has cancelled their check answer submit
+						return;
+					}
+				}
+				
+				orState.cRaterItemId = this.content.cRater.cRaterItemId;
+				
+				if (checkAnswer || !(this.content.cRater.displayCRaterScoreToStudent || this.content.cRater.displayCRaterFeedbackToStudent)) {
+					/*
+					 * set the cRaterItemId into the node state if the student has clicked
+					 * check answer or if we are not displaying the score or feedback to
+					 * the student in which case we always want to CRater submit because
+					 * we are not displaying the check answer button to them.
+					 */
+					orState.isCRaterSubmit = true;
+				}
+				
+				if(!checkAnswer && this.content.cRater != null && 
+						(this.content.cRater.displayCRaterScoreToStudent || this.content.cRater.displayCRaterFeedbackToStudent) 
+						&& this.content.cRater.maxCheckAnswers != null && !this.isCRaterMaxCheckAnswersUsedUp()) {
+					/*
+					 * the student has clicked the save button or made changes and is moving to another step
+					 * and we are displaying CRater score or feedback immediately to the student
+					 * and the student still has check answer submits left so we will display
+					 * a popup to remind them to click the check answer button
+					 */
+					alert("If you are ready to check your answer, click the 'Check Answer' button.");
+				}
+			}
 
 			if(saveAndLock) {
 				//display a confirm message to make sure they want to submit and lock
@@ -186,7 +241,7 @@ OPENRESPONSE.prototype.save = function(saveAndLock) {
 						}
 					}
 				}
-			}
+			} 
 
 			if(this.node.peerReview == 'revise' || this.node.teacherReview == 'revise') {
 				/*
@@ -197,12 +252,47 @@ OPENRESPONSE.prototype.save = function(saveAndLock) {
 				//tell the node that the student has completed it
 				this.node.setCompleted();
 			}
-			
+
 			//fire the event to push this state to the global view.states object
 			eventManager.fire('pushStudentWork', orState);
 
 			//push the state object into this or object's own copy of states
 			this.states.push(orState);
+
+			// if we want to check answer immediately (e.g. for CRater), post answer immediately, before going to the next step
+			if (checkAnswer) {
+				//set the cRaterItemId into the node state if this step is a CRater item
+				if(this.content.cRater != null && this.content.cRater.cRaterItemId != null
+						&& this.content.cRater.cRaterItemId != '') {
+					/*
+					 * post the current node visit to the db immediately without waiting
+					 * for the student to exit the step.
+					 */
+					this.node.view.postCurrentNodeVisit(this.node.view.state.getCurrentNodeVisit());					
+				}
+				
+				if(this.content.cRater != null && this.content.cRater.maxCheckAnswers != null && this.isCRaterMaxCheckAnswersUsedUp()) {
+					//student has used up all of their CRater check answer submits so we will disable the check answer button
+					this.setCheckAnswerUnavailable();
+				} else {
+					//the student still has check answer submits available
+					this.setCheckAnswerAvailable();
+				}
+				
+				if(this.content.showPreviousWorkThatHasAnnotation && (this.content.cRater.displayCRaterScoreToStudent || this.content.cRater.displayCRaterFeedbackToStudent)) {
+					/*
+					 * move the current work to the previous work response box
+					 * because we want to display the previous work to the student
+					 * and have them re-write another response after they
+					 * receive the immediate CRater feedback
+					 */
+					this.showPreviousWorkThatHasAnnotation($('#responseBox').val());
+					
+					//clear the response box so they will need to write a new response
+					$('#responseBox').val('');
+				}
+			}
+
 		};
 
 		//turn the save button off
@@ -263,8 +353,21 @@ OPENRESPONSE.prototype.postAnnotation = function(response) {
  * change their answer
  */
 OPENRESPONSE.prototype.saveAndLock = function() {
-	this.save(true);
+	var doSaveAndLock=true;
+	var doCheckAnswer=false;
+	this.save(doSaveAndLock,doCheckAnswer);
 };
+
+/**
+ * Save the student work and lock the step so the student can't
+ * change their answer
+ */
+OPENRESPONSE.prototype.checkAnswer = function() {
+	var doSaveAndLock=false;
+	var doCheckAnswer=true;
+	this.save(doSaveAndLock,doCheckAnswer);
+};
+
 
 /**
  * The student has modified their response so we will perform
@@ -272,6 +375,14 @@ OPENRESPONSE.prototype.saveAndLock = function() {
  */
 OPENRESPONSE.prototype.responseEdited = function() {
 	this.setSaveAvailable();
+	
+	if(this.content.cRater != null && this.content.cRater.maxCheckAnswers != null && this.isCRaterMaxCheckAnswersUsedUp()) {
+		//student has used up all of their CRater check answer submits so we will disable the check answer button
+		this.setCheckAnswerUnavailable();
+	} else {
+		this.setCheckAnswerAvailable();
+	}
+	
 	displayNumberAttempts("這是您的第", "次修改", this.states);
 };
 
@@ -279,8 +390,7 @@ OPENRESPONSE.prototype.responseEdited = function() {
  * Turn the save button on so the student can click it
  */
 OPENRESPONSE.prototype.setSaveAvailable = function() {
-	//removeClassFromElement("saveButton", "ui-state-disabled");
-	$('#saveButton').parent().removeClass('ui-state-disabled');
+	$('#saveButton').removeAttr('disabled');
 };
 
 /**
@@ -289,8 +399,7 @@ OPENRESPONSE.prototype.setSaveAvailable = function() {
  * to save.
  */
 OPENRESPONSE.prototype.setSaveUnavailable = function() {
-	//addClassToElement("saveButton", "ui-state-disabled");
-	$('#saveButton').parent().addClass('ui-state-disabled');
+	$('#saveButton').attr('disabled','disabled');
 };
 
 /**
@@ -299,16 +408,18 @@ OPENRESPONSE.prototype.setSaveUnavailable = function() {
  * and is not available
  */
 OPENRESPONSE.prototype.isSaveAvailable = function() {
-	//return !hasClass("saveButton", "ui-state-disabled");
-	return !$('#saveButton').parent().hasClass('ui-state-disabled');
+	if($('#saveButton').attr('disabled')=='disabled'){
+		return false;
+	} else {
+		return true;
+	}
 };
 
 /**
  * Turn the save button on so the student can click it
  */
 OPENRESPONSE.prototype.setSaveAndLockAvailable = function() {
-	//removeClassFromElement("saveAndLockButton", "ui-state-disabled");
-	$('#saveAndLockButton').parent().removeClass('ui-state-disabled');
+	$('#saveAndLockButton').removeAttr('disabled');
 };
 
 /**
@@ -317,8 +428,7 @@ OPENRESPONSE.prototype.setSaveAndLockAvailable = function() {
  * to save.
  */
 OPENRESPONSE.prototype.setSaveAndLockUnavailable = function() {
-	//addClassToElement("saveAndLockButton", "ui-state-disabled");
-	$('#saveAndLockButton').parent().addClass('ui-state-disabled');
+	$('#saveAndLockButton').attr('disabled','disabled');
 };
 
 /**
@@ -327,8 +437,42 @@ OPENRESPONSE.prototype.setSaveAndLockUnavailable = function() {
  * and is not available
  */
 OPENRESPONSE.prototype.isSaveAndLockAvailable = function() {
-	//return !hasClass("saveAndLockButton", "ui-state-disabled");
-	return !$('#saveAndLockButton').parent().hasClass('ui-state-disabled');
+	if($('#saveAndLockButton').attr('disabled')=='disabled'){
+		return false;
+	} else {
+		return true;
+	}
+};
+
+
+
+/**
+ * Turn the save button on so the student can click it
+ */
+OPENRESPONSE.prototype.setCheckAnswerAvailable = function() {
+	$('#checkAnswerButton').removeAttr('disabled');
+};
+
+/**
+ * Turn the save button off so the student can't click it.
+ * This is used when the data is saved and there is no need
+ * to save.
+ */
+OPENRESPONSE.prototype.setCheckAnswerUnavailable = function() {
+	$('#checkAnswerButton').attr('disabled','disabled');
+};
+
+/**
+ * Determine whether the save button is available or not.
+ * @return true if the save button is available, false is greyed out
+ * and is not available
+ */
+OPENRESPONSE.prototype.isCheckAnswerAvailable = function() {
+	if($('#checkAnswerButton').attr('disabled')=='disabled'){
+		return false;
+	} else {
+		return true;
+	}
 };
 
 /**
@@ -362,13 +506,13 @@ OPENRESPONSE.prototype.isResponseChanged = function() {
  * Hide all the divs in the openresponse.html 
  */
 OPENRESPONSE.prototype.hideAll = function() {
-	document.getElementById('promptDisplayDiv').style.display = 'none';
-	document.getElementById('originalPromptDisplayDiv').style.display = 'none';
-	document.getElementById('associatedWorkDisplayDiv').style.display = 'none';
-	document.getElementById('annotationDisplayDiv').style.display = 'none';
-	document.getElementById('starterParent').style.display = 'none';
-	document.getElementById('responseDisplayDiv').style.display = 'none';
-	document.getElementById('buttonDiv').style.display = 'none';
+	$('#promptDisplayDiv').hide();
+	$('#originalPromptDisplayDiv').hide();
+	$('#associatedWorkDisplayDiv').hide();
+	$('#annotationDisplayDiv').hide();
+	$('#starterParent').hide();
+	$('#responseDisplayDiv').hide();
+	$('#buttonDiv').hide();
 };
 
 /**
@@ -382,7 +526,7 @@ OPENRESPONSE.prototype.onlyDisplayMessage = function(message) {
 	this.hideAll();
 	
 	//display the prompt div
-	document.getElementById('promptDisplayDiv').style.display = 'block';
+	$('#promptDisplayDiv').show;
 	
 	//remove the text in this label div
 	document.getElementById('promptLabelDiv').innerHTML = '';
@@ -394,7 +538,7 @@ OPENRESPONSE.prototype.onlyDisplayMessage = function(message) {
 /**
  * Render this OpenResponse item
  */
-OPENRESPONSE.prototype.render = function() {
+OPENRESPONSE.prototype.render = function() {	
 	/*
 	 * check if this is a peer/teacher review annotation step and it is locked.
 	 * a peer/teacher review annotation step becomes locked once the student
@@ -405,6 +549,7 @@ OPENRESPONSE.prototype.render = function() {
 		//disable save buttons
 		this.setSaveUnavailable();
 		this.setSaveAndLockUnavailable();
+		this.setCheckAnswerUnavailable();
 		
 		//display this message in the step frame
 		this.onlyDisplayMessage('<p>You have successfully reviewed the work submitted by <i>Team Anonymous</i>.</p><p>Well done!</p>');
@@ -423,7 +568,21 @@ OPENRESPONSE.prototype.render = function() {
 			 * submits their original work or the step where they annotate
 			 * another student's work
 			 */
-			document.getElementById('saveAndLockButtonDiv').style.display = 'block';
+			$('#saveAndLockButton').show();
+		}
+	} else if (this.content.isLockAfterSubmit) {
+		// this node is set to lock after the student submits the answer. show saveAndLock button
+		$('#saveAndLockButton').show();
+	} else if (this.content.cRater && (this.content.cRater.displayCRaterScoreToStudent || this.content.cRater.displayCRaterFeedbackToStudent)) {
+		// if this is a CRater-enabled item and we are displaying the score or feedback to the student, also show the "check" button
+		$('#checkAnswerButton').show();
+		
+		if(this.content.cRater != null && this.content.cRater.maxCheckAnswers != null && this.isCRaterMaxCheckAnswersUsedUp()) {
+			//student has used up all of their CRater check answer submits so we will disable the check answer button
+			this.setCheckAnswerUnavailable();
+		} else {
+			//the student still has check answer submits available so we will enable the check answer button
+			this.setCheckAnswerAvailable();
 		}
 	}
 	
@@ -440,7 +599,7 @@ OPENRESPONSE.prototype.render = function() {
 				 * submits their original work or the step where they annotate
 				 * another student's work
 				 */
-				document.getElementById('saveAndLockButtonDiv').style.display = 'block';
+				$('#saveAndLockButton').show();
 			}
 			
 			/*
@@ -453,7 +612,7 @@ OPENRESPONSE.prototype.render = function() {
 				
 				//display the prompt
 				document.getElementById('originalPromptTextDiv').innerHTML = '[Prompt from the first peer review step will display here]';
-				document.getElementById('originalPromptDisplayDiv').style.display = 'block';
+				$('#originalPromptDisplayDiv').show();
 				
 				/*
 				 * display the other student's work or a message saying there is no other student work
@@ -461,7 +620,7 @@ OPENRESPONSE.prototype.render = function() {
 				 */
 				document.getElementById('associatedWorkLabelDiv').innerHTML = 'work submitted by <i>Team Anonymous</i>:';		
 				document.getElementById('associatedWorkTextDiv').innerHTML = '[Work from a random classmate will display here]';
-				document.getElementById('associatedWorkDisplayDiv').style.display = 'block';
+				$('#associatedWorkDisplayDiv').show();
 			} else if(this.node.peerReview == 'revise' || this.node.teacherReview == 'revise') {
 				//set more informative labels
 				document.getElementById('promptLabelDiv').innerHTML = 'instructions';
@@ -469,23 +628,23 @@ OPENRESPONSE.prototype.render = function() {
 				
 				//set the original prompt text and make it visible
 				document.getElementById('originalPromptTextDiv').innerHTML = '[Prompt from the first peer review step will display here]';
-				document.getElementById('originalPromptDisplayDiv').style.display = 'block';
+				$('#originalPromptDisplayDiv').show();
 				
 				//set the original work text and make it visible
 				document.getElementById('associatedWorkLabelDiv').innerHTML = 'your original response&nbsp;&nbsp;&nbsp;<a id="toggleSwitch" onclick="toggleDetails2()">show/hide text';
 				document.getElementById('associatedWorkTextDiv').innerHTML = "[Student's work from first peer review step will display here]";
-				document.getElementById('associatedWorkDisplayDiv').style.display = 'block';
+				$('#associatedWorkDisplayDiv').show();
 				
 				//hide the original work
-				document.getElementById('associatedWorkTextDiv').style.display = 'none';
+				$('#associatedWorkTextDiv').hide();
 				
 				//display the div that says "text is hidden"
-				document.getElementById('associatedWorkTextDiv2').style.display = 'block';
+				$('#associatedWorkTextDiv2').show();
 				
 				//set the annotation text and make it visible
 				document.getElementById('annotationLabelDiv').innerHTML = '<i>Team Anonymous</i> has given you the following feedback:';
 				document.getElementById('annotationTextDiv').innerHTML = '[Feedback from classmate or teacher will display here]';
-				document.getElementById('annotationDisplayDiv').style.display = 'block';
+				$('#annotationDisplayDiv').show();
 			}
 		}
 		
@@ -532,6 +691,22 @@ OPENRESPONSE.prototype.render = function() {
 		this.displayRegular();
 	}
 	
+	if(this.content.showPreviousWorkThatHasAnnotation) {
+		//show the previous work that has a teacher comment annotation
+		this.showPreviousWorkThatHasAnnotation(null, 'comment');
+	}
+	
+	if(this.content.showPreviousWorkThatHasAnnotation && this.content.cRater &&
+			(this.content.cRater.displayCRaterScoreToStudent || this.content.cRater.displayCRaterFeedbackToStudent)) {
+		//show the previous work that has a CRater annotation
+		this.showPreviousWorkThatHasAnnotation(null, 'cRater');
+	}
+	
+	if (this.content.isLockAfterSubmit) {
+		// this node is set to lock after the student submits the answer. show saveAndLock button
+		$("#saveButton").hide();
+	}
+	
 	//check if this step is locked
 	if(this.locked) {
 		//the step is locked so we will disable the response box and save and lock button
@@ -540,6 +715,160 @@ OPENRESPONSE.prototype.render = function() {
 	} else {
 		//make the save and lock button clickable
 		this.setSaveAndLockAvailable();
+	}
+};
+
+/**
+ * Show the previous work that has had a teacher comment annotation.
+ * @param previousResponse an optional argument which is the previous work which
+ * we will show without having to look it up
+ * @param annotationType an optional argument which is the type of annotation
+ */
+OPENRESPONSE.prototype.showPreviousWorkThatHasAnnotation = function(previousResponse, annotationType) {
+	
+	if(previousResponse != null) {
+		//display the previous response div
+		$('#previousResponseDisplayDiv').show();
+		
+		//set the student response into the previous response disabled textarea
+		$('#previousResponseBox').val(previousResponse);
+		
+		//clear the response box so the student will have to type a new response
+		$('#responseBox').val('');
+	} else {
+		//get the annotation attributes that we will use to look up the teacher comment annotation
+		var runId = this.view.getConfig().getConfigParam('runId');
+		var nodeId = this.view.currentNode.id;
+		var toWorkgroup = this.view.getUserAndClassInfo().getWorkgroupId();
+		var fromWorkgroups = null;
+		var type = null;
+		var stepWorkId = null;
+		
+		if(annotationType != null) {
+			//use the annotation type that was passed in
+			type = annotationType;
+		}
+		
+		if(annotationType == 'cRater') {
+			//crater annotations have fromWorkgroup=-1
+			fromWorkgroups = [-1];
+		} else {
+			//get the teacher and shared teacher workgroups
+			fromWorkgroups = this.view.getUserAndClassInfo().getAllTeacherWorkgroupIds();
+		}
+		
+		//get the latest annotation for this step with the given parameters
+		var latestAnnotation = this.view.annotations.getLatestAnnotation(runId, nodeId, toWorkgroup, fromWorkgroups, type, stepWorkId);
+		
+		if(latestAnnotation != null) {
+			//get the step work id that the annotation was for
+			var stepWorkId = latestAnnotation.stepWorkId;
+			
+			//get the node visit with the step work id
+			var annotationNodeVisit = this.view.state.getNodeVisitById(stepWorkId);
+
+			//get the annotation post time
+			var annotationPostTime = latestAnnotation.postTime;
+			
+			//get all the node visits for this step
+			var nodeVisitsForNodeId = this.view.state.getNodeVisitsByNodeId(nodeId);
+			
+			//whether to show the previous work
+			var showPreviousResponse = true;
+			
+			if(nodeVisitsForNodeId != null) {
+				
+				/*
+				 * we will loop through all the node visits and look for any work that
+				 * is newer than the annotation. if there is no new work after the
+				 * annotation it means the student has not revised their work based
+				 * on the annotation so we will display their previous response
+				 * in the greyed out previous response box and clear out the
+				 * regular response box so that they need to type a new response.
+				 */ 
+				for(var x=0; x<nodeVisitsForNodeId.length; x++) {
+					//get a node visit
+					var tempNodeVisit = nodeVisitsForNodeId[x];
+					
+					if(tempNodeVisit != null) {
+						//get the latest node state for the node visit
+						var nodeState = tempNodeVisit.getLatestWork();
+						
+						//get the response from the node state
+						var response = this.node.getStudentWorkString(nodeState.response);
+						
+						if(response != null && response != "") {
+							//get the post time for the node visit
+							var tempPostTime = tempNodeVisit.visitPostTime;
+							
+							//get the node state timestamp
+							var nodeStateTimestamp = nodeState.timestamp;
+							
+							if(nodeStateTimestamp > annotationPostTime) {
+								/*
+								 * the node visit post time is later than the annotation
+								 */
+								showPreviousResponse = false;
+							}
+						}
+					}
+				}				
+			}
+			
+			if(showPreviousResponse) {
+				/*
+				 * we are going to show the previous response and clear out the response textarea
+				 * so that the student needs to write a new response based on the new annotation
+				 * they have received
+				 */
+				
+				if(annotationType == 'cRater' && latestAnnotation != null) {
+					if(latestAnnotation.value != null && latestAnnotation.value.length > 0) {
+						//get the annotation value which contains the student response submitted to CRater
+						var latestCRaterValue = latestAnnotation.value[latestAnnotation.value.length - 1];
+						
+						if(latestCRaterValue != null && latestCRaterValue.studentResponse != null && latestCRaterValue.studentResponse.response != null) {
+							//get the student response
+							var response = this.node.getStudentWorkString(latestCRaterValue.studentResponse.response);
+							
+							//display the previous response div
+							$('#previousResponseDisplayDiv').show();
+							
+							//set the student response into the previous response disabled textarea
+							$('#previousResponseBox').val(response);
+							
+							//clear the response box so the student will have to type a new response
+							$('#responseBox').val('');
+						}
+					}
+				} else {
+					if(annotationNodeVisit != null) {
+						//get all the node states in the node visit
+						var nodeStates = annotationNodeVisit.nodeStates;
+						
+						if(nodeStates != null && nodeStates.length != 0) {
+							//get the last node state
+							var nodeState = nodeStates[nodeStates.length - 1];
+							
+							if(nodeState != null) {
+								//get the student response
+								var response = nodeState.response;
+								response = this.node.getStudentWorkString(response);
+								
+								//display the previous response div
+								$('#previousResponseDisplayDiv').show();
+								
+								//set the student response into the previous response disabled textarea
+								$('#previousResponseBox').val(response);
+								
+								//clear the response box so the student will have to type a new response
+								$('#responseBox').val('');
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 };
 
@@ -636,12 +965,12 @@ OPENRESPONSE.prototype.displayTeacherWork = function() {
 		
 		//display the original prompt
 		document.getElementById('originalPromptTextDiv').innerHTML = this.associatedStartNode.getPeerReviewPrompt();
-		document.getElementById('originalPromptDisplayDiv').style.display = 'block';
+		$('#originalPromptDisplayDiv').show();
 		
 		//display the authored work for the student to review
 		document.getElementById('associatedWorkLabelDiv').innerHTML = 'work submitted by <i>Team Anonymous</i>:' ;		
 		document.getElementById('associatedWorkTextDiv').innerHTML = teacherWorkText;
-		document.getElementById('associatedWorkDisplayDiv').style.display = 'block';
+		$('#associatedWorkDisplayDiv').show();
 		
 		//set the response if there were previous revisions
 		this.setResponse();
@@ -752,23 +1081,23 @@ OPENRESPONSE.prototype.displayTeacherReview = function() {
 		
 		//set the original prompt text and make it visible
 		document.getElementById('originalPromptTextDiv').innerHTML = this.associatedStartNodeContent.assessmentItem.interaction.prompt;
-		document.getElementById('originalPromptDisplayDiv').style.display = 'block';
+		$('#originalPromptDisplayDiv').show();
 		
 		//set the original work text and make it visible
 		document.getElementById('associatedWorkLabelDiv').innerHTML = 'your first response to the question&nbsp;&nbsp;<a id="toggleSwitch" onclick="toggleDetails2()">show/hide text';
 		document.getElementById('associatedWorkTextDiv').innerHTML = latestWorkForassociatedStartNodeHtml;
-		document.getElementById('associatedWorkDisplayDiv').style.display = 'block';
+		$('#associatedWorkDisplayDiv').show();
 		
 		//hide the original work
-		document.getElementById('associatedWorkTextDiv').style.display = 'none';
+		$('#associatedWorkTextDiv').hide();
 		
 		//display the div that says "text is hidden"
-		document.getElementById('associatedWorkTextDiv2').style.display = 'block';
+		$('#associatedWorkTextDiv2').show();
 		
 		//set the teacher annotation text and make it visible
 		document.getElementById('annotationLabelDiv').innerHTML = 'teacher feedback';
 		document.getElementById('annotationTextDiv').innerHTML = latestCommentAnnotationForStep;
-		document.getElementById('annotationDisplayDiv').style.display = 'block';
+		$('#annotationDisplayDiv').show();
 		
 		/* set value of text area base on previous work, if any */
 		if (this.states!=null && this.states.length > 0) {
@@ -780,7 +1109,7 @@ OPENRESPONSE.prototype.displayTeacherReview = function() {
 			//tell the node that the student has completed it
 			this.node.setCompleted();
 		} else {
-			document.getElementById("numberAttemptsDiv").innerHTML = "這是您的第一次修改";
+			document.getElementById("numberAttemptsDiv").innerHTML = "這是您的第1次修改";
 			
 			if(latestWorkForassociatedStartNode != null && latestWorkForassociatedStartNode != '') {
 				//set the latest work from the original step in the responseBox so the student can revise it
@@ -930,7 +1259,7 @@ OPENRESPONSE.prototype.retrieveOtherStudentWorkCallback = function(text, xml, ar
 		
 		//display the prompt
 		document.getElementById('originalPromptTextDiv').innerHTML = thisOr.associatedStartNode.getPeerReviewPrompt();
-		document.getElementById('originalPromptDisplayDiv').style.display = 'block';
+		$('#originalPromptDisplayDiv').show();
 		
 		/*
 		 * display the other student's work or a message saying there is no other student work
@@ -938,7 +1267,7 @@ OPENRESPONSE.prototype.retrieveOtherStudentWorkCallback = function(text, xml, ar
 		 */
 		document.getElementById('associatedWorkLabelDiv').innerHTML = 'work submitted by <i>Team Anonymous</i>:';		
 		document.getElementById('associatedWorkTextDiv').innerHTML = peerWorkText;
-		document.getElementById('associatedWorkDisplayDiv').style.display = 'block';
+		$('#associatedWorkDisplayDiv').show();
 		
 		//set the response if there were previous revisions 
 		thisOr.setResponse();
@@ -1088,23 +1417,23 @@ OPENRESPONSE.prototype.retrieveAnnotationAndWorkCallback = function(text, xml, a
 		
 		//set the original prompt text and make it visible
 		document.getElementById('originalPromptTextDiv').innerHTML = thisOr.associatedStartNodeContent.assessmentItem.interaction.prompt;
-		document.getElementById('originalPromptDisplayDiv').style.display = 'block';
+		$('#originalPromptDisplayDiv').show();
 		
 		//set the original work text and make it visible
 		document.getElementById('associatedWorkLabelDiv').innerHTML = 'your original response&nbsp;&nbsp;&nbsp;<a id="toggleSwitch" onclick="toggleDetails2()">show/hide text';
 		document.getElementById('associatedWorkTextDiv').innerHTML = latestWorkHtml;
-		document.getElementById('associatedWorkDisplayDiv').style.display = 'block';
+		$('#associatedWorkDisplayDiv').show();
 		
 		//hide the original work
-		document.getElementById('associatedWorkTextDiv').style.display = 'none';
+		$('#associatedWorkTextDiv').hide();
 		
 		//display the div that says "text is hidden"
-		document.getElementById('associatedWorkTextDiv2').style.display = 'block';
+		$('#associatedWorkTextDiv2').show();
 		
 		//set the annotation text and make it visible
 		document.getElementById('annotationLabelDiv').innerHTML = '<i>Team Anonymous</i> has given you the following feedback:';
 		document.getElementById('annotationTextDiv').innerHTML = annotationText;
-		document.getElementById('annotationDisplayDiv').style.display = 'block';
+		$('#annotationDisplayDiv').show();
 		
 		/* set value of text area base on previous work, if any */
 		if (thisOr.states!=null && thisOr.states.length > 0) {
@@ -1115,7 +1444,7 @@ OPENRESPONSE.prototype.retrieveAnnotationAndWorkCallback = function(text, xml, a
 			//tell the node that the student has completed it
 			thisOr.node.setCompleted();
 		} else {
-			document.getElementById("numberAttemptsDiv").innerHTML = "這是您的第一次修改";
+			document.getElementById("numberAttemptsDiv").innerHTML = "這是您的第1次修改";
 			
 			if(latestWork != null && latestWork != '') {
 				if(thisOr.richTextEditor != null) {
@@ -1221,10 +1550,10 @@ OPENRESPONSE.prototype.unlockResponseBox = function() {
  * response, button, divs
  */
 OPENRESPONSE.prototype.showDefaultDivs = function() {
-	document.getElementById('promptDisplayDiv').style.display = 'block';
-	document.getElementById('starterParent').style.display = 'block';
-	document.getElementById('responseDisplayDiv').style.display = 'block';
-	document.getElementById('buttonDiv').style.display = 'block';
+	$('#promptDisplayDiv').show();
+	$('#starterParent').show();
+	$('#responseDisplayDiv').show();
+	$('#buttonDiv').show();
 };
 
 /**
@@ -1232,9 +1561,9 @@ OPENRESPONSE.prototype.showDefaultDivs = function() {
  */
 OPENRESPONSE.prototype.showDefaultValues = function() {
 	if(this.content.starterSentence.display=='1' || this.content.starterSentence.display=='2'){
-		document.getElementById('starterParent').style.display = 'block';
+		$('#starterParent').show();
 	} else {
-		document.getElementById('starterParent').style.display = 'none';
+		$('#starterParent').hide();
 	};
 	
 	/* set html prompt element values */
@@ -1270,7 +1599,7 @@ OPENRESPONSE.prototype.setResponse = function() {
 		this.setSaveUnavailable();
 		displayNumberAttempts("這是您的第", "次修改", this.states);
 	} else {
-		document.getElementById("numberAttemptsDiv").innerHTML = "這是您的第一次修改";
+		document.getElementById("numberAttemptsDiv").innerHTML = "這是您的第1次修改";
 		document.getElementById('responseBox').value = "";
 	 	this.setSaveAvailable();
 	 	
@@ -1313,6 +1642,52 @@ OPENRESPONSE.prototype.doneRendering = function() {
 	//create any constraints if necessary
 	eventManager.fire('contentRenderComplete', this.node.id, this.node);
 };
+
+/**
+ * Determine if the student has used up all their CRater check answer submits
+ * @return whether the student has used up all their CRater check answer submits
+ */
+OPENRESPONSE.prototype.isCRaterMaxCheckAnswersUsedUp = function() {
+	var result = false;
+
+	//check if this step is a CRater step and if maxCheckAnswers is set
+	if(this.content.cRater != null && this.content.cRater.maxCheckAnswers != null) {
+		var maxCheckAnswers = this.content.cRater.maxCheckAnswers;
+		
+		if(!isNaN(parseInt(maxCheckAnswers))) {
+			//maxCheckAnswers is a number
+			
+			//get the number of times the student made a CRater submit aka check answer
+			var numCheckAnswers = this.getNumberOfCRaterSubmits();
+			
+			if(numCheckAnswers >= maxCheckAnswers) {
+				//student has checked answer more than or equal to the max allowed
+				result = true;
+			}			
+		}
+	}
+	
+	return result;
+};
+
+OPENRESPONSE.prototype.getNumberOfCRaterSubmits = function() {
+	var numCRaterSubmits = 0;
+	
+	//loop through all the node states for this step
+	for(var x=0; x<this.states.length; x++) {
+		//get a node state
+		var nodeState = this.states[x];
+		
+		if(nodeState != null) {
+			if(nodeState.isCRaterSubmit) {
+				//the node state was a CRater submit
+				numCRaterSubmits++;
+			}
+		}
+	}
+	
+	return numCRaterSubmits;
+}
 
 //used to notify scriptloader that this script has finished loading
 if(typeof eventManager != 'undefined'){

@@ -23,12 +23,13 @@ var coreMinScripts = [
                       
 
 var studentVLEScripts = [
-    'vle/jquery/js/jquery-1.6.1.min.js',
-	'vle/jquery/js/jquery-ui-1.8.7.custom.min.js',
-	'vle/jquery/js/jquery-validate/jquery.validate.pack.js',
+    scriptloader.jquerySrc,
+	scriptloader.jqueryUISrc,
+	'vle/jquery/jquery-validation/jquery.validate.min.js',
 	'vle/jquery/js/jquery.form.js',
 	'vle/jquery/js/jsonplugin.js',
-	'vle/jquery/js/jquery.tools.tooltip.min.js',
+	//'vle/jquery/jquery-tools/jquery.tools.tooltip.min.js',
+	'vle/jquery/miniTip/jquery.miniTip.min.js',
 	'vle/ideaBasket/basket.js',
  	/*
      * xTODO: rename template
@@ -84,20 +85,29 @@ var dependencies = [
 	 * For example if you are creating a quiz node you would change it to
 	 * 'vle/node/quiz/QuizNode.js'
 	 */
-	{child:"vle/node/explanationbuilder/ExplanationBuilderNode.js", parent:["vle/node/Node.js"]}
+	{child:"vle/node/explanationbuilder/ExplanationBuilderNode.js", parent:["vle/node/Node.js"]},
+	{child:"vle/jquery/jquery-validation/jquery.validate.min.js", parent:[scriptloader.jquerySrc]},
+	{child:"vle/jquery/js/jquery.form.js", parent:[scriptloader.jquerySrc]},
+	//{child:"vle/jquery/jquery-tools/jquery.tools.tooltip.min.js", parent:[scriptloader.jquerySrc]}
+	{child:"vle/jquery/miniTip/jquery.miniTip.min.js", parent:[scriptloader.jquerySrc]}
 ];
 
 var css = [
+       	scriptloader.jqueryUICss,
        	"vle/css/ideaManager/blue/style.css",
+       	"vle/jquery/miniTip/miniTip.css",
        	"vle/css/ideaManager/basket.css",
        	"vle/node/explanationbuilder/explanation.css",
-       	"vle/jquery/css/custom-theme/jquery-ui-1.8.7.custom.css",
+       	"vle/node/common/css/stepContent.css",
        	"vle/css/ideaManager/jquery-validate/cmxformTemplate.css"
 ];
 
 var nodeClasses = [
 	{nodeClass:'codeit', nodeClassText:'建立解釋'}
 ];
+
+var nodeIconPath = 'node/explanationbuilder/icons/';
+componentloader.addNodeIconPath('ExplanationBuilderNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);

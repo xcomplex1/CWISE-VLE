@@ -9,9 +9,9 @@ var coreMinScripts = [
 
 
 var studentVLEScripts = [
+	scriptloader.jquerySrc,
+	scriptloader.jqueryUISrc,
 	'vle/common/helperfunctions.js',
-    'vle/jquery/js/jquery-1.6.1.min.js',
-	'vle/jquery/js/jquery-ui-1.8.7.custom.min.js',
 	'vle/jquery/js/jsonplugin.js',
 	'vle/jquery/flot/jquery.flot.min.js',
 	'vle/node/datagraph/datagraph.js',
@@ -38,6 +38,9 @@ var css = [
 var nodeClasses = [
 	{nodeClass:'datatable', nodeClassText:'資料圖表'}
 ];
+
+var nodeIconPath = 'node/datagraph/icons/';
+componentloader.addNodeIconPath('DataGraphNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);

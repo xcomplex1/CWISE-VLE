@@ -110,9 +110,9 @@ svgEditor.addExtension("WISE4", function(S) {
 			}
 		});
 		
-		var revertWarning = '<div id="revert_dialog" title="Erase Drawing" style="display:none;"><div class="ui-state-error">' +
-			'<span class="ui-icon ui-icon-alert" style="float:left"></span>Warning! This will permanently erase your current drawing and replace it with the default state.' +
-			'</div><div class="ui-dialog-content-content">If you would like to continue, press "OK".' +
+		var revertWarning = '<div id="revert_dialog" title="擦去繪圖" style="display:none;"><div class="ui-state-error">' +
+			'<span class="ui-icon ui-icon-alert" style="float:left"></span>警告! 這將永久擦去您的繪圖回復到初始的狀態。' +
+			'</div><div class="ui-dialog-content-content">如果要繼續請按"確定"。' +
 			'</div></div>';
 	
 		$('#svg_editor').append(revertWarning);
@@ -124,7 +124,7 @@ svgEditor.addExtension("WISE4", function(S) {
 			autoOpen:false,
 			width:420,
 			buttons: {
-				'OK': function() {
+				'確定': function() {
 					$(this).dialog('close');
 					if (svgdraw.defaultImage){ // if no previous work and no default snaps, load default background drawing
 						//TODO: Perhaps modify this to allow foreground (editable) starting drawings as well
@@ -141,7 +141,7 @@ svgEditor.addExtension("WISE4", function(S) {
 					svgEditor.resizeCanvas();
 					$('#tool_undo').addClass('tool_button_disabled disabled');
 				},
-				'Cancel' : function() {
+				'取消' : function() {
 					$(this).dialog('close');
 				}
 			}

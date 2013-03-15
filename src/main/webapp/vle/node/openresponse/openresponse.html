@@ -20,6 +20,12 @@
 				};
             };
             
+            function checkAnswer() {
+				if(or) {
+					or.checkAnswer();
+				};
+            };
+
             function handleEditorKeyPress() {
                 if(or) {
                 	or.responseEdited();
@@ -50,8 +56,12 @@
                     }
                 }
                 
-                or = new OPENRESPONSE(node, node.view);
-                or.render();
+                try {
+                  or = new OPENRESPONSE(node, node.view);
+                  or.render();
+                } catch (error) {
+                	// ignore
+                }
             };
             
             /**
@@ -61,66 +71,34 @@
             	scriptloader.loadScripts('openresponse', document, node.id, eventManager);
             };
         </script>
-        <!--  Javascript Pop up window -->
-        <script type="text/javascript">
-            
-            var newWin = null;
-            function popUp(strURL, strType, strHeight, strWidth){
-                if (newWin != null && !newWin.closed) 
-                    newWin.close();
-                var strOptions = "";
-                if (strType == "console") 
-                    strOptions = "resizable,height=" +
-                    strHeight +
-                    ",width=" +
-                    strWidth;
-                if (strType == "fixed") 
-                    strOptions = "status,height=" +
-                    strHeight +
-                    ",width=" +
-                    strWidth;
-                if (strType == "elastic") 
-                    strOptions = "toolbar,menubar,scrollbars," +
-                    "resizable,location,height=" +
-                    strHeight +
-                    ",width=" +
-                    strWidth;
-                newWin = window.open(strURL, 'newWin', strOptions);
-                newWin.focus();
-            }
-            
-        </script>
         
-<script type="text/javascript">
-	/* Toggles the ID originalPromptTextDiv */
-	function toggleDetails1(){
-		var searchDiv = document.getElementById('originalPromptTextDiv');
-		var searchDiv2 = document.getElementById('originalPromptTextDiv2');
-		if(searchDiv.style.display=='none'){
-			searchDiv.style.display = 'block';
-			searchDiv2.style.display = 'none';
-		} else {
-			searchDiv.style.display = 'none';
-			searchDiv2.style.display = 'block';
-		};
-	};
-</script>
-
-<script type="text/javascript">
-	/* Toggles the ID originalPromptTextDiv */
-	function toggleDetails2(){
-		var searchDiv3 = document.getElementById('associatedWorkTextDiv');
-		var searchDiv4 = document.getElementById('associatedWorkTextDiv2');
-		if(searchDiv3.style.display=='none'){
-			searchDiv3.style.display = 'block';
-			searchDiv4.style.display = 'none';
-		} else {
-			searchDiv3.style.display = 'none';
-			searchDiv4.style.display = 'block';
-		};
-	};
-</script>
-
+		<script type="text/javascript">
+			/* Toggles the ID originalPromptTextDiv */
+			function toggleDetails1(){
+				var searchDiv = document.getElementById('originalPromptTextDiv');
+				var searchDiv2 = document.getElementById('originalPromptTextDiv2');
+				if(searchDiv.style.display=='none'){
+					searchDiv.style.display = 'block';
+					searchDiv2.style.display = 'none';
+				} else {
+					searchDiv.style.display = 'none';
+					searchDiv2.style.display = 'block';
+				};
+			};
+			
+			/* Toggles the ID associatedWorkTextDiv */
+			function toggleDetails2(){
+				var searchDiv3 = document.getElementById('associatedWorkTextDiv');
+				var searchDiv4 = document.getElementById('associatedWorkTextDiv2');
+				if(searchDiv3.style.display=='none'){
+					searchDiv3.style.display = 'block';
+					searchDiv4.style.display = 'none';
+				} else {
+					searchDiv3.style.display = 'none';
+					searchDiv4.style.display = 'block';
+				};
+			};
+		</script>
     </head>
     <body>
         <div id="questionCountBox" class="bg3">
@@ -136,19 +114,18 @@
                     </td>
                 </tr>
             </table>
-            <div id='previousWorkDiv'></div>
             <div id="questionTable">
                 <div id="questionType">
-                    開放性問題
+                    簡答申論題
                 </div>
             </div>
         </div>
         <!-- end of questionCountBox -->
         <div id="currentQuestionBox">
             <div id="fullColumn">
+            	<div id='previousWorkDiv'></div>
             	<div id='promptDisplayDiv' style='display:none'>
-                	<div id='promptLabelDiv' class="itemLabel Color1">
-                    問題
+                	<div id='promptLabelDiv' class="itemLabel Color1" i18n_key="question">
                 	</div>
                     <div id="promptContainer">
                     	<div id="orPromptDiv">
@@ -159,21 +136,21 @@
                 
                 <div id='originalPromptDisplayDiv' style='display:none'>
                 	<div id='originalPromptLabelDiv' class="itemLabel Color1">
-                    original question&nbsp;&nbsp;&nbsp;<a id="toggleSwitch" onclick="toggleDetails1()">顯示/隱藏 文字</a> 
+                    問題&nbsp;&nbsp;&nbsp;<a id="toggleSwitch" onclick="toggleDetails1()">顯示/隱藏</a> 
                 	</div>
                 	<div id="originalPromptContainer" class="promptContainer">
                 		<div id='originalPromptTextDiv' style="display:none;" class="promptText"></div>
-                		<div id='originalPromptTextDiv2' class="promptText2">文字是隱藏的</div>
+                		<div id='originalPromptTextDiv2' class="promptText2">問題已隱藏</div>
                 	</div>
                 </div>
                 
                 <div id='associatedWorkDisplayDiv' style='display:none'>
                 	<div id='associatedWorkLabelDiv' class="itemLabel Color1">
-                    your original response... this text is overwritten by javascript </a> 
+                    your original response... this text is overwritten by javascript 
                 	</div>
                 	<div id="associatedWorkPromptContainer" class="promptContainer">
                 		<div id='associatedWorkTextDiv' class="promptText"></div>
-                		<div id='associatedWorkTextDiv2' style="display:none;" class="promptText2">文字是隱藏的</div>
+                		<div id='associatedWorkTextDiv2' style="display:none;" class="promptText2">文字已隱藏</div>
                 	</div>
                 </div>
                 
@@ -185,6 +162,18 @@
                 	<div id='annotationTextDiv' class="promptText">
                 	</div>
                 	</div>
+                </div>
+                
+                <div id='previousResponseDisplayDiv' style='display:none'>
+	                <div id='previousResponseLabelDiv' class="itemLabel Color1">
+	                    您之前的回應
+	                </div>
+	                <div id="previousPromptContainer">
+		                <div id="previousResponseBoxDiv">
+		                    <textarea id="previousResponseBox" class="responseBox" onKeyPress="javascript:handleEditorKeyPress();" disabled=true></textarea>
+		                </div>
+	                </div>
+	                </div>
                 </div>
                 
                 <div id='starterParent' style='display:none'>
@@ -204,23 +193,13 @@
         </div>
         <div id="clearBoth">
         </div>
-        <!-- Anchor-Based Button Layout using TABLE -->
         <div id="buttonDiv" style='display:none'>
-            <div id="statusDiv">
-                <div id="numberAttemptsDiv">
-                </div>
+        	<div id="statusDiv">
+                <div id="numberAttemptsDiv"></div>
             </div>
-            <table id="buttonTable">
-                <tr>
-                    <td>
-                        <div class="buttonDiv ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"><a id="saveButton" onClick="javascript:save();">儲存</a></div>
-                    </td>
-                    <td>
-                        <div class="buttonDiv ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" id="saveAndLockButtonDiv" style="display:none" disabled="true">
-                        <a id="saveAndLockButton" onClick="javascript:saveAndLock();">送出(鎖定)</a></div>
-                	</td>
-                </tr>
-            </table>
+	        <input type="button" id="saveButton" value="儲存" onclick="save();" />
+	        <input type="button" id="saveAndLockButton" value="送出(鎖定)" onclick="saveAndLock();" style="display:none" disabled="disabled" />
+	        <input type="button" id="checkAnswerButton" value="確認答案" onclick="checkAnswer();" style="display:none" disabled="disabled" />
         </div>
     </body>
 </html>

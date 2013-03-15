@@ -187,51 +187,11 @@ Surge.prototype.render = function() {
 	
 	//process the tag maps if we are not in authoring mode
 	if(this.view.authoringMode == null || !this.view.authoringMode) {
+		var tagMapResults = this.processTagMaps();
 		
-		//the tag maps
-		var tagMaps = this.node.tagMaps;
-		
-		//check if there are any tag maps
-		if(tagMaps != null) {
-			
-			//loop through all the tag maps
-			for(var x=0; x<tagMaps.length; x++) {
-				
-				//get a tag map
-				var tagMapObject = tagMaps[x];
-				
-				if(tagMapObject != null) {
-					//get the variables for the tag map
-					var tagName = tagMapObject.tagName;
-					var functionName = tagMapObject.functionName;
-					var functionArgs = tagMapObject.functionArgs;
-					
-					if(functionName == "checkScore") {
-						//we will check the score for the steps that are tagged
-						
-						//get the result of the check
-						var result = this.checkScoreForTags(tagName, functionArgs);
-						enableStep = result.pass;
-						message = result.message;
-					} else if(functionName == "getAccumulatedScore") {
-						//we will get the accumulated score for the steps that are tagged
-						
-						//get the accumulated score
-						accumulatedScore = this.getAccumulatedScoreForTags(tagName, functionArgs);
-						
-						//display the accumulated score to the student
-						$('#accumulatedScoreDiv').html('Accumulated Score: ' + accumulatedScore);
-					} else if(functionName == "checkCompleted") {
-						//we will check that all the steps that are tagged have been completed
-						
-						//get the result of the check
-						var result = checkCompletedForTags(this, tagName, functionArgs);
-						enableStep = result.pass;
-						message = result.message;
-					}
-				}
-			}
-		}
+		//get the result values
+		enableStep = tagMapResults.enableStep;
+		message = tagMapResults.message;
 	}
 	
 	if(enableStep) {
@@ -240,12 +200,20 @@ Surge.prototype.render = function() {
 		//display any prompts to the student
 		$('#promptDiv').html(this.content.prompt);
 		
+		var surgeSource = 'surge.swf';
+		
+		if("useCustomSwf" in this.content && this.content.useCustomSwf == 'true'){
+			if("customUri" in this.content  && this.content.customUri != ''){
+				surgeSource = this.content.customUri;
+			}
+		}
+		
 		var	swfHtml = '<object classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=9,0,0,0" width="770" height="480" id="surge" align="middle">'
 			+ '<param name="allowScriptAccess" value="sameDomain" />'
 			+ '<param name="allowFullScreen" value="false" />'
 			+ '<param name="wmode" value="opaque" />'
-			+ '<param name="movie" value="surge.swf" /><param name="quality" value="high" /><param name="bgcolor" value="#ffffff" />'
-			+ '<embed src="surge.swf" wmode="opaque" quality="high" bgcolor="#ffffff" width="770" height="480" name="surge" align="middle" allowScriptAccess="sameDomain" allowFullScreen="false" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer" />'
+			+ '<param name="movie" value="' + surgeSource + '" /><param name="quality" value="high" /><param name="bgcolor" value="#ffffff" />'
+			+ '<embed src="' + surgeSource + '" wmode="opaque" quality="high" bgcolor="#ffffff" width="770" height="480" name="surge" align="middle" allowScriptAccess="sameDomain" allowFullScreen="false" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer" />'
 			+ '</object>';
 		
 		$('#swfDiv').html(swfHtml);	
@@ -258,6 +226,71 @@ Surge.prototype.render = function() {
 	
 	//if there is a message, display it to the student
 	$('#messageDiv').html(message);
+};
+
+/**
+ * Process the tag maps and obtain the results
+ * @return an object containing the results from processing the
+ * tag maps. the object contains two fields
+ * enableStep
+ * message
+ */
+Surge.prototype.processTagMaps = function() {
+	var enableStep = true;
+	var message = '';
+	
+	//the tag maps
+	var tagMaps = this.node.tagMaps;
+	
+	//check if there are any tag maps
+	if(tagMaps != null) {
+		
+		//loop through all the tag maps
+		for(var x=0; x<tagMaps.length; x++) {
+			
+			//get a tag map
+			var tagMapObject = tagMaps[x];
+			
+			if(tagMapObject != null) {
+				//get the variables for the tag map
+				var tagName = tagMapObject.tagName;
+				var functionName = tagMapObject.functionName;
+				var functionArgs = tagMapObject.functionArgs;
+				
+				if(functionName == "checkScore") {
+					//we will check the score for the steps that are tagged
+					
+					//get the result of the check
+					var result = this.checkScoreForTags(tagName, functionArgs);
+					enableStep = result.pass;
+					message = result.message;
+				} else if(functionName == "getAccumulatedScore") {
+					//we will get the accumulated score for the steps that are tagged
+					
+					//get the accumulated score
+					accumulatedScore = this.getAccumulatedScoreForTags(tagName, functionArgs);
+					
+					//display the accumulated score to the student
+					$('#accumulatedScoreDiv').html('Accumulated Score: ' + accumulatedScore);
+				} else if(functionName == "checkCompleted") {
+					//we will check that all the steps that are tagged have been completed
+					
+					//get the result of the check
+					var result = checkCompletedForTags(this, tagName, functionArgs);
+					enableStep = result.pass;
+					message = result.message;
+				}
+			}
+		}
+	}
+	
+	//put the variables in an object so we can return multiple variables
+	var returnObject = {
+		enableStep:enableStep,
+		message:message
+	};
+	
+	return returnObject;
 };
 
 /**
@@ -371,6 +404,15 @@ Surge.prototype.save = function(st) {
 	 * for the student to exit the step.
 	 */
 	this.node.view.postCurrentNodeVisit(this.node.view.state.getCurrentNodeVisit());
+	
+	//process the tag maps if we are not in authoring mode
+	if(this.view.authoringMode == null || !this.view.authoringMode) {
+		/*
+		 * process the tag maps again so the values are updated such as for
+		 * accumulated score
+		 */ 
+		this.processTagMaps();
+	}
 };
 
 //used to notify scriptloader that this script has finished loading

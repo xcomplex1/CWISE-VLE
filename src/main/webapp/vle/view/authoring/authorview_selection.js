@@ -41,10 +41,10 @@ View.prototype.selectBoxClick = function(id){
 		var node = $('#' + $.escapeId(id));
 		
 		//if(this.keystrokeManager.isShiftkeydown()){ //toggle selected for node
-			if(node.hasClass('Selected')){
-				node.removeClass('Selected');
+			if(node.hasClass('selected')){
+				node.removeClass('selected');
 			} else {
-				node.addClass('Selected');
+				node.addClass('selected');
 			}
 		/*} else { //clear previous and select only node
 			this.clearAllSelected();
@@ -1095,7 +1095,7 @@ View.prototype.placeNewNode = function(id){
  * @param reviewSequenceType the review sequence, either 'Peer' or 'Teacher'
  */
 View.prototype.startCreateReviewSequence = function(reviewSequenceType) {
-	//check if a project is open
+	//check if a project is open	
 	//modified by Richard 2012/1/3 
 	//reviewSequenceType變數 Peer對應"同儕"；Teacher對應"教師"
 	if(this.getProject()) {
@@ -1107,7 +1107,6 @@ View.prototype.startCreateReviewSequence = function(reviewSequenceType) {
 		}
 		//prompt the user to click on the first node in the review sequence
 		this.engageSelectMode(this.createReviewSequenceCallback, "在" + reviewSequenceType + "互評順序中選擇第一步驟。這是學生送出起始實作內容的地方。", ["createReviewSequence1", reviewSequenceType]);		
-	    
 	} else {
 		//a project is not open so we will display an error message
 		this.notificationManager.notify('Please open or create a Project.', 3);
@@ -1243,7 +1242,7 @@ View.prototype.createReviewSequenceCallback = function(id, args) {
 		//set the active and preserved objects for when saveStep() is called
 		this.activeNode = node1;
 		this.activeContent = createContent(node1.content.getContentUrl());
-		this.preservedContent = this.activeContent;
+		this.preservedContentString = this.activeContent.getContentString();
 		
 		var node1ContentJSON = this.activeContent.getContentJSON();
 		
@@ -1273,7 +1272,7 @@ View.prototype.createReviewSequenceCallback = function(id, args) {
 		//set the active and preserved objects for when saveStep() is called
 		this.activeNode = node2;
 		this.activeContent = createContent(node2.content.getContentUrl());
-		this.preservedContent = this.activeContent;
+		this.preservedContentString = this.activeContent.getContentString();
 		
 		//set the 'authoredWork' attribute
 		var node2ContentJSON = this.activeContent.getContentJSON();
@@ -1331,7 +1330,7 @@ View.prototype.createReviewSequenceCallback = function(id, args) {
 		//set the active and preserved objects for when saveStep() is called
 		this.activeNode = node3;
 		this.activeContent = createContent(node3.content.getContentUrl());
-		this.preservedContent = this.activeContent;
+		this.preservedContentString = this.activeContent.getContentString();
 		
 		//set the 'authoredReview' attribute
 		var node3ContentJSON = this.activeContent.getContentJSON();

@@ -22,6 +22,7 @@ Annotations.prototype.addAnnotation = function(annotation) {
  * toWorkgroup
  * fromWorkgroup
  * type
+ * stepWorkId
  * If it finds one that is the same, it will remove the old Annotation
  * and add the new Annotation.
  * 
@@ -43,7 +44,8 @@ Annotations.prototype.updateOrAddAnnotation = function(newAnnotation) {
 				annotation.nodeId == newAnnotation.nodeId &&
 				annotation.toWorkgroup == newAnnotation.toWorkgroup &&
 				annotation.fromWorkgroup == newAnnotation.fromWorkgroup &&
-				annotation.type == newAnnotation.type) {
+				annotation.type == newAnnotation.type &&
+				annotation.stepWorkId == newAnnotation.stepWorkId) {
 			//the parameters are the same so we will remove the annotation we found
 			this.annotationsArray.splice(x, 1);
 			
@@ -364,14 +366,16 @@ Annotations.prototype.getLatestAnnotation = function(runId, nodeId, toWorkgroup,
 		var tempAnnotation = this.annotationsArray[x];
 		
 		/*
-		 * we will check that all the attributes match
+		 * we will check that the attributes match
 		 * the tempAnnotation.fromWorkgroup must match any id in the fromWorkgroups array
+		 * type can be null in which case any type will be accepted
+		 * stepWorkId can be null in which case any stepWorkId will be accepted
 		 */
 		if(tempAnnotation.runId == runId && 
 				tempAnnotation.nodeId == nodeId &&
 				tempAnnotation.toWorkgroup == toWorkgroup && 
 				fromWorkgroups.indexOf(parseInt(tempAnnotation.fromWorkgroup)) != -1 &&
-				tempAnnotation.type == type) {
+				(type == null || tempAnnotation.type == type)) {
 
 			//if stepWorkId was passed in, make sure it matches
 			if(stepWorkId == null || (stepWorkId != null && tempAnnotation.stepWorkId == stepWorkId)) {
@@ -429,6 +433,26 @@ Annotations.prototype.getAnnotationsByType = function(type) {
 		var annotation = this.annotationsArray[x];
 		
 		if(annotation.type == type) {
+			annotations.push(annotation);
+		}
+	}
+	
+	return annotations;
+};
+
+/**
+ * Retrieves all the annotations with the given toWorkgroup and type 
+ * @param toWorkgroup the to workgroup
+ * @param type the type of annotation e.g. comment, grade, etc.
+ * @return an array containing all the annotations with the given toWorkgroup and type
+ */
+Annotations.prototype.getAnnotationsByToWorkgroupType = function(toWorkgroup, type) {
+	var annotations = new Array();
+	
+	for(var x=0; x<this.annotationsArray.length; x++) {
+		var annotation = this.annotationsArray[x];
+		
+		if(annotation.toWorkgroup == toWorkgroup && annotation.type == type) {
 			annotations.push(annotation);
 		}
 	}
@@ -519,8 +543,8 @@ Annotations.prototype.annotationsAfterDate = function(date) {
 		//get an annotation
 		var annotation = this.annotationsArray[x];
 		
-		//make sure the annotation is not a flag annotation
-		if(annotation != null && annotation.type != 'flag') {
+		//make sure the annotation is not a flag or inappropriate flag annotation
+		if(annotation != null && annotation.type != 'flag' && annotation.type != 'inappropriateFlag') {
 			if(annotation.postTime > date) {
 				/*
 				 * the annotation post time is after the date so we

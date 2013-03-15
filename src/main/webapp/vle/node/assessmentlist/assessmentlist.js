@@ -417,7 +417,7 @@ ASSESSMENTLIST.prototype.submit = function() {
 	
 	if (allCompleted) {
 		if (this.content.isLockAfterSubmit) {
-			doLockStep=confirm("Click 'OK' to save and lock this step.  Your data will be saved and you will not be able to make any more changes.\nIf you want to keep working on this step, click 'Cancel'.");
+			doLockStep=confirm("請按 '確定' 進行儲存與鎖定。您的資料將被儲存且不能再做任何更改。\n如果您還想修改，請按 '取消'。");
 			if (doLockStep==true) { 
 				//disable the submit and save draft buttons
 				this.setSaveUnavailable();
@@ -447,7 +447,7 @@ ASSESSMENTLIST.prototype.submit = function() {
 		};
 	} else {
 		/* all not completed yet, notify user and have them finish */
-		alert("Please answer all the questions before submitting this questionnaire.");
+		alert("在送出問卷前請回答所有的問題！");
 	};
 };
 
@@ -590,6 +590,19 @@ ASSESSMENTLIST.prototype.save = function(isSubmit) {
 		
 		//disable the save draft button
 		this.setSaveDraftUnavailable();	
+		
+		// show "saved" or "submitted" message
+		var confMSG = 'Your work has been saved.';
+		if (isSubmit) {
+			confMSG = 'Your work has been submitted.';				
+		}
+		if ($("#saveConfirmation").size() == 0) {
+			$("#submitButtonDiv").after('<br/><span style=\'font-size:.8em\' id="saveConfirmation">'+confMSG+'</span>&nbsp;');
+		} else {
+			$('#saveConfirmation').show();
+		}
+		$('#saveConfirmation').html(confMSG).delay(5000).fadeOut('medium');
+
 		
 		this.stateChanged = false;
 	}
@@ -777,7 +790,7 @@ ASSESSMENTLIST.prototype.getLastSavedResponse = function(assessmentJSON) {
 ASSESSMENTLIST.prototype.lockScreen = function() {
 	this.setSaveUnavailable();
 	$(".interactable").attr("disabled",true);
-	$(".stepAlreadyCompleteDiv").html("You have completed this step.");
+	$(".stepAlreadyCompleteDiv").html("您已經完成這個步驟");
 };
 
 

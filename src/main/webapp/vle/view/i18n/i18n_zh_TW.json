@@ -1,43 +1,43 @@
 {
-	"top_toolbar_file_button_text":{
+	"file_button_text":{
 		"value":"檔案",
-		"description":"Text on the File Manager button on Top Toolbar"
+		"description":"Text on the File Manager button"
 	},
-	"top_toolbar_ideas_button_text":{
+	"ideas_button_text":{
 		"value":"想法",
-		"description":"Text on the Idea Manager button on Top Toolbar"
+		"description":"Text on the Idea Manager button"
 	},
-	"top_toolbar_addidea_button_text":{
+	"addidea_button_text":{
 		"value":"新增想法",
-		"description":"Text on the Add Idea button on Top Toolbar"
+		"description":"Text on the Add Idea button"
 	},
-	"top_toolbar_mywork_button_text":{
+	"mywork_button_text":{
 		"value":"我的作業",
-		"description":"Text on the My Work button on Top Toolbar"
+		"description":"Text on the My Work button"
 	},
-	"top_toolbar_flagged_button_text":{
+	"flagged_button_text":{
 		"value":"標記",
-		"description":"Text on the Flagged button on Top Toolbar"
+		"description":"Text on the Flagged button"
 	},
-	"top_toolbar_journal_button_text":{
+	"journal_button_text":{
 		"value":"筆記",
-		"description":"Text on the Journal button on Top Toolbar"
+		"description":"Text on the Journal button"
 	},
-	"top_toolbar_fullscreen_button_text":{
+	"toggle_nav_button_text":{
 		"value":"全螢幕",
-		"description":"Text on the Full Screen button on Top Toolbar"
+		"description":"Text on the Toggle Navigation button when navigation UI is on (visible)"
 	},
-	"top_toolbar_signout_button_text":{
+	"signout_button_text":{
 		"value":"登出",
-		"description":"Text on the Log out button on Top Toolbar"
+		"description":"Text on the Log out button"
 	},
-	"top_toolbar_gohome_button_text":{
+	"gohome_button_text":{
 		"value":"首頁",
-		"description":"Text on the Home button on Top Toolbar"
+		"description":"Text on the Home button"
 	},		
-	"top_toolbar_hint_button_text":{
+	"hint_button_text":{
 		"value":"提示",
-		"description":"Text that shows up next to the Hint button in the top tool bar"
+		"description":"Text that shows up next to the Hint button"
 	},
 	"hint_title":{
 		"value":"步驟提示",
@@ -144,47 +144,47 @@
 		"description":"GradingTool: Text in the Export All Student Work button"
 	},
 	"grading_button_export_idea_baskets":{
-		"value":"匯出想法欄",
+		"value":"匯出想法籃",
 		"description":"GradingTool: Text in the Export Idea Baskets button"
 	},
 	"grading_button_export_explanation_builder_work":{
-		"value":"Export Explanation Builder Work",
+		"value":"匯出建立解釋作業",
 		"description":"GradingTool: Text in the Export Explanation Builder Work button"
 	},
 	"grading_button_export_custom_work":{
-		"value":"Export Custom Student Work",
+		"value":"匯出客製化步驟作業",
 		"description":"GradingTool: Text in the Export Custom Student Work button"
 	},
 	"grading_button_export_student_names":{
-		"value":"Export Student Names",
+		"value":"匯出學生姓名",
 		"description":"GradingTool: Text in the Export Student Names button"
 	},
 	"grading_button_export_latest_student_work_description":{
-		"value":"(Only export the latest student revision)",
+		"value":"(只匯出最新學生作業版本)",
 		"description":"GradingTool: Description next the Export Student Names button"
 	},
 	"grading_button_export_all_student_work_description":{
-		"value":"(Export all the student work revisions as well as their navigation data)",
+		"value":"(匯出所有學生作業版本還有他們的瀏覽資料)",
 		"description":"GradingTool: Description next the Export All Student Work button"
 	},
 	"grading_button_export_idea_baskets_description":{
-		"value":"(Export all the idea basket revisions)",
+		"value":"(匯出所有想法籃版本)",
 		"description":"GradingTool: Description next the Export Idea Baskets button"
 	},
 	"grading_button_export_explanation_builder_work_description":{
-		"value":"(Export all the explanation builder work revisions)",
+		"value":"(匯出所有建立解釋作業版本)",
 		"description":"GradingTool: Description next the Export Explanation Builder Work button"
 	},
 	"grading_button_export_custom_work_description":{
-		"value":"(Export all work or latest work for specific steps that you choose)",
+		"value":"(匯出您所選擇之特定步驟的所有或最新作業)",
 		"description":"GradingTool: Description next the Export Custom Student Work button"
 	},
 	"grading_button_export_student_names_description":{
-		"value":"(Export the student names along with their period, workgroup id, wise id, and login)",
+		"value":"(匯出學生姓名包含班級、小組id、wise id與登錄名稱)",
 		"description":"GradingTool: Description next the Export Student Names button"
 	},
 	"grading_button_explanation":{
-		"value":"Explanation",
+		"value":"說明",
 		"description":"GradingTool: Text in the Explanation button"
 	},
 	"grading_button_check_for_new_student_work":{

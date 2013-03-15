@@ -20,8 +20,7 @@ function SVGDrawNode(nodeType, view) {
 	this.audios = [];
 	this.contentBase;
 	this.audioSupported = true;	
-	this.exportableToNodes = new Array(			
-			"SVGDrawNode");	
+	this.importableFromNodes = new Array("SVGDrawNode","OpenResponseNode","NoteNode");	
 	this.importableFileExtensions = new Array(
 			"jpg", "png", "gif", "svg");
 };
@@ -63,56 +62,24 @@ SVGDrawNode.prototype.translateStudentWork = function(studentWork) {
 };
 
 /**
- * Returns true iff this node can export work to the specified node.
- * @param exportToNode node to export work into
- * @return true/false
- */
-SVGDrawNode.prototype.canExportWork = function(exportToNode) {
-	return this.exportableToNodes &&
-		this.exportableToNodes.indexOf(exportToNode.type) > -1;
-};
-
-/**
- * Returns a string of the work so that it can be imported by the specified exportToNode
- * @param exportToNode node that will import the return value of this method
- * @return null if this node cannot export work to the exportToNode
- */
-SVGDrawNode.prototype.exportWork = function(exportToNode) {	
-	if (exportToNode.type == "SVGDrawNode") {
-	    var nodeVisitArray = this.view.state.getNodeVisitsByNodeId(this.id);
-	    if (nodeVisitArray.length > 0) {
-	        var states = [];
-	        var latestNodeVisit = nodeVisitArray[nodeVisitArray.length -1];
-	        for (var i = 0; i < nodeVisitArray.length; i++) {
-	            var nodeVisit = nodeVisitArray[i];
-	            for (var j = 0; j < nodeVisit.nodeStates.length; j++) {
-	                states.push(nodeVisit.nodeStates[j]);
-	            }
-	        }
-	        var latestState = states[states.length - 1];
-	        var studentWork = latestState.getStudentWork();
-	        
-	        studentWork = Utils.decode64(this.translateStudentWork(studentWork));
-	        
-	        // only get the studentlayer. remove newlines and regex for what's inside <title>student</title>...</g>
-	        studentWork = studentWork.replace(/[\n\r\t]/g,"").match("<title>student</title>(.*)</g>")[1];
-	        
-			return studentWork;
-	    };			
-	};
-	return null;
-};
-
-/**
  * Imports and inserts the work from the specified importFromNode
- * @param importFromNode node that will export the data for this node to import
+ * @param importFromNode node that has the data for this node to import
  */
 SVGDrawNode.prototype.importWork = function(importFromNode) {
-	var studentWorkSVG = importFromNode.exportWork(this);
-	if (studentWorkSVG != null) {
-		var svgStringBefore = this.contentPanel.svgCanvas.getSvgString();
-		var svgStringAfter = svgStringBefore.replace("<title>student</title>", "<title>student</title>" + studentWorkSVG);
-		this.contentPanel.svgCanvas.setSvgString(svgStringAfter);
+	if (this.canImportWork(importFromNode)) {
+		if (importFromNode.type == "SVGDrawNode") {
+			var studentWork = this.view.state.getLatestWorkByNodeId(importFromNode.id);
+			if (studentWork != null) {
+		        var studentWorkSVG = Utils.decode64(this.translateStudentWork(studentWork));
+		        
+		        // only get the studentlayer. remove newlines and regex for what's inside <title>student</title>...</g>
+		        studentWorkSVG = studentWorkSVG.replace(/[\n\r\t]/g,"").match("<title>student</title>(.*)</g>")[1];
+
+				var svgStringBefore = this.contentPanel.svgCanvas.getSvgString();
+				var svgStringAfter = svgStringBefore.replace("<title>student</title>", "<title>student</title>" + studentWorkSVG);
+				this.contentPanel.svgCanvas.setSvgString(svgStringAfter);
+			}		
+		}
 	}
 };
 
@@ -188,8 +155,35 @@ SVGDrawNode.prototype.onExit = function() {
 	}
 };
 
+/**
+ * SVGDraw does not actually use this function to render the grading view.
+ * The grading view for SVGDraw steps is handled a special way in the vle code.
+ * 
+ * @param divId the id of the div we will render the student work into
+ * @param nodeVisit the student work
+ * @param childDivIdPrefix (optional) a string that will be prepended to all the 
+ * div ids use this to prevent DOM conflicts such as when the show all work div
+ * uses the same ids as the show flagged work div
+ * @param workgroupId the id of the workgroup this work belongs to
+ * 
+ */
+SVGDrawNode.prototype.renderGradingView = function(divId, nodeVisit, childDivIdPrefix, workgroupId) {
+	//do nothing
+	//TODO: render grading view here and not in gradingview_display
+};
+
 SVGDrawNode.prototype.getHTMLContentTemplate = function() {
 	return createContent('node/draw/svg-edit/svg-editor.html');
+};
+
+/**
+ * Whether this step type has a grading view. Steps types that do not
+ * save any student work will not have a grading view such as HTMLNode
+ * and OutsideUrlNode.
+ * @returns whether this step type has a grading view
+ */
+SVGDrawNode.prototype.hasGradingView = function() {
+	return true;
 };
 
 NodeFactory.addNode('SVGDrawNode', SVGDrawNode);

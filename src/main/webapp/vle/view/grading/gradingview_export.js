@@ -29,6 +29,15 @@ View.prototype.getIdeaBasketsExcelExport = function() {
 };
 
 /**
+ * Request the idea basket excel export
+ */
+View.prototype.getFlashExcelExport = function() {
+	this.setParamsForXLSExport();
+	document.getElementById('exportType').value = 'flashStudentWork';
+	document.getElementById('getStudentXLSExport').submit();
+};
+
+/**
  * Request the explanation builder work excel export
  */
 View.prototype.getExplanationBuilderWorkExcelExport = function() {
@@ -220,24 +229,24 @@ View.prototype.getWorkgroupExportExplanations = function() {
 	
 	var workgroupExportExplanations = [
 		{
-			label:"Workgroup Id",
-			explanation:"the number id of the workgroup"
+			label:"小組Id",
+			explanation:"小組的Id"
 		},
 		{
 			label:"Wise Id 1",
-			explanation:"the number id of the first member of the group. this id is tied directly to the student account."
+			explanation:"此id代表小組的第一位成員。這個Id直接對應學生帳號"
 		},
 		{
 			label:"Wise Id 2",
-			explanation:"the number id of the second member of the group (if applicable). this id is tied directly to the student account."
+			explanation:"此id代表小組的第二位成員(如果有)。這個Id直接對應學生帳號"
 		},
 		{
 			label:"Wise Id 3",
-			explanation:"the number id of the third member of the group (if applicable). this id is tied directly to the student account."
+			explanation:"此id代表小組的第三位成員(如果有)。這個Id直接對應學生帳號"
 		},
 		{
-			label:"Class Period",
-			explanation:"the period the workgroup is in"
+			label:"班級",
+			explanation:"小組所屬的班級"
 		}
 	];
 	
@@ -266,19 +275,19 @@ View.prototype.getRunExportExplanations = function() {
 		},
 		{
 			label:"來源專題ID",
-			explanation:"這個專題複製的來源專題 Id "
+			explanation:"這個專題複製的來源專題 Id"
 		},
 		{
 			label:"專題名稱",
 			explanation:"專題的名稱"
 		},
 		{
-			label:"執行ID",
+			label:"執行專題ID",
 			explanation:"執行專題的ID"
 		},
 		{
-			label:"執行名稱",
-			explanation:"執行專題名稱"
+			label:"執行專題名稱",
+			explanation:"執行專題的名稱"
 		},
 		{
 			label:"開始日期",
@@ -306,64 +315,64 @@ View.prototype.getLatestStudentWorkExportExplanations = function() {
 	 */
 	var latestStudentWorkExportExplanations = [
 		{
-			label:"Step Title",
-			explanation:"the title of the step"
+			label:"步驟標題",
+			explanation:"步驟的標題"
 		},
 		{
-			label:"Step Type",
-			explanation:"the type of the step"
+			label:"步驟類型",
+			explanation:"步驟的類型"
 		},
 		{
-			label:"Step Prompt",
-			explanation:"the prompt that the student reads on the step"
+			label:"步驟提示",
+			explanation:"在步驟中讓學生閱讀的提示"
 		},
 		{
-			label:"Node Id",
-			explanation:"the id of the step which is unique within the project"
+			label:"節點Id",
+			explanation:"此步驟Id在專題中是獨立的"
 		},
 		{
-			label:"Step Extra",
-			explanation:"extra information about that step (*the remaining rows below are some values that you may see in the Step Extra row)"
+			label:"其他步驟資訊",
+			explanation:"關於步驟的其他資訊"
 		},
 		{
-			label:"*Teacher Score Timestamp",
-			explanation:"the timestamp when the teacher gave the score"
+			label:"*教師評分時間點",
+			explanation:"教師評分的時間點"
 		},
 		{
-			label:"*Teacher Score",
-			explanation:"the score from the teacher"
+			label:"*教師評分",
+			explanation:"來自教師的評分"
 		},
 		{
-			label:"*Teacher Comment Timestamp",
-			explanation:"the timestamp when the teacher gave the comment"
+			label:"*T教師評論時間點",
+			explanation:"教室評論的時間點"
 		},
 		{
-			label:"*Teacher Comment",
-			explanation:"the comment from the teacher"
+			label:"*教師評論",
+			explanation:"來自教師的評論"
 		},
 		{
-			label:"*Workgroup I am writing feedback to",
-			explanation:"this step is the second step in a peer/teacher review sequence"
+			label:"正給予回饋的小組",
+			explanation:"這個步驟是同儕/教師回顧評論順序的第二個步驟"
 		},
 		{
-			label:"*Work from other workgroup",
-			explanation:"this step is the second step in a peer/teacher review sequence"
+			label:"*從其他小組實作",
+			explanation:"這個步驟是同儕/教師回顧評論順序的第二個步驟"
 		},
 		{
-			label:"*Workgroup that is writing feedback to me",
-			explanation:"this step is the third step in a peer/teacher review sequence"
+			label:"*正寫下回饋的小組",
+			explanation:"這個步驟是同儕/教師回顧評論順序的第三個步驟"
 		},
 		{
-			label:"*Feedback from workgroup",
-			explanation:"this step is the third step in a peer/teacher review sequence"
+			label:"*小組回饋",
+			explanation:"這個步驟是同儕/教師回顧評論順序的第三個步驟"
 		},
 		{
-			label:"*Work that I have revised based on feedback",
-			explanation:"this step is the third step in a peer/teacher review sequence"
+			label:"*根據回饋修正的實作",
+			explanation:"這個步驟是同儕/教師回顧評論順序的第三個步驟"
 		},
 		{
-			label:"*(other)",
-			explanation:"for AssessmentList steps, this will display the prompt for each of the separate parts in the AssessmentList step"
+			label:"*(其他)",
+			explanation:"針對問卷/測驗步驟，這將顯示在步驟中每個項目的提示"
 		}
 	];
 	
@@ -384,83 +393,83 @@ View.prototype.getAllStudentWorkExportExplanations = function() {
 	var allStudentWorkExportExplanations = [
 		{
 			label:"#",
-			explanation:"the step visit counter"
+			explanation:"步驟瀏覽計數"
 		},
 		{
 			label:"Wise Id 1",
-			explanation:"the number id of the first member of the group. if the student was absent it will say 'Absent' after the number."
+			explanation:"此id代表小組的第一位成員。如果該學生缺席，系統將在id數字後面顯示'缺席'"
 		},
 		{
 			label:"Wise Id 2",
-			explanation:"the number id of the second member of the group (if applicable). if the student was absent it will say 'Absent' after the number."
+			explanation:"此id代表小組的第二位成員(如果有)。如果該學生缺席，系統將在id數字後面顯示'缺席'"
 		},
 		{
 			label:"Wise Id 3",
-			explanation:"the number id of the third member of the group (if applicable). if the student was absent it will say 'Absent' after the number."
+			explanation:"此id代表小組的第三位成員(如果有)。如果該學生缺席，系統將在id數字後面顯示'缺席'"
 		},
 		{
-			label:"Step Title",
-			explanation:"the title of the step"
+			label:"步驟標題",
+			explanation:"步驟的標題"
 		},
 		{
-			label:"Step Type",
-			explanation:"the type of the step"
+			label:"步驟類型",
+			explanation:"步驟的類型"
 		},
 		{
-			label:"Step Prompt",
-			explanation:"the prompt that the student reads on the step"
+			label:"步驟提示",
+			explanation:"在步驟中讓學生閱讀的提示"
 		},
 		{
-			label:"Node Id",
-			explanation:"the id of the step which is unique within the project"
+			label:"節點Id",
+			explanation:"此步驟Id在專題中是獨立的"
 		},
 		{
-			label:"Start Time",
-			explanation:"the timestamp when the student entered the step"
+			label:"開始時間",
+			explanation:"學生進入該步驟的時間點"
 		},
 		{
-			label:"End Time",
-			explanation:"the timestamp when the student exited the step"
+			label:"結束時間",
+			explanation:"學生離開該步驟的時間點"
 		},
 		{
-			label:"Time Spent (Seconds)",
-			explanation:"the amount of time the student spent on the step"
+			label:"花費時間(秒)",
+			explanation:"學生在該步驟花費的時間"
 		},
 		{
-			label:"Teacher Score Timestamp",
-			explanation:"the timestamp when the teacher gave the score"
+			label:"教師評分時間點",
+			explanation:"教師評分的時間點"
 		},
 		{
-			label:"Teacher Score",
-			explanation:"the score from the teacher"
+			label:"教師評分",
+			explanation:"來自教師的評分"
 		},
 		{
-			label:"Teacher Comment Timestamp",
-			explanation:"the timestamp when the teacher gave the comment"
+			label:"教師評論時間點",
+			explanation:"教師評論的時間點"
 		},
 		{
-			label:"Teacher Comment",
-			explanation:"the comment from the teacher"
+			label:"教師評論",
+			explanation:"來自教師的評論"
 		},
 		{
-			label:"Classmate Id",
-			explanation:"the id of the workgroup that this student is receiving text from (only applies for review sequence steps)"
+			label:"同儕小組Id",
+			explanation:"這個學生正接收文字訊息的小組Id(只應用於回顧評論順序步驟)"
 		},
 		{
-			label:"Receiving Text",
-			explanation:"the text received from the classmate (only applies for review sequence steps)"
+			label:"接收文字訊息",
+			explanation:"從同儕小組接收文字訊息(只應用於回顧評論順序步驟)"
 		},
 		{
-			label:"Student Work or Student Work Part 1",
-			explanation:"the work the student submitted for this step"
+			label:"學生實作項目1",
+			explanation:"學生送出這個步驟的實作內容"
 		},
 		{
-			label:"Student Work Part 2 (if applicable)",
-			explanation:"the second part of the work the student submitted for this step (only applies to steps that have multiple parts such as AssessmentList)"
+			label:"學生實作項目2(如果有)",
+			explanation:"學生送出這個步驟實作內容的第2部分(只應用於有很多項目的步驟，如問卷/測驗)"
 		},
 		{
-			label:"Student Work Part N (if applicable)",
-			explanation:"the Nth part of the work the student submitted for this step (only applies to steps that have multiple parts such as AssessmentList)"
+			label:"學生實作項目N(如果有)",
+			explanation:"學生送出這個步驟實作內容的第N部分(只應用於有很多項目的步驟，如問卷/測驗)"
 		}
 	];
 	
@@ -480,84 +489,84 @@ View.prototype.getIdeaBasketsExportExplanations = function() {
 	 */
 	var ideaBasketsExportExplanations = [
 		{
-			label:"Basket Revision",
-			explanation:"the revision number of the basket. each time the student makes a change to the basket, the revision number is incremented."
+			label:"想法籃修正版本",
+			explanation:"想法籃的修正版本號碼。每次學生更改想法籃，修正版本號碼就會增加"
 		},
 		{
-			label:"Idea #",
-			explanation:"the number of the idea within the basket. the idea number for an idea never changes even if the idea text is changed or the idea is repositioned within the basket."
+			label:"想法 #",
+			explanation:"想法籃中的想法號碼。即使想法內容更改或想法在想法籃中重新放置，想法號碼不會改變"
 		},
 		{
-			label:"Idea Text",
-			explanation:"the text student entered for the idea"
+			label:"想法文字",
+			explanation:"學生輸入想法的文字"
 		},
 		{
-			label:"Flag",
-			explanation:"the flag the student chose for the idea"
+			label:"旗標",
+			explanation:"學生為想法選擇的旗標"
 		},
 		{
-			label:"Tags",
-			explanation:"the tags the student entered for the idea"
+			label:"標籤",
+			explanation:"學生為想法輸入的標籤"
 		},
 		{
-			label:"Source",
-			explanation:"the source the student chose for the idea"
+			label:"來源",
+			explanation:"學生為想法選擇的來源"
 		},
 		{
-			label:"Node Type",
-			explanation:"the step type the student created the idea on"
+			label:"建立想法節點類型",
+			explanation:"學生建立想法時的步驟類型"
 		},
 		{
-			label:"Node Id Created On",
-			explanation:"the id of the step the student created the idea on"
+			label:"建立想法節點Id",
+			explanation:"學生建立想法時的步驟Id"
 		},
 		{
-			label:"Node Name Created On",
-			explanation:"the name of the step the student created the idea on"
+			label:"建立想法節點名稱",
+			explanation:"學生建立想法時的步驟名稱"
 		},
 		{
-			label:"Steps Used In Count",
-			explanation:"the number of steps this idea is used in (such as explanation builder steps)"
+			label:"步驟使用統計",
+			explanation:"使用這個想法的步驟數量(如建立想法步驟)"
 		},
 		{
-			label:"Steps Used In",
-			explanation:"the list of steps that this idea is used in (the ideas are comma delimited in this format nodeId:nodeTitle, nodeId:nodeTitle, ...)"
+			label:"想法使用步驟",
+			explanation:"使用這個想法的步驟列表(用以下格式表示 節點Id:節點標題，節點Id:節點標題，...)"
 		},
 		{
-			label:"Trash",
-			explanation:"whether the idea is in the trash (0 if no, 1 if yes)"
+			label:"垃圾桶",
+			explanation:"當想法在垃圾桶中(0表示無，1表示有)"
 		},
 		{
-			label:"Timestamp Basket Saved",
-			explanation:"the timestamp when this basket revision was saved"
+			label:"想法籃儲存時間點",
+			explanation:"儲存想法籃修正版本的時間點"
 		},
 		{
-			label:"Timestamp Idea Created",
-			explanation:"the timestamp when this idea was created"
+			label:"想法建立時間點",
+			explanation:"建立想法的時間點"
 		},
 		{
-			label:"Timestamp Idea Last Edited",
-			explanation:"the timestamp when this idea was last edited"
+			label:"上次想法編輯時間點",
+			explanation:"上次編輯想法的時間點"
 		},
 		{
-			label:"New",
-			explanation:"whether the idea is new in this basket revision (0 if no, 1 if yes)"
+			label:"新",
+			explanation:"當想法在想法籃中是新的(0表示無，1表示有)"
 		},
 		{
-			label:"Revised",
-			explanation:"whether the idea was changed in this basket revision (0 if no, 1 if yes)"
+			label:"已修正",
+			explanation:"當想法在想法籃中修正過(0表示無，1表示有)"
 		},
 		{
-			label:"Repositioned",
-			explanation:"whether the position of this idea was changed within the basket in this basket revision (0 if no, 1 if yes)"
+			label:"重新放置",
+			explanation:"當想法在想法籃中的位置改變(0表示無，1表示有)"
 		},
 		{
-			label:"Steps Used In Changed",
-			explanation:"whether the idea was either used or removed from a step in this basket revision (such as an explanation builder step) (0 if no, 1 if yes)"
+			label:"步驟使用或修改",
+			explanation:"當想法在步驟中使用過或已移除(例如建立解釋步驟)(0表示無，1表示有)"
 		},
 		{
-			label:"Deleted In This Revision",
-			explanation:"whether the idea was placed in the trash in this basket revision (0 if no, 1 if yes)"
+			label:"已刪除",
+			explanation:"當想法放到垃圾桶中(0表示無，1表示有)"
 		}
 	];
 	
@@ -577,56 +586,56 @@ View.prototype.getExplanationBuilderWorkExportExplanations = function() {
 	 */
 	var explanationBuilderWorkExportExplanations = [
 		{
-			label:"Step Work Id",
-			explanation:"the id of the student work"
+			label:"實作步驟Id",
+			explanation:"學生實作的步驟Id"
 		},
 		{
-			label:"Step Title",
-			explanation:"the title of the step"
+			label:"步驟標題",
+			explanation:"步驟的標題"
 		},
 		{
-			label:"Step Prompt",
-			explanation:"the prompt of the step"
+			label:"步驟提示",
+			explanation:"步驟的提示"
 		},
 		{
-			label:"Node Id",
-			explanation:"the id of the step"
+			label:"節點Id",
+			explanation:"步驟的Id"
 		},
 		{
-			label:"Start Time",
-			explanation:"the timestamp the student entered the step"
+			label:"開始時間",
+			explanation:"學生進入步驟的時間點"
 		},
 		{
-			label:"End Time",
-			explanation:"the timestamp the student exited the step"
+			label:"結束時間",
+			explanation:"學生離開步驟的時間點"
 		},
 		{
-			label:"Time Spent (in seconds)",
-			explanation:"the time the student spent on the step"
+			label:"花費時間(秒)",
+			explanation:"學生在該步驟花費的時間"
 		},
 		{
-			label:"Answer",
-			explanation:"the text the student entered into the bottom textarea in the explanation builder step"
+			label:"答案",
+			explanation:"學生在建立解釋步驟中輸入底部文字欄的文字"
 		},
 		{
-			label:"Idea Id",
-			explanation:"the id of the idea within the idea basket"
+			label:"想法Id",
+			explanation:"在想法籃中想法的Id"
 		},
 		{
-			label:"Idea Text",
-			explanation:"the text the student wrote for this idea"
+			label:"想法文字",
+			explanation:"學生輸入想法的文字"
 		},
 		{
-			label:"Idea X Position",
-			explanation:"the x position of the upper left corner of the idea rectangle relative to the upper left corner of the background image"
+			label:"想法X座標",
+			explanation:"左上角想法框相對於左上角背景圖的X座標"
 		},
 		{
-			label:"Idea Y Position",
-			explanation:"the y position of the upper left corner of the idea rectangle relative to the upper left corner of the background image"
+			label:"想法Y座標",
+			explanation:"左上角想法框相對於左上角背景圖的Y座標"
 		},
 		{
-			label:"Idea Color",
-			explanation:"the color the student chose for the idea"
+			label:"想法顏色",
+			explanation:"學生為想法選擇的顏色"
 		}
 	];
 	
@@ -646,24 +655,24 @@ View.prototype.getStudentNamesExportExplanations = function() {
 	 */
 	var studentNamesExportExplanations = [
 		{
-			label:"Period",
-			explanation:"the period the student is in"
+			label:"班級",
+			explanation:"學生所在的班級"
 		},
 		{
-			label:"Workgroup Id",
-			explanation:"the id of the workgroup"
+			label:"小組Id",
+			explanation:"小組的Id"
 		},
 		{
 			label:"Wise Id",
-			explanation:"the id of the student"
+			explanation:"學生的Id"
 		},
 		{
-			label:"Student Username",
-			explanation:"the login username of the student"
+			label:"學生帳號",
+			explanation:"學生的登入帳號"
 		},
 		{
-			label:"Student Name",
-			explanation:"the name of the name of the student"
+			label:"學生姓名",
+			explanation:"學生的姓名"
 		}
 	];
 	
@@ -754,8 +763,8 @@ function displayExportData(exportType) {
 	var exportData = vle.getContentForFile(exportType);
 
 	//make the message to display at the top of the pop up window
-	var message = "<p>If you were asked to save the file you can ignore and close this window.</p>";
-	message += "<p>If you were not asked to save the file, you can copy the contents in the box below and paste it into Notepad or Textedit and save it yourself.</p>";
+	var message = "<p>如果您被要求儲存檔案，您可以忽略並關閉該視窗。</p>";
+	message += "<p>如果您沒有被要求儲存檔案，您可以複製在底部欄位的內容並將它貼上Notepad或文字編輯器，然後自己將它儲存。</p>";
 
 	//make the textarea that will contain the export data
 	var textBoxHtml = "<textarea rows='15' cols='70'>" + exportData + "</textarea>";

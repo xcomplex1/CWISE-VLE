@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2009 Regents of the University of California (Regents). Created
  * by TELS, Graduate School of Education, University of California at Berkeley.
  *
@@ -40,7 +40,7 @@ function MSBUCKET(bucketObj) {
   } else {
     this.isTargetBucket = false;
     this.identifier = "sourceBucket";
-    this.text = "Choices";
+    this.text = "選項";
     this.choices = [];
   }
 }

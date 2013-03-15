@@ -49,8 +49,6 @@ View.prototype.FlashNode.generatePage = function(view){
 	
 	this.view = view;
 	
-	this.projectPath = this.view.getProjectFolderPath();
-	
 	this.flashvarCount = -1;
 	
 	//get the content of the step
@@ -68,25 +66,17 @@ View.prototype.FlashNode.generatePage = function(view){
 	var promptDiv = $(document.createElement('div')).addClass('authorComponent');
 	
 	//create the label for the textarea that the author will write the prompt in
-	var promptLabel = $(document.createElement('div')).text('介紹的內容 (選擇性)：');
+	var promptLabel = $(document.createElement('div')).text('內容介紹 (選擇性):');
+	
 	//create the textarea that the author will write the prompt in
 	var promptTextArea = $(createElement(document, 'textarea', {id: 'promptTextArea', name: 'promptTextArea', onkeyup:"eventManager.fire('flashPromptChanged')"})).css({'width':'100%','min-height':'100px'});
 	
-	//create rich text hide/show links div
-	var richtextToggleDiv = $(document.createElement('div'));
-	
-	//create rich text hide and show links
-	var richtextShow = $(createElement(document, 'a', {id: 'showRichText', title: '完整文字編輯器', onclick:"eventManager.fire('flashShowRichText')"})).text('文字編輯器').addClass('richTextToggle');
-	var richtextHide = $(createElement(document, 'a', {id: 'hideRichText', title: 'HTML', onclick:"eventManager.fire('flashHideRichText')"})).text('HTML').addClass('richTextToggle');
-	
-	richtextToggleDiv.append(richtextShow).append(richtextHide);
-	
-	promptDiv.append(promptLabel).append(promptTextArea).append(richtextToggleDiv);
+	promptDiv.append(promptLabel).append(promptTextArea);
 	
 	var swfUrlDiv = $(document.createElement('div')).addClass('authorComponent');
 	
 	//create the label for the textarea that the author will write the swf url in
-	var swfUrlLabel = $(document.createElement('span')).text('Flash (swf) 網址：');
+	var swfUrlLabel = $(document.createElement('span')).text('Flash (swf) 位址:');
 	//create the textarea that the author will write the swf url in
 	var swfUrlInput = $(createElement(document, 'input', {id: 'swfUrlInput', type:'text', size:'50', onchange:"eventManager.fire('flashSwfUrlChanged')"}));
 	//create the browse button that allows author to choose swf from project assets
@@ -97,15 +87,15 @@ View.prototype.FlashNode.generatePage = function(view){
 	var swfDimensionsDiv = $(document.createElement('div')).addClass('authorComponent');
 	
 	//create the label for the dimensions section
-	var swfDimensionsLabel = $(document.createElement('div')).text('大小 (px)：');
+	var swfDimensionsLabel = $(document.createElement('div')).text('尺寸 (px):');
 	//create the label for the textarea that the author will write the height in
-	var swfHeightLabel = $(document.createElement('span')).text('高度：');
+	var swfHeightLabel = $(document.createElement('span')).text('高:');
 	//create the textarea that the author will write the height in
 	// TODO: add validation (only allow digits)
 	var swfHeightInput = createElement(document, 'input', {id: 'swfHeightInput', type:'text', size:'4', onchange:"eventManager.fire('flashSwfHeightChanged')"});
 	
 	//create the label for the textarea that the author will write the width in
-	var swfWidthLabel = $(document.createElement('span')).text('寬度：');
+	var swfWidthLabel = $(document.createElement('span')).text('寬:');
 	//create the textarea that the author will write the width in
 	// TODO: add validation (only allow digits)
 	var swfWidthInput = createElement(document, 'input', {id: 'swfWidthInput', type:'text', size:'4', onchange:"eventManager.fire('flashSwfWidthChanged')"});
@@ -115,14 +105,14 @@ View.prototype.FlashNode.generatePage = function(view){
 	var advancedDiv = $(document.createElement('div')).addClass('authorSection');
 	
 	//create the label for the advanced section
-	var advancedLabel = $(document.createElement('div')).text('進階選項');
+	var advancedLabel = $(document.createElement('div')).text('進階選項:');
 	
 	var flashvarsDiv = $(document.createElement('div')).addClass('authorComponent');
 	
 	//create the label for the flashvars section
 	var flashvarsLabel = $(document.createElement('div')).text('選擇性載入參數 (flashvars)');
 	//create add flashvar button
-	var flashvarButton = $(createElement(document, 'button', {id: 'addFlashvar', onclick: 'eventManager.fire("flashAddFlashvar")'})).text('新增flashv參數');
+	var flashvarButton = $(createElement(document, 'button', {id: 'addFlashvar', onclick: 'eventManager.fire("flashAddFlashvar")'})).text('新增flash參數');
 	
 	flashvarsDiv.append(flashvarsLabel).append(flashvarButton);
 	
@@ -133,7 +123,7 @@ View.prototype.FlashNode.generatePage = function(view){
 		eventManager.fire('flashEnableDataChanged');
 	});
 	//create the label for the checkbox that the author will use to enable/disable data logging
-	var enableDataLabel = $(document.createElement('span')).text('學生資料記錄');
+	var enableDataLabel = $(document.createElement('span')).text('允許學生資料記錄');
 	
 	dataDiv.append(enableDataCbx).append(enableDataLabel);
 	
@@ -144,20 +134,20 @@ View.prototype.FlashNode.generatePage = function(view){
 		eventManager.fire('flashEnableGradingChanged');
 	});
 	//create the label for the checkbox that the author will use to enable/disable grading
-	var enableGradingLabel = $(document.createElement('span')).text('評分');
+	var enableGradingLabel = $(document.createElement('span')).text('允許評分');
 	
 	gradingDiv.append(enableGradingCbx).append(enableGradingLabel);
 	
 	var gradingTypeDiv = $(document.createElement('div')).addClass('authorComponent').css('display','none').attr('id','gradingTypeDiv');
 	
 	//create the label for the radio buttons that the author will use to select the grading format
-	var gradingTypeLabel = $(document.createElement('div')).text('評分模式：');
+	var gradingTypeLabel = $(document.createElement('div')).text('評分模式:');
 	//create the radio buttons and labels for each grading type
-	var gradingLabelFlash = $(document.createElement('span')).text('Flash顯示');
-	var gradingRadioFlash = $(createElement(document, 'input', {id: 'flashGradingType', type: 'radio', name: 'gradingType', value: 'flashDisplay'})).prop('checked',true);
-	var gradingLabelData = $(document.createElement('span')).text('學生資料字串');
-	var gradingRadioData = $(createElement(document, 'input', {id: 'dataGradingType', type: 'radio', name: 'gradingType', value: 'data'}));
-	var gradingLabelCustom = $(document.createElement('span')).text('Custom');
+	var gradingLabelData = $(document.createElement('span')).text('學生資料');
+	var gradingRadioData = $(createElement(document, 'input', {id: 'dataGradingType', type: 'radio', name: 'gradingType', value: 'data'})).prop('checked',true);
+	var gradingLabelFlash = $(document.createElement('span')).text('顯示Flash');
+	var gradingRadioFlash = $(createElement(document, 'input', {id: 'flashGradingType', type: 'radio', name: 'gradingType', value: 'flashDisplay'}));
+	var gradingLabelCustom = $(document.createElement('span')).text('客製化');
 	var gradingRadioCustom = $(createElement(document, 'input', {id: 'customGradingType', type: 'radio', name: 'gradingType', value: 'custom'}));
 	
 	gradingTypeDiv.append(gradingTypeLabel).append(gradingRadioFlash).append(gradingLabelFlash).append(gradingRadioData).append(gradingLabelData).append(gradingRadioCustom).append(gradingLabelCustom);
@@ -177,9 +167,6 @@ View.prototype.FlashNode.generatePage = function(view){
 		this.populateSwfUrl();
 	}
 	
-	// populate the prompt text that has been authored before
-	this.populatePrompt();
-	
 	//populate the dimensions if this step has been authored before
 	this.populateSwfDimensions();
 	
@@ -191,8 +178,11 @@ View.prototype.FlashNode.generatePage = function(view){
 		eventManager.fire('flashFlashvarsChanged');
 	});
 	
-	// enable rich text eidtor for prompt
-	this.enableRichTextEditing($('#promptTextArea'),function() {eventManager.fire('flashPromptChanged');});
+	// populate the prompt text that has been authored before
+	this.populatePrompt();
+	
+	// enable rich text editor for prompt
+	this.view.addRichTextAuthoring('promptTextArea',function() {eventManager.fire('flashPromptChanged');});
 };
 
 /**
@@ -222,11 +212,7 @@ View.prototype.FlashNode.updateContent = function(){
 View.prototype.FlashNode.populatePrompt = function() {
 	//get the prompt from the content and set it into the authoring textarea
 	if(this.content.prompt){
-		if(this.promptRichTextEnabled){
-			this.promptRichText.setContent(this.content.prompt);
-		} else {
-			$('#promptTextArea').val(this.content.prompt);
-		}
+		$('#promptTextArea').val(this.content.prompt);
 	}
 };
 
@@ -235,8 +221,9 @@ View.prototype.FlashNode.populatePrompt = function() {
  */
 View.prototype.FlashNode.updatePrompt = function(){
 	/* update content */
-	if(this.richTextPromptEnabled){
-		this.content.prompt = this.promptRichText.getContent();
+	if(typeof tinymce != 'undefined' && $('#promptTextArea').tinymce()){
+		// rich text editor is active on textarea, so get contents from editor
+		this.content.prompt = $('#promptTextArea').tinymce().getContent();
 	} else {
 		this.content.prompt = $('#promptTextArea').val();
 	}
@@ -256,7 +243,7 @@ View.prototype.FlashNode.updatePrompt = function(){
  * Populate the swfUrl textarea where the user types the url for the swf file
  */
 View.prototype.FlashNode.populateSwfUrl = function() {
-	//get the prompt from the content and set it into the authoring textarea
+	//get the url from the content and set it into the authoring textarea
 	$('#swfUrlInput').val(this.content.activity_uri);
 };
 
@@ -413,7 +400,7 @@ View.prototype.FlashNode.createNewFlashvarInput = function(key,value){
 	// create div for new flashvar
 	var newFlashvarDiv = $(document.createElement('div')).addClass('flashvar').attr('id','flashvar_' + context.flashvarCount).css('display','none');
 	// create label for key textarea
-	var keyLabel = $(document.createElement('span')).text('Key:');
+	var keyLabel = $(document.createElement('span')).text('鍵:');
 	// create the textarea that the author will write the key in
 	var keyInput = $(createElement(document, 'input', {type:'text', size:'15'})).addClass('key flashvarInput');
 	// populate key input if key param was sent
@@ -421,7 +408,7 @@ View.prototype.FlashNode.createNewFlashvarInput = function(key,value){
 		keyInput.val(key);
 	}
 	// create label for value textarea
-	var valueLabel = $(document.createElement('span')).text('Value:');
+	var valueLabel = $(document.createElement('span')).text('值:');
 	// create the textarea that the author will write the value in
 	var valueInput = $(createElement(document, 'input', {type:'text', size:'50'})).addClass('value flashvarInput');
 	// populate value input if value param was sent
@@ -479,83 +466,6 @@ View.prototype.FlashNode.deleteFlashvar = function(index){
 };
 
 /**
- * Shows rich text editor for prompt
- */
-View.prototype.FlashNode.showRichText = function() {
-	if(this.richTextPromptEnabled == false){
-		this.enableRichTextEditing($('#promptTextArea'),function() {eventManager.fire('flashPromptChanged');});
-		//this.richTextPromptEnabled = true;
-	}
-};
-
-/**
- * Shows rich text editor for prompt
- */
-View.prototype.FlashNode.hideRichText = function() {
-	if(this.richTextPromptEnabled == true){
-		$('#promptTextArea').tinymce().remove();
-		this.richTextPromptEnabled = false;
-	}
-};
-
-/**
- * Enables rich text editing for specified textarea
- * TODO: make this a component feature (not specific to indiviudal node types)
- * @param target The textarea element on which to activate the rich text editor
- * @param callback A callback function to run when the rich text editor content changes
- */
-View.prototype.FlashNode.enableRichTextEditing = function(target,callback) {
-	var context = this;
-	
-	// enable rich text editing on prompt textarea
-	target.tinymce({
-		// Location of TinyMCE script
-		script_url : '/vlewrapper/vle/jquery/tinymce/jscripts/tiny_mce/tiny_mce.js',
-
-		// General options
-		theme : "advanced",
-		plugins : "preview,pagebreak,style,layer,table,save,advhr,advimage,advlink,emotions,iespell,inlinepopups,insertdatetime,preview,media,searchreplace,print,contextmenu,paste,directionality,fullscreen,noneditable,visualchars,nonbreaking,xhtmlxtras,template",
-		media_strict : false,
-		//media_use_script : true,
-		
-        // Theme options
-        theme_advanced_buttons1 : "bold,italic,underline,strikethrough,|,justifyleft,justifycenter,justifyright,justifyfull,styleselect,formatselect,fontselect,fontsizeselect",
-        theme_advanced_buttons2 : "forecolor,backcolor,|,link,unlink,anchor,image,media,|,cut,copy,paste,pastetext,pasteword,|,search,replace,|,bullist,numlist,|,outdent,indent,blockquote,|,undo,redo",
-        theme_advanced_buttons3 : "tablecontrols,|,hr,removeformat,visualaid,|,sub,sup,|,charmap,emotions,iespell,advhr",
-        theme_advanced_buttons4 : "absolute,|,styleprops,|,cite,abbr,acronym,del,ins,attribs,|,visualchars,nonbreaking,template,|,print,|,ltr,rtl,|,fullscreen,help,cleanup,preview",
-        theme_advanced_toolbar_location : "top",
-		theme_advanced_toolbar_align : "left",
-		theme_advanced_statusbar_location : "bottom",
-		theme_advanced_resizing : true,
-
-		// Example content CSS (should be your site CSS)
-		//content_css : "css/content.css",
-
-		// Drop lists for link/image/media/template dialogs
-		//template_external_list_url : "lists/template_list.js",
-		//external_link_list_url : "lists/link_list.js",
-		//external_image_list_url : "jquery/tiny_mce/getImageList.js",
-		//media_external_list_url : "jquery/tiny_mce/getMediaList.js",
-		document_base_url: context.projectPath,
-		
-		onchange_callback : callback,
-		setup : function(ed){
-			/* add keypress listener */
-	        ed.onKeyUp.add(callback);
-	        
-	        // store editor instance as prototype variable
-	        context.promptRichText = ed;
-		},
-		oninit: function(){
-			//populate the prompt if this step has been authored before
-			context.populatePrompt();
-			context.richTextPromptEnabled = true;
-		},
-		file_browser_callback : 'fileBrowser'
-	});
-};
-
-/**
  * Open asset editor dialog and allows user to choose the swf to use for this step
  */
 View.prototype.FlashNode.browseFlashAssets = function() {
@@ -569,35 +479,12 @@ View.prototype.FlashNode.browseFlashAssets = function() {
 	var params = {};
 	params.field_name = 'swfUrlInput';
 	params.type = 'flash';
+	params.buttonText = 'Please select a file from the list.';
+	params.extensions = ['swf'];
 	params.win = null;
 	params.callback = callback;
 	eventManager.fire('viewAssets',params);
 };
-
-function fileBrowser(field_name, url, type, win){
-	var callback = function(field_name, url, type, win){
-		url = 'assets/' + url;
-		win.document.getElementById(field_name).value = url;
-		// if we are in an image browser
-        if (typeof(win.ImageDialog) != "undefined") {
-            // we are, so update image dimensions and preview if necessary
-            if (win.ImageDialog.getImageData) win.ImageDialog.getImageData();
-            if (win.ImageDialog.showPreviewImage) win.ImageDialog.showPreviewImage(url);
-        }
-        // if we are in a media browser
-        if (typeof(win.Media) != "undefined") {
-            if (win.Media.preview) win.Media.preview(); // TODO: fix - preview doesn't seem to work until you switch the media type (also doesn't get dimensions)
-            //if (win.MediaDialog.showPreviewImage) win.MediaDialog.showPreviewImage(url);
-        }
-	};
-	var params = {};
-	params.field_name = field_name;
-	params.type = type;
-	params.win = win;
-	params.callback = callback;
-	eventManager.fire('viewAssets',params);
-};
-
 
 //used to notify scriptloader that this script has finished loading
 if(typeof eventManager != 'undefined'){

@@ -34,6 +34,28 @@ Node.prototype.getNodeId = function() {
 	return this.id;
 };
 
+Node.prototype.isHiddenFromNavigation = function() {
+	if (this.isHidden) {
+		return this.isHidden;
+	}
+	return false;
+};
+
+/**
+ * Shows/Hides this node from appearing in the navigation panel
+ * @param doDisplay true iff this node should show up in the navigation.
+ * @returns
+ */
+Node.prototype.displayInNavigation = function(doDisplay) {
+	this.isHidden = !doDisplay;
+	var navItem = $("#node_"+this.view.escapeIdForJquery(this.view.getProject().getPositionById(this.id)));
+	if (doDisplay) {
+		navItem.removeClass("hidden");		
+	} else {
+		navItem.addClass("hidden");
+	}
+};
+
 Node.prototype.getTitle = function() {
 	if (this.title != null) {
 		return this.title;
@@ -59,6 +81,33 @@ Node.prototype.getHints = function() {
 	return null;
 };
 
+
+/**
+ * Retrieves the annotations for this node, if exists. Returns only annotations of
+ * type {score,comment,cRater} for the logged in user. 
+ * @return Annotations if exists. if not exist, return null
+ */
+Node.prototype.getNodeAnnotations = function() {
+	if (this.view &&
+			this.view.annotations && this.view.annotations != null &&
+			this.view.annotations.getAnnotationsByNodeId(this.id) != null) {
+		var allNodeAnnotations = this.view.annotations.getAnnotationsByNodeId(this.id);
+		var filteredNodeAnnotations = [];
+		var loggedInWorkgroupId = this.view.getUserAndClassInfo().getWorkgroupId();
+		for (var i=0; i < allNodeAnnotations.length; i++) {
+			var nodeAnnotation = allNodeAnnotations[i];
+			if (nodeAnnotation.type == "score" || nodeAnnotation.type == "comment" || nodeAnnotation.type == "cRater") {
+				if (nodeAnnotation.toWorkgroup == loggedInWorkgroupId) {
+					filteredNodeAnnotations.push(nodeAnnotation);					
+				}
+			}
+		}
+		return filteredNodeAnnotations;
+	}
+	return null;
+};
+
+
 /**
  * Retrieves the question/prompt the student reads for this step.
  * @return a string containing the prompt. (the string may be an
@@ -78,10 +127,7 @@ Node.prototype.getPrompt = function() {
 				var assessmentItem = contentJSON.assessmentItem;
 				var interaction = assessmentItem.interaction;
 				prompt = interaction.prompt;	
-			}
-			// check if node is an SVGDrawNode
-			if(this.type=='SVGDrawNode'){
-			//obtain the prompt
+			} else {
 				if(contentJSON.prompt != null){
 					prompt = contentJSON.prompt;
 				}
@@ -277,9 +323,9 @@ Node.prototype.render = function(contentPanel, studentWork, disable) {
 	/* if there is a disable constraint, we want to set a semi-transparent panel over the content div */
 	if(disable==1){
 		/* get the position, height and width of the content panel */
-		var panelPosition = $('#projectRightLowerBox').offset();
-		var panelHeight = $('#projectRightLowerBox').height() + 2;
-		var panelWidth = $('#projectRightLowerBox').width() + 2;
+		var panelPosition = $('#contentDiv').offset();
+		var panelHeight = $('#contentDiv').height() + 2;
+		var panelWidth = $('#contentDiv').width() + 2;
 		
 		/* create the disabledPanel and append it to the given document */
 		var dynamicPanel = $('<div id="disabledPanel"></div>').css({opacity: 0.361, height:panelHeight, width:panelWidth, background:'#000', position:'absolute', 'z-index':999, top:panelPosition.top, left:panelPosition.left}).fadeIn(300);
@@ -418,8 +464,8 @@ Node.prototype.nodeJSON = function(contentBase){
 		/* create and return sequence object */
 		var sequence = {
 			type:'sequence',
-			identifier:makeHtmlSafe(this.id),
-			title:makeHtmlSafe(this.title),
+			identifier:this.id,
+			title:this.title,
 			view:this.getView(),
 			refs:[]
 		};
@@ -434,9 +480,9 @@ Node.prototype.nodeJSON = function(contentBase){
 		/* create and return node object */
 		var node = {
 			type:this.type,
-			identifier:makeHtmlSafe(this.id),
-			title:makeHtmlSafe(this.title),
-			hints:makeHtmlSafe(this.hints),
+			identifier:this.id,
+			title:this.title,
+			hints:this.hints,
 			ref:this.content.getFilename(contentBase),
 			previousWorkNodeIds:this.prevWorkNodeIds,
 			populatePreviousWorkNodeId:this.populatePreviousWorkNodeId,
@@ -566,6 +612,11 @@ Node.prototype.injectBaseRef = function(content) {
 			newContent = this.insertString(content, indexOfHeadOpenTag + "<head>".length, baseRefTag);
 		} else {
 			newContent = content;
+		}
+		
+		// check for tinymce flv embed instances, inject baseURI into any 'url' flashvars
+		if(newContent.match('/vlewrapper/vle/jquery/tinymce/jscripts/tiny_mce/plugins/media/moxieplayer.swf')){
+			newContent = newContent.replace(/url=assets/g,'url=' + cbu + 'assets');
 		}
 		
 		//return the updated content
@@ -965,7 +1016,7 @@ Node.prototype.handlePreviousOutsideLink = function(thisObj, thisContentPanel) {
  */
 Node.prototype.insertPreviousWorkIntoPage = function(doc){
 	//only do anything if there is anything to do
-	if(this.prevWorkNodeIds.length>0){
+	if(this.prevWorkNodeIds != null && this.prevWorkNodeIds.length>0){
 		var html = '';
 		
 		//loop through and add any previous work to html
@@ -982,12 +1033,13 @@ Node.prototype.insertPreviousWorkIntoPage = function(doc){
 					if(typeof work == "string") {
 						//replace all \n with <br>
 						work = work.replace(/\n/g, '<br>');
-						
-						//append the html
-						html += 'Remember, your response to step ' + stepNumberAndTitle + ' was<br>' + work + '</br></br>';
 					} else {
-						html += node.getHtmlView(work);
+						//get the html view for the work
+						work = node.getHtmlView(work);
 					}
+					
+					//display the previous work step number and title along with the work
+					html += '記得您的回應-->步驟 ' + stepNumberAndTitle + ' was<br>' + work + '</br></br>';
 				};
 			}
 		};
@@ -1148,10 +1200,17 @@ Node.prototype.getShowAllWorkHtml = function(vle, divIdPrefix){
             }
         }
         var latestState = states[states.length - 1];
-        showAllWorkHtmlSoFar += "上次拜訪過此步驟 ";
+        
+        if(latestState!=null){
+        	// TODO: i18n
+            showAllWorkHtmlSoFar += "<p class='info lastVisit'>上次拜訪過此步驟 ";
+        } else {
+        	// TODO: i18n
+            showAllWorkHtmlSoFar += "<p class='info'>上次拜訪過此步驟 ";
+        }
         
         if(latestNodeVisit!=null){
-        	showAllWorkHtmlSoFar += "" + new Date(parseInt(latestNodeVisit.visitStartTime)).toLocaleString();
+        	showAllWorkHtmlSoFar += "" + new Date(parseInt(latestNodeVisit.visitStartTime)).toLocaleString() + "</p>";
         	
         };
         
@@ -1170,26 +1229,20 @@ Node.prototype.getShowAllWorkHtml = function(vle, divIdPrefix){
         	var divId = divIdPrefix + "latestWork_"+latestNodeVisit.id;
         	var contentBaseUrl = this.view.getConfig().getConfigParam('getContentBaseUrl');
         	
-        	if(this.view.isSelfRenderingGradingViewNodeType(this.type)) {
+        	if(this.type == "MySystemNode" || this.type == "SVGDrawNode") {
+        		showAllWorkHtmlSoFar += '<div class=\"showallLatest\">最近實作：' + '</div>' + 
+    			'<div id=\"'+divId+'\" contentBaseUrl=\"'+contentBaseUrl+'\" class=\"'+divClass+'\" style=\"'+divStyle+'\">' + this.translateStudentWork(latestState.getStudentWork()) + '</div>';
+        	} else if(this.hasGradingView()) {
         		showAllWorkHtmlSoFar += '<div class=\"showallLatest\">最近實作：' + '</div>' + 
         		'<div id=\"'+divId+'\" contentBaseUrl=\"'+contentBaseUrl+'\" class=\"'+divClass+'\" style=\"'+divStyle+'\"></div>';
         	} else {
         		showAllWorkHtmlSoFar += '<div class=\"showallLatest\">最近實作：' + '</div>' + 
         			'<div id=\"'+divId+'\" contentBaseUrl=\"'+contentBaseUrl+'\" class=\"'+divClass+'\" style=\"'+divStyle+'\">' + this.translateStudentWork(latestState.getStudentWork()) + '</div>';
         	}
-        	
-        	if (this.view.getCurrentNode().importWork && 
-        			this.canExportWork &&
-        			this.canExportWork(this.view.getCurrentNode())) {
-        		// if the currently-opened node can import work from this node, show link to import.
-        		showAllWorkHtmlSoFar += "<div id=\"insertwork_"+divId+"\">" +        		
-        		"<a href=\"#\" onclick=\"eventManager.fire('importWork', ['" + this.id + "','"+this.view.getCurrentNode().id+"']); $('#showallwork').dialog('close');\">Insert this work into current step</a>" +
-        		"</div>";
-        	};
         };
     }
     else {
-        showAllWorkHtmlSoFar += "此步驟尚未拜訪過";
+        showAllWorkHtmlSoFar += "<p class='info'>此步驟尚未拜訪過</p>";
     }
     
     for (var i = 0; i < this.children.length; i++) {
@@ -1353,6 +1406,14 @@ Node.prototype.isCompleted = function() {
 };
 
 /**
+ * Get whether the step overrides Node.isCompleted or not
+ * @return a boolean value whether there is an override function or not
+ */
+Node.prototype.overridesIsCompleted = function() {
+	return false;
+};
+
+/**
  * Set the step boolean value part of review sequence to true
  */
 Node.prototype.setIsPartOfReviewSequence = function() {
@@ -1373,6 +1434,14 @@ Node.prototype.setIsNotPartOfReviewSequence = function() {
  */
 Node.prototype.isPartOfReviewSequence = function() {
 	return this.isStepPartOfReviewSequence;
+};
+
+/**
+ * Get whether the node has any exit restrictions set
+ * @returns Boolean whether the step can exit or not
+ */
+Node.prototype.canExit = function() {
+	return true;
 };
 
 /**
@@ -1417,6 +1486,13 @@ Node.prototype.getTagMapFunctions = function() {
 };
 
 /**
+ * Handle any processing before creating the node navigation html.
+ */
+Node.prototype.onBeforeCreateNavigationHtml = function() {
+	// to be overriden by child nodes
+};
+
+/**
  * Get a tag map function given the function name. Each child class
  * should overwrite this function if they make use of tags.
  * @param functionName the name of the function
@@ -1425,6 +1501,35 @@ Node.prototype.getTagMapFunctions = function() {
 Node.prototype.getTagMapFunctionByName = function(functionName) {
 	return null;
 };
+
+/**
+ * Whether this step type has a grading view. Steps that do not save
+ * any student work will not have a grading view such as HTMLNode
+ * and OutsideUrlNode. Steps types that do not have a grading view 
+ * should override this function and return false.
+ * @returns whether this step type has a grading view
+ */
+Node.prototype.hasGradingView = function() {
+	return true;
+};
+
+/**
+ * Returns true iff this node can import work from the specified node.
+ * @param exportToNode node to export work into
+ * @return true/false
+ */
+Node.prototype.canImportWork = function(importFromNode) {
+	return this.importableFromNodes &&
+		this.importableFromNodes.indexOf(importFromNode.type) > -1;
+};
+
+/**
+ * Process any constraints in the node based on state
+ */
+Node.prototype.processStateConstraints = function() {
+	// to be overriden by child nodes
+};
+
 
 //used to notify scriptloader that this script has finished loading
 if(typeof eventManager != 'undefined'){

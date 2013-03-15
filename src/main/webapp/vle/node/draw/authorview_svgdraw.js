@@ -69,7 +69,7 @@ View.prototype.SVGDrawNode.generateToolbarOptions = function(){
 	
 	var toolbarHtml = '選擇可用的繪圖工具：<br />';
 	toolbarHtml += '<form>';
-	toolbarHtml += '<input type="checkbox" name="toolbarCbx" id="pencilCbx" checked="checked" onclick="eventManager.fire(\'svgdrawToolbarOptionsChanged\')"/> <img alt="pencil" src="node/draw/svg-edit/images/fhpath.png" /> 鉛筆 (手繪的)*<br />';
+	toolbarHtml += '<input type="checkbox" name="toolbarCbx" id="pencilCbx" checked="checked" onclick="eventManager.fire(\'svgdrawToolbarOptionsChanged\')"/> <img alt="pencil" src="node/draw/svg-edit/images/fhpath.png" /> 鉛筆<br />';
 	toolbarHtml += '<input type="checkbox" name="toolbarCbx" id="lineCbx" checked="checked" onclick="eventManager.fire(\'svgdrawToolbarOptionsChanged\')"/> <img alt="line" src="node/draw/svg-edit/images/line.png" /> 線條<br />';
 	toolbarHtml += '<input type="checkbox" name="toolbarCbx" id="connectorCbx" checked="checked" onclick="eventManager.fire(\'svgdrawToolbarOptionsChanged\')"/> <object data="node/draw/svg-edit/images/conn.svg" type="image/svg+xml" style="width:24px; height:24px;"></object> 連接工具<br />';
 	toolbarHtml += '<input type="checkbox" name="toolbarCbx" id="rectangleCbx" checked="checked" onclick="eventManager.fire(\'svgdrawToolbarOptionsChanged\')"/> <img alt="rectangle" src="node/draw/svg-edit/images/rect.png" /> 矩形/正方形<br />';
@@ -144,7 +144,7 @@ View.prototype.SVGDrawNode.generateSnapshotOption = function(){
 View.prototype.SVGDrawNode.generateSnapshotMaxOption = function(){
 	var parent = document.getElementById('snapMaxDiv');
 	
-	var snapshotMaxHtml = '學生可以建立的最大影格(快照)數量？<br/>';
+	var snapshotMaxHtml = '學生可以建立的最大影格(動畫)數量？<br/>';
 	snapshotMaxHtml += '<select id="snapMaxInput" disabled="disabled" onchange="eventManager.fire(\'svgdrawSnapshotMaxOptionChanged\')">' + 
 		'<option value="2">2</option>' +
 		'<option value="3">3</option>' +
@@ -411,7 +411,19 @@ View.prototype.SVGDrawNode.populatePrompt = function() {
  * refreshes the preview.
  */
 View.prototype.SVGDrawNode.updatePrompt = function(){
-	this.content.prompt = document.getElementById('promptInput').value;
+	var content = '';
+	/* update content object */
+	if(typeof tinymce != 'undefined' && $('#promptInput').tinymce()){
+		content = $('#promptInput').tinymce().getContent();
+	} else {
+		content = $('#promptInput').val();
+	}
+	
+	// strip out any urls with the full project path (and replace with 'assets/file.jpg')
+	var assetPath = this.view.getProjectFolderPath() + 'assets/';
+	var assetPathExp = new RegExp(assetPath,"gi");
+	content.replace(assetPathExp,"assets/");
+	this.content.prompt = content;
 	
 	/* fire source updated event */
 	this.view.eventManager.fire('sourceUpdated');

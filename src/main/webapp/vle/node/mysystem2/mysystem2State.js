@@ -8,9 +8,8 @@
  * note: you can change the variables in this constructor, the response variable
  * is just used as an example. you can add any variables that will help you 
  * represent the student's work for your step type.
- * @constructor
  */
-function MYSYSTEM2STATE(response) {
+function MYSYSTEM2STATE(response, isSubmit) {
   //remember the type to avoid corruption (i.e., loading a state saved by an openresponse WISE4 step)
   this.type = "MySystem2";
   
@@ -21,6 +20,8 @@ function MYSYSTEM2STATE(response) {
 		//set the response
 		this.response = response;
 	}
+	
+	this.isSubmit = isSubmit;
 }
 
 /**
@@ -41,6 +42,11 @@ MYSYSTEM2STATE.prototype.parseDataJSONObj = function(stateJSONObj) {
 	
 	//create a state object with the student work
 	var mysystemState = new MYSYSTEM2STATE(response);
+	
+	//populate the isSubmit field if it exists
+	if(stateJSONObj.isSubmit != null) {
+		mysystemState.isSubmit = stateJSONObj.isSubmit;
+	}
 	
 	//return the state object
 	return mysystemState;

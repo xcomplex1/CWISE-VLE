@@ -1,4 +1,4 @@
-/*globals MSA, SCUtil, InitialMySystemData*/
+﻿/*globals MSA, SCUtil, InitialMySystemData*/
 
 MSA = SC.Application.create();
 
@@ -14,13 +14,17 @@ if (top === self) {
     "correctFeedback": "Your diagram has no obvious problems.",
     "minimum_requirements": [],
     "maxFeedbackItems": 0,
-    "minimumRequirementsFeedback": "Your diagram doesn't have enough elements.",
+    "minimumRequirementsFeedback": "You need to work more on your diagram to get feedback!",
     "enableNodeLabelEditing": false,
     "enableNodeDescriptionEditing": false,
     "enableLinkDescriptionEditing": false,
     "enableLinkLabelEditing": false,
     "enableCustomRuleEvaluator": false,
-    "customRuleEvaluator": ""
+    "customRuleEvaluator": "",
+    "maxSubmissionClicks": 0,
+    "maxSubmissionFeedback":  "您已經點選'送出'太多次，請繼續實作，沒有提示！",
+    "feedbackPanelWidth": 500,
+    "feedbackPanelHeight": 250
   };
 }
 
@@ -57,9 +61,20 @@ MSA.setupParentIFrame = function(dataHash, updateObject, updateFn) {
   if (typeof dataHash.customRuleEvaluator === "undefined" || dataHash.customRuleEvaluator === null){
     dataHash.customRuleEvaluator = "";
   }
-
   if (!dataHash.minimum_requirements) {
     dataHash.minimum_requirements = [];
+  }
+  if (typeof dataHash.maxSubmissionClicks === "undefined" || dataHash.maxSubmissionClicks === null){
+    dataHash.maxSubmissionClicks = 0;
+  }
+  if (typeof dataHash.maxSubmissionFeedback === "undefined" || dataHash.maxSubmissionFeedback === null){
+    dataHash.maxSubmissionFeedback = "您已經點選'送出'太多次，請繼續實作，沒有提示！";
+  }
+  if (typeof dataHash.feedbackPanelHeight === "undefined" || dataHash.feedbackPanelHeight === null){
+    dataHash.feedbackPanelHeight = 250;
+  }
+  if (typeof dataHash.feedbackPanelWidth === "undefined" || dataHash.feedbackPanelWidth === null){
+    dataHash.feedbackPanelWidth = 500;
   }
 
   // TODO: migrate objects to have uuids that don't already have them
@@ -88,7 +103,11 @@ MSA.ActivityModel = SCUtil.ModelObject.extend({
   enableLinkDescriptionEditing: SCUtil.dataHashProperty,
   enableLinkLabelEditing: SCUtil.dataHashProperty,
   enableCustomRuleEvaluator: SCUtil.dataHashProperty,
-  customRuleEvaluator: SCUtil.dataHashProperty
+  customRuleEvaluator: SCUtil.dataHashProperty,
+  maxSubmissionClicks: SCUtil.dataHashProperty,
+  maxSubmissionFeedback: SCUtil.dataHashProperty,
+  feedbackPanelWidth: SCUtil.dataHashProperty,
+  feedbackPanelHeight: SCUtil.dataHashProperty
 });
 
 MSA.Module = SCUtil.ModelObject.extend( SCUtil.UUIDModel, {
@@ -113,6 +132,7 @@ MSA.EnergyType = SCUtil.ModelObject.extend( SCUtil.UUIDModel, {
 // so there are different types of rule 
 MSA.DiagramRule = SCUtil.ModelObject.extend({
   suggestion: SCUtil.dataHashProperty,
+  name: SCUtil.dataHashProperty,
   comparison: SCUtil.dataHashProperty,
   number: SCUtil.dataHashProperty,
   type: SCUtil.dataHashProperty,
@@ -146,16 +166,16 @@ MSA.RulesController = SCUtil.ModelArray.extend({
   modelType: MSA.DiagramRule,
 
   nodeTypes: function (){
-    return MSA.modulesController.mapProperty('name').insertAt(0, 'node');
+    return MSA.modulesController.mapProperty('name').insertAt(0, '節點');
   }.property('MSA.modulesController.[]', 'MSA.modulesController.@each.name').cacheable(),
 
   energyTypes: function() {
-    return MSA.energyTypesController.mapProperty('label').insertAt(0, 'any');
+    return MSA.energyTypesController.mapProperty('label').insertAt(0, '任何');
   }.property('MSA.energyTypesController.[]', 'MSA.energyTypesController.@each.label').cacheable(),
 
-  comparisons: ['more than', 'less than', 'exactly'],
+  comparisons: ['多於', '少於', '剛好'],
 
-  shouldOptions: ['should', 'should not'],
+  shouldOptions: ['應', '應不'],
 
   linkDirections: ['-->', '<--', '---'],
 
@@ -214,7 +234,11 @@ MSA.dataController = SC.Object.create({
              'MSA.activity.enableLinkLabelEditing',
              'MSA.activity.maxFeedbackItems',
              'MSA.activity.enableCustomRuleEvaluator',
-             'MSA.activity.customRuleEvaluator')
+             'MSA.activity.customRuleEvaluator',
+             'MSA.activity.maxSubmissionClicks',
+             'MSA.activity.maxSubmissionFeedback',
+             'MSA.activity.feedbackPanelWidth',
+             'MSA.activity.feedbackPanelHeight')
 });
 
 MSA.NodeTypesView = SC.CollectionView.extend({
@@ -222,3 +246,55 @@ MSA.NodeTypesView = SC.CollectionView.extend({
   contentBinding: "MSA.diagramRulesController.nodeTypes"
 });
 
+// add missing textarea tag attributes
+MSA.TextArea = SC.TextArea.extend({
+  attributeBindings: ['rows', 'cols', 'wrap'],
+  // reasonable defaults?
+  cols: 50,
+  rows: 4,
+  wrap: "off"
+});
+
+// add size attribute to text field
+MSA.TextField = SC.TextField.extend({
+  attributeBindings: ['type', 'value', 'size'],
+  type: "text",
+  size: null
+});
+
+MSA.customRuleController = SC.Object.create({
+  editorWindow: null,
+
+  editCustomRule: function() {
+    var editorWindow = this.get('editorWindow');
+    var features  = "menubar=no,location=no,titlebar=no,toolbar=no,resizable=yes,scrollbars=yes,status=no,width=750,height=650"; 
+    var javascript = MSA.activity.get('customRuleEvaluator');
+
+    // reuse existing window:
+    if (editorWindow) {
+      editorWindow.postMessage(javascript,"*");
+      editorWindow.focus();
+    }
+
+    // or create a new one:
+    else {
+      editorWindow = window.open("ace.html", 'editorwindow', features);
+      this.set('editorWindow', editorWindow);
+      editorWindow.srcText = javascript;
+      editorWindow.originParent = window;
+    }
+    var self = this;
+    var updateMessage = function(event) {
+      var message = JSON.parse(event.data);
+      if (message.javascript) {
+        MSA.activity.set('customRuleEvaluator',message.javascript);
+      }
+      if (message.windowClosed) {
+        self.set('editorWindow',null);
+      }
+    };
+
+    window.addEventListener("message", updateMessage, false);
+  }
+
+});

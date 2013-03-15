@@ -65,6 +65,11 @@ View.prototype.MWNode.generatePage = function(view){
 	//create a new div that will contain the authroing components
 	var pageDiv = createElement(document, 'div', {id:'dynamicPage', style:'width:100%;height:100%'});
 
+	//create a span with authoring tips
+	var tipSpan = createElement(document, 'span', {id:'tipSpan'});
+	tipSpan.innerHTML = "編輯提示：<br/>請利用檔案上傳功能上傳.cml檔與.mml檔<br/>" +
+		"然後，在下方的CML網址欄位，輸入 \"./assets/檔案名稱.cml\"<br/>如果需要更多協助，請與我們聯繫。<br/><br/>";
+
 	//create the label for the textarea that the author will write the prompt in
 	var promptText = document.createTextNode("給學生的提示：");
 
@@ -74,6 +79,7 @@ View.prototype.MWNode.generatePage = function(view){
 	var cmlUrlInput = createElement(document, 'input', {id: 'cmlUrlInput', type:'text', size:'50', onchange:"eventManager.fire('mwUpdateCmlUrlInput')"});
 
 	//add the authoring components to the page
+	pageDiv.appendChild(tipSpan);
 	pageDiv.appendChild(promptText);
 	pageDiv.appendChild(createBreak());
 	pageDiv.appendChild(promptTextArea);

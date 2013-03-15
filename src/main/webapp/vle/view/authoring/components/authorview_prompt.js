@@ -14,7 +14,7 @@ View.prototype.promptManager.insertPrompt = function(view) {
 	var nodeToPromptRowSize = {
 			OpenResponseNode:'35',
 			BrainstormNode:'28',
-			HtmlNode:'70',
+			HtmlNode:'50',
 			AssessmentListNode:'10',
 			MultipleChoiceNode:'8',
 			MatchSequenceNode:'10',
@@ -26,9 +26,12 @@ View.prototype.promptManager.insertPrompt = function(view) {
 	$('#promptContainer').append($('#promptDiv').show().detach());
 	
 	this.view.populatePrompt();
+	
+	this.view.addRichTextAuthoring('promptInput',function() {eventManager.fire('stepPromptChanged');});
 };
 
 View.prototype.promptManager.cleanupPrompt = function() {
+	$('#promptDiv .rtToggles').remove();
 	$('body').append($('#promptDiv').hide().detach());
 };
 

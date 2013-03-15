@@ -1,27 +1,46 @@
-View.prototype.displayHint = function(){
-/* set hints link in nav bar if hint exists for this step
-	 * populate hints panel with current nodes hints
+/**
+ * Display hints for the current step.
+ * Hints will popup in a dialog and each hint will
+ * be in its own tab
+ */
+View.prototype.showStepHints = function() {
+	$('#hintsLink').stop();
+	$('#hintsLink').css('color','#FFFFFF');
+	
+	var currentNode = this.getCurrentNode();
+	
+	// hide all dialogs
+	this.eventManager.fire('closeDialogs');
+	
+	// show the hints panel
+    $('#hintsPanel').dialog('open');
+		
+	// log when hint was opened
+	var hintState = new HINTSTATE({action:"hintopened",nodeId:currentNode.id});
+	currentNode.view.pushHintState(hintState);
+};
+
+View.prototype.displayHint = function(){	
+	/* set hints link in nav bar if hint exists for this step
+	 * populate hints panel with current node's hints
 	 * */
 	var currentNode = this.getCurrentNode(); //get the node the student is currently on
     if (currentNode.getHints() != null && currentNode.getHints().hintsArray != null && currentNode.getHints().hintsArray.length > 0) {
-    	// check if hintsLink exists. if not, add it
-    	if ($("#hintsLink").size() == 0) {
-    		var hintButtonText = this.getI18NString("top_toolbar_hint_button_text");
-    		$("#projectRightUpperBoxUL").prepend("<li><a id=\"hintsLink\" onclick='eventManager.fire(\"showStepHints\")' title=\"View Hints\"><img src=\"images/hint/star.png\" alt=\"Hints\" border=\"0\" /><span>&nbsp;"+hintButtonText+"&nbsp;</span></a></li>");
-    	}
+    	var hintsLink = "<a id='hintsLink' onclick='eventManager.fire(\"showStepHints\")' title='"+this.getI18NString("hint_button_title")+"'>"+this.getI18NString("hint_button_text")+"</a>";
+    	$('#hints').empty().html(hintsLink);
 	
 		var numHints = currentNode.getHints().hintsArray.length; //get the number of hints for current node
 		
 		function highlight(){
 			$('#hintsLink').animate({
-				backgroundColor: '#FFFF00'
+				color: '#FFE347'
 			}, {
-				duration: 1200,
+				duration: 1000,
 				complete: function(){
 					$('#hintsLink').animate({
-						backgroundColor: '#FFFFFF'
+						color: '#FFFFFF'
 					}, {
-						duration: 1200,
+						duration: 1000,
 						complete: function(){
 							highlight();
 						}
@@ -37,9 +56,13 @@ View.prototype.displayHint = function(){
 			{	autoOpen:false,
 				closeText:'Close',
 				modal:false,
+				show:{effect:"fade",duration:200},
+				hide:{effect:"fade",duration:200},
 				title:this.getI18NString("hint_title"),
-				zindex:9999, 
-				position:["center",40],
+				zindex:9999,
+				width:450,
+				height:'auto',
+				position:["center","middle"],
 				resizable:true    					
 			}).bind( "dialogbeforeclose", {view:currentNode.view}, function(event, ui) {
 			    // before the dialog closes, save hintstate
@@ -65,12 +88,12 @@ View.prototype.displayHint = function(){
 	    	var nextLink = '<span class="tabNext">'+this.getI18NString("hint_next")+'</span>';
 	    	var prevLink = '<span class="tabPrev">'+this.getI18NString("hint_prev")+'</span>';
 	    	if(i==0){
-	    		var prevLink = '';
+	    		prevLink = '';
 	    		if(numHints<2){
 	    			nextLink = '';
 	    		}
 	    	} else if (i==numHints-1){
-	    		var nextLink = '';
+	    		nextLink = '';
 	    	}
 	    	hintsStringPart1 += "<li><a href='#tabs-"+i+"'>"+this.getI18NString("hint_hint")+" "+(i+1)+"</a></li>";
 	    	hintsStringPart2 += "<div id='tabs-"+i+"'>"+
@@ -94,7 +117,7 @@ View.prototype.displayHint = function(){
 			if(selected != 0){
 				$tabs.tabs('select', selected-1);
 			}
-			eventManager.fire("adjustHintSize");
+			//eventManager.fire("adjustHintSize");
 		});
 		
 		// bind tab navigation links
@@ -103,11 +126,8 @@ View.prototype.displayHint = function(){
 			if(selected < numHints-1){
 				$tabs.tabs('select', selected+1);
 			}
-			eventManager.fire("adjustHintSize");
+			//eventManager.fire("adjustHintSize");
 		});
-			
-		$("#hintsLink").show();
-		highlight();
 		
 		// check if forceShow is set
 		var forceShow = currentNode.getHints().forceShow;
@@ -118,9 +138,14 @@ View.prototype.displayHint = function(){
 		    if (nodeVisitArray.length == 1) {  // if this is the first time, the first nodevisit will already be created.
 				this.eventManager.fire("showStepHints");
 		    }
+		} else {
+			var nodeVisitArray = this.state.getNodeVisitsByNodeId(currentNode.id);
+		    if (nodeVisitArray.length == 1) {  // if this is the first time and hint is never shown automatically, highlight hints link.
+		    	highlight();
+		    }
 		}
     } else {
-    	$("#hintsLink").hide();
+    	$("#hints").empty();
     }
 };
 

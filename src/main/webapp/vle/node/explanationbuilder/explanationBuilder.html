@@ -1,70 +1,15 @@
 ﻿<html>
 	<head>
 		<script type="text/javascript">
-			/*
-			 * xTODO: Copy this file and rename it to
-			 * 
-			 * <new step type>.html
-			 * e.g. quiz.html
-			 *
-			 * and then put the new file into the new folder
-			 * you created for your new step type
-			 *
-			 * your new folder will look something like
-			 * vlewrapper/WebContent/vle/node/<new step type>/
-			 *
-			 * e.g. if you are creating a quiz step it would look
-			 * something like this
-			 * vlewrapper/WebContent/vle/node/quiz/
-			 */
 		
 			var explanationBuilder;
 		
 			function loadContentAfterScriptsLoad(node) {
-				/*
-				 * xTODO: rename TEMPLATE
-				 * 
-				 * make sure you rename TEMPLATE to the object you created in
-				 * the file when you copied and modified
-				 * 
-				 * vlewrapper/WebContent/vle/node/template/template.js
-				 * 
-				 * for example if you are creating a quiz step and you
-				 * created the file
-				 *
-				 * vlewrapper/WebContent/vle/node/quiz/quiz.js
-				 *
-				 * and in that file you defined the QUIZ object, you would
-				 * change TEMPLATE to QUIZ
-				 *
-				 * xTODO: rename template variable
-				 * 
-				 * you should also rename the local var template variable to something
-				 * appropriate. following my previous example I would rename it
-				 * to quiz.
-				 */
 	        	explanationBuilder = new ExplanationBuilder(node, node.view);
 	        	explanationBuilder.render();
 	        };
 			
 	        function loadContent(node) {
-		        /*
-		         * this loadScripts() function call will load the javascript imports
-		         * into this html file 
-		         * 
-		         * xTODO: rename template
-		         *
-		         * you will need to rename template to the variable name that you
-		         * used in 
-		         * 
-		         * vlewrapper/WebContent/vle/util/scriptloader.js
-		         *
-		         * when you defined your script paths in the 'scripts' array
-		         * 
-		         * for example if you are creating a quiz step and you added
-		         * the variable named quiz to the scripts array, you would change
-		         * 'template' to 'quiz'
-		         */
 	        	scriptloader.loadScripts('explanationbuilder', document, node.id, eventManager);
 	        };
 
@@ -72,143 +17,134 @@
 	         * This is called when the student clicks on the save button below in the body
 	         */
 	        function save() {
-		        /*
-		         * calls the save function in template.js
-				 *
-		         * xTODO: rename template variable
-		         */
 		         explanationBuilder.save();
-	        }
+	        };
 		</script>
 	</head>
 
 	<body>
-		<!-- TODO create the html UI that the student will see when they visit the step -->
-			<div id="container">
+		
 		<header>
-			<h3>解釋產生器</h3>
+			<div class="stepHeader"><span id="stepType">建立解釋</span></div>
 		</header>
-		  
-		<div id="main" role="main">
-		  <div id='question'><span id='questionText'>提示文字將會置放於此</span></div>
-			
-  		<div id='explanationSpace'>
-  			<div id='ideas'>
-  			  <div id='ideasWrapper'>
-            <table id='activeIdeas' class='tablesorter' cellspacing='1'>
-              <thead>
-                <tr>
-                  <th class='ideas'>您的想法</th>
-                  <!-- <th class='tags'>Tags</th> -->
-                  <th class='flag'>標籤</th>
-                </tr>
-              </thead>
-              <tbody>
-                
-              </tbody>
-            </table>
-            <div id='ideasEmpty' class='empty'>您的想法籃是空的。點選'新增想法'來開始增加一些想法。</div>
-          </div>
-            <button id="addNew" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false">
-              <span class="ui-button-text">新增想法 +</span>
-            </button>
-        </div>
-  			
-  		  <div id='explanation'>
-  		    <div id='explanationIdeas'>
-  		      <div id='target'>
-  		        <div id='spacePrompt' class='empty'><div style="background-color:white">這是您的組織空間。從您的籃子拖曳想法到這裡以幫助您建立您的答案。</div></div>
-  		        <div id='colorPicker'>
-                 
-               </div>
-  		      </div>
+		<div id="main" role="main" class="assessmentItem">
+			<div id='prompt' class='prompt'>
+				<a id='showResponse' class="submit disabled">準備好解釋!</a>
+				<div id='promptLabel' class='promptLabel'></div>
+			</div>
+			<div id='response' class='response'>
+    		    <div class='responseLabel' id='instructionsText'></div>
+            	<div class='responseWrapper'><textarea id='responseText' class='responseText'></textarea></div>
+            	<div class='saveWrapper'>
+            		<span id='saveConfirm'></span><a id='save' class='submit'>儲存回應</a><a id='cancel' class='disabled'>取消變更</a>
+            	</div>
   		    </div>
-  		    <div id='answer'>
-    		    <div id='instructions' style='padding:10px'>教學或說明文字將會置放於此</div>
-            	<div class='textWrapper'><textarea id='explanationText'></textarea></div>
-            	<button id="save" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false">
-	              <span class="ui-button-text">儲存</span>
-	            </button>
-  		    </div>
-  		  </div>
-  		 </div>
-    </div>
-
-	</div> <!--! end of #container -->
-	
-	<div id='ideaDialog' style='display:none;'>
-		<form class="cmxform" id="ideaForm" method="get" action="">
-			<fieldset>
-				<p><label for="text">在這裡輸入您的想法*：</label></p>
-				<p><textarea id="text" name="text" rows='2' class="required" minlength="2" maxlength="150"></textarea></p>
-				<p style='height:24px; line-height:24px;'>
-					<label for="source">來源*： </label>
-					<select id="source" name="source" class="required" style='height:24px;'>
-					  <option value="empty">選一個：</option>
-					  <option value="Evidence Step">證據步驟</option>
-					  <option value="Visualization or Model">視覺化或模型</option>
-					  <option value="Movie/Video">電影/電視</option>
-					  <option value="Everyday Observation">每日的觀察</option>
-					  <option value="School or Teacher">學校或老師</option>
-					  <option value="Other">其他</option>
-					</select>
-				</p>
-				<p id='otherSource'><label for="other">請詳細說明*： </label><input id='other' name='other' size='25' minlength='2' maxlength='25'></input></p>
+	  		<div id='explanationSpace'>	
+				<div id='explanation'>
+		  			<div id='explanationIdeas'>
+		  		    	<div id='target'>
+		  		        	<div id='spacePrompt'>
+		  		        		<div id='spacePromptText'></div>
+		  		        	</div>
+		  		        	<div id='colorPicker'></div>
+		  		      	</div>
+		  		    </div>
+				</div>
 				
-				<p><label for="tags">關鍵字： </label><input id='tags' name='tags' size='20' maxlength='20'></input></p>
-				<p>
-					<label for="flag">選一個*： </label>
-					<input type="radio" name="flag" value="blank" class="required" checked style="margin-left:0;"></input><span style="vertical-align:top; line-height:20px;"> 無</span>
-					<input type="radio" name="flag" value="important"></input><img src='/vlewrapper/vle/images/ideaManager/important.png' alt='重要的' /><span style="vertical-align:top; line-height:20px;">重要</span>
-					<input type="radio" name="flag" value="question"></input><img src='/vlewrapper/vle/images/ideaManager/question.png' alt='有疑問的' /><span style="vertical-align:top; line-height:20px;">不確定</span>
-					<!-- <input type="radio" name="flag" value="check"></input><img src='./images/ideaManager/check.png' alt='check' /> -->
-				</p>
-			</fieldset>
-		</form>
-	</div>
+				<div id='ideas'>
+	  				<div id='ideasWrapper'>
+			            <table id='activeIdeas' class='tablesorter'>
+			             	<thead>
+			                	<tr>
+			                  		<th class='ideas'>您的想法</th>
+			                  		<!-- <th class='tags'>Tags</th> -->
+			                  		<th class='flag'>標籤</th>
+			                	</tr>
+			              	</thead>
+			              	<tbody>
+			                
+			              	</tbody>
+			            </table>
+	          			<div id='ideasEmpty' class='empty'>您的想法籃是空的。點選 '新增想法' 開始新增您的想法。</div>
+					</div>
+		            <input id="addNew" type="button" value="新增想法 +" />
+	        	</div>
+	  		 </div>
+		</div>
 	
-	<div id='editDialog' style='display:none;'>
-		<form class="cmxform" id="editForm" method="get" action="">
-			<fieldset>
-					<p><label for="editText">在這裡輸入您的想法*：</label></p>
-					<p><textarea id="editText" name="text" rows='2' class="required" minlength="2" maxlength="150"></textarea></p>
+		<div id='ideaDialog' style='display:none;'>
+			<form class="cmxform" id="ideaForm" method="get" action="">
+				<fieldset>
+					<p><label for="text">在這裡輸入您的想法*：</label></p>
+					<p><textarea id="text" name="text" rows='2' class="required" minlength="2" maxlength="150"></textarea></p>
 					<p style='height:24px; line-height:24px;'>
-						<label for="editSource">來源*： </label>
-						<select id="editSource" name="editSource" class="required" style='height:24px;'>
+						<label for="source">來源*： </label>
+						<select id="source" name="source" class="required" style='height:24px;'>
 						  <option value="empty">選一個：</option>
-						  <option value="Evidence Step">證據步驟</option>
-						  <option value="Visualization or Model">視覺化或模型</option>
-						  <option value="Movie/Video">電影/電視</option>
-						  <option value="Everyday Observation">每日的觀察</option>
-						  <option value="School or Teacher">學校或老師</option>
-						  <option value="Other">其他</option>
+						  <option value="證據步驟">證據步驟</option>
+						  <option value="視覺化或模型">視覺化或模型</option>
+						  <option value="電影/電視">電影/電視</option>
+						  <option value="每日的觀察">每日的觀察</option>
+						  <option value="學校或老師">學校或老師</option>
+						  <option value="其他">其他</option>
 						</select>
 					</p>
-					<p id='editOtherSource'><label for="editOther">請詳細說明*： </label><input id='editOther' name='editOther' size='25' minlength='2' maxlength='25'></input></p>
+					<p id='otherSource'><label for="other">請詳細說明*： </label><input id='other' name='other' size='25' minlength='2' maxlength='25'></input></p>
 					
-					<p><label for="editTags">關鍵字： </label><input id='editTags' name='editTags' size='20' maxlength='20'></input></p>
+					<p><label for="tags">關鍵字： </label><input id='tags' name='tags' size='20' maxlength='20'></input></p>
 					<p>
-						<label for="editFlag">選一個*： </label>
-						<input type="radio" name="editFlag" value="blank" class="required" checked style="margin-left:0;"></input><span style="vertical-align:top; line-height:20px;"> 無</span>
-						<input type="radio" name="editFlag" value="important"></input><img src='/vlewrapper/vle/images/ideaManager/important.png' alt='重要的' /><span style="vertical-align:top; line-height:20px;">重要</span>
-						<input type="radio" name="editFlag" value="question"></input><img src='/vlewrapper/vle/images/ideaManager/question.png' alt='有疑問的' /><span style="vertical-align:top; line-height:20px;">不確定</span>
-						<!-- <input type="radio" name="editFlag" value="check"></input><img src='./images/ideaManager/check.png' alt='check' /> -->
+						<label for="flag">選一個*： </label>
+						<input type="radio" name="flag" value="blank" class="required" checked='checked' style="margin-left:0;"></input><span style="vertical-align:top; line-height:20px;"> 無</span>
+						<input type="radio" name="flag" value="important"></input><img src='/vlewrapper/vle/images/ideaManager/important.png' alt='重要的' /><span style="vertical-align:top; line-height:20px;">重要</span>
+						<input type="radio" name="flag" value="question"></input><img src='/vlewrapper/vle/images/ideaManager/question.png' alt='有疑問的' /><span style="vertical-align:top; line-height:20px;">不確定</span>
+						<!-- <input type="radio" name="flag" value="check"></input><img src='./images/ideaManager/check.png' alt='check' /> -->
 					</p>
-			</fieldset>
-		</form>
-	</div>
-	
-	<div id='deleteDialog' style='display:none; text-align:center;'>
-		<div class='ui-state-highlight' style="padding:.5em;"><span class="ui-icon ui-icon-info" style="margin-right: .3em; float:left;"></span><span>您確定要刪除這個想法嗎？</span></div>
-		<div style="padding:.5em;">如果您改變心意還是可以從丟棄的想法中恢復資料。</div>
-	</div>
-	
-	<div id='deletedPopup' style='display:none;'>
+				</fieldset>
+			</form>
+		</div>
 		
-	</div>
-	
-	<div id='notificationPopup' style='display:none;'>
+		<div id='editDialog' style='display:none;'>
+			<form class="cmxform" id="editForm" method="get" action="">
+				<fieldset>
+						<p><label for="editText">在這裡輸入您的想法*：</label></p>
+						<p><textarea id="editText" name="text" rows='2' class="required" minlength="2" maxlength="150"></textarea></p>
+						<p style='height:24px; line-height:24px;'>
+							<label for="editSource">來源*： </label>
+							<select id="editSource" name="editSource" class="required" style='height:24px;'>
+							  <option value="empty">選一個：</option>
+							  <option value="證據步驟">證據步驟</option>
+							  <option value="視覺化或模型">視覺化或模型</option>
+							  <option value="電影/電視">電影/電視</option>
+							  <option value="每日的觀察">每日的觀察</option>
+							  <option value="學校或老師">學校或老師</option>
+							  <option value="其他">其他</option>
+							</select>
+						</p>
+						<p id='editOtherSource'><label for="editOther">請詳細說明*： </label><input id='editOther' name='editOther' size='25' minlength='2' maxlength='25'></input></p>
+						
+						<p><label for="editTags">關鍵字： </label><input id='editTags' name='editTags' size='20' maxlength='20'></input></p>
+						<p>
+							<label for="editFlag">選一個*： </label>
+							<input type="radio" name="editFlag" value="blank" class="required" checked='checked' style="margin-left:0;"></input><span style="vertical-align:top; line-height:20px;"> 無</span>
+							<input type="radio" name="editFlag" value="important"></input><img src='/vlewrapper/vle/images/ideaManager/important.png' alt='重要的' /><span style="vertical-align:top; line-height:20px;">重要</span>
+							<input type="radio" name="editFlag" value="question"></input><img src='/vlewrapper/vle/images/ideaManager/question.png' alt='有疑問的' /><span style="vertical-align:top; line-height:20px;">不確定</span>
+							<!-- <input type="radio" name="editFlag" value="check"></input><img src='./images/ideaManager/check.png' alt='check' /> -->
+						</p>
+				</fieldset>
+			</form>
+		</div>
 		
-	</div>
+		<div id='deleteDialog' style='display:none; text-align:center;'>
+			<div class='ui-state-highlight' style="padding:.5em;"><span class="ui-icon ui-icon-info" style="margin-right: .3em; float:left;"></span><span>您確定要刪除這個想法嗎？</span></div>
+			<div style="padding:.5em;">如果您改變心意還是可以從丟棄的想法中恢復資料。</div>
+		</div>
+		
+		<div id='deletedPopup' style='display:none;'>
+			
+		</div>
+		
+		<div id='notificationPopup' style='display:none;'>
+			
+		</div>
 	</body>
 </html>

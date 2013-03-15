@@ -48,6 +48,9 @@ var scriptloader = function(){
 	var scriptLoaderWait = 30000;
 	var callerId;
 	var loaded = [];
+	var jquerySrc = 'vle/jquery/js/jquery-1.6.1.min.js';
+	var jqueryUISrc = 'vle/jquery/js/jquery-ui-1.8.17.custom.min.js';
+	var jqueryUICss = 'vle/jquery/css/wise-theme/jquery-ui-1.8.17.custom.css';
 	
 	/**
 	 * scriptLoader listener listens for all scriptLoaded events and
@@ -99,36 +102,128 @@ var scriptloader = function(){
 	 */
 	var loadScripts = function(){
 		var s = scripts[currentName];
-		var c = css[currentName];
+		var c = [];
 		
-		//load each css specified
-		if(c){
-			for(var d=0;d<c.length;d++){
-				loadCss(c[d]);
-			}
-		}
-		
-		//load each script specified, if none specified fire scriptsLoaded event
-		if(s && s.length>0){
-			/* because of ie, we need to stick all of the scripts into the queue before
-			 * attempting to launch any of them (otherwise it may empty the queue for each
-			 * script and continue to fire the scriptsLoaded event) */
-			for(var a=0;a<s.length;a++){
-				queue.push(s[a]);
-			}
-			
-			/* now load any scripts without dependencies or those whose dependencies
-			 * have already been loaded or stick them in the waiting queue */
-			for(var a=0;a<s.length;a++){
-				if(hasDependency(s[a]) && !dependenciesLoaded(s[a])){
-					waitingOnDependencyQueue.push(s[a]);
-				} else {
-					loadScript(s[a]);
+		var executeScriptsLoad = function(){
+			//load each css specified
+			if(c){
+				for(var d=0;d<c.length;d++){
+					loadCss(c[d]);
 				}
 			}
+			
+			//load each script specified, if none specified fire scriptsLoaded event
+			if(s && s.length>0){
+				/* because of ie, we need to stick all of the scripts into the queue before
+				 * attempting to launch any of them (otherwise it may empty the queue for each
+				 * script and continue to fire the scriptsLoaded event) */
+				for(var a=0;a<s.length;a++){
+					queue.push(s[a]);
+				}
+				
+				/* now load any scripts without dependencies or those whose dependencies
+				 * have already been loaded or stick them in the waiting queue */
+				for(var a=0;a<s.length;a++){
+					if(hasDependency(s[a]) && !dependenciesLoaded(s[a])){
+						waitingOnDependencyQueue.push(s[a]);
+					} else {
+						loadScript(s[a]);
+					}
+				}
+			} else {
+				resetTimer();
+				eventManager.fire('scriptsLoaded', [callerId, currentName]);
+			}
+		};
+		
+		// if loading theme scripts, generate theme + navigation css and js paths to load
+		// TODO: make alert texts i18n
+		if(callerId == 'theme'){
+			// get theme's config file
+			var themepath = 'themes/' + currentName[0] + '/';
+			var configpath = themepath + 'config.json';
+			$.ajax({
+				url: configpath,
+				dataType: 'json',
+				success: function(data){
+					if (typeof s == 'undefined'){
+						s = [];
+					}
+					
+					// check if i18n is enabled for theme, add theme_i18n.js to scripts if enabled
+					if(data.i18n_enabled){
+						var i18n_js = 'vle/' + themepath + 'i18n/theme_i18n.js';
+						s.push(i18n_js);
+					}
+					
+					// set navMode (either based on project config or theme default)
+					var navMode = null;
+					if(currentName[1]){
+						navMode = currentName[1];
+					} else if(data.nav_modes && $.isArray(data.nav_modes)) {
+						navMode = data.nav_modes[0].id;
+					} else {
+						alert('Selected VLE theme "' + themeName + '" is broken: Navigation modes not set.');
+					}
+					
+					// add theme css to load
+					if(data.css && $.isArray(data.css)){
+						var themecss = data.css;
+						for(var x=0; x<themecss.length; x++){
+							var csspath = 'vle/' + themepath + themecss[x];
+							c.push(csspath);
+						}
+					}
+					
+					// add theme js to load
+					if(data.js && $.isArray(data.js)){
+						var themejs = data.js;
+						for(var i=0;i<themejs.length; i++){
+							var jspath = 'vle/' + themepath + themejs[i];
+							s.push(jspath);
+						}
+					}
+					
+					// add navigation css and js to load
+					if(navMode){
+						// add navMode's css file to load
+						var navcsspath = 'vle/' + themepath + 'navigation/' + navMode + '/nav.css';
+						c.push(navcsspath);
+						
+						// add navMode's setup file to load
+						var naveventspath = 'vle/' + themepath + 'navigation/' + navMode + '/nav.js';
+						s.push(naveventspath);
+					}
+					
+					// add jqueryui css (either from theme or WISE default)
+					if(data.jqueryui_css && typeof data.jqueryui_css == 'string'){
+						var csspath = 'vle/' + themepath + data.jqueryui_css;
+						c.push(csspath);
+					} else {
+						c.push(jqueryUICss);
+					}
+					
+					// set theme logo in vle html
+					if(data.logo && typeof data.logo == 'string'){
+						var logopath = themepath + data.logo;
+						$('#logo').html('<img src="' + logopath + '" alt="logo" />');
+					}
+					
+					// load scripts
+					executeScriptsLoad();
+				},
+				error: function(jqXHR,textStatus,errorThrown){
+					alert('Selected VLE theme "' + themeName + '" is broken: Invalid configuration file.');
+				},
+				statusCode: {
+					404: function(){
+						alert('Selected VLE theme "' + themeName + '" is broken: Configuration file not found.');
+					}
+				}
+			});
 		} else {
-			resetTimer();
-			eventManager.fire('scriptsLoaded', [callerId, currentName]);
+			c = css[currentName];
+			executeScriptsLoad();
 		}
 	};
 	
@@ -203,13 +298,14 @@ var scriptloader = function(){
                   'vle/view/view.js',
                   'vle/node/nodefactory.js',
                   'vle/environment/environment.js',
-                  'vle/jquery/js/jquery-1.6.1.min.js',
-  		          'vle/jquery/js/jquery-ui-1.8.7.custom.min.js',
+                  jquerySrc,
+  		          jqueryUISrc,
   		          'vle/jquery/js/jsonplugin.js',
   		          'vle/jquery/js/jqueryhelper.js',
  			      'vle/node/Node.js',
  			      'vle/node/DuplicateNode.js', 
-  		          'vle/node/setupNodes.js'
+  		          'vle/node/setupNodes.js',
+  		          'vle/themes/setupThemes.js'
   		          ],
   		bootstrap_min: ['vle/minified/bootstrap_min.js'],
   		setup: [],
@@ -259,6 +355,8 @@ var scriptloader = function(){
         teacherXMPP_min:['vle/minified/teacherXMPP_min.js'],
         author: ['vle/util/icon.js',
                  'vle/jquery/tinymce/jscripts/tiny_mce/jquery.tinymce.js',
+                 'vle/jquery/miniTip/jquery.miniTip.min.js',
+                 'vle/jquery/jquery-validation/jquery.validate.min.js',
                  'vle/view/authoring/authorview_dispatchers.js',
                  'vle/view/authoring/authorview_startup.js',
                  'vle/view/authoring/authorview_main.js',
@@ -271,6 +369,7 @@ var scriptloader = function(){
                  'vle/view/authoring/authorview_projecttags.js',
                  'vle/view/authoring/authorview_authorstep.js',
                  'vle/view/authoring/authorview_tags.js',
+                 'vle/view/authoring/authorview_import.js',
                  'vle/view/authoring/cleaning/authorview_clean_main.js',
                  'vle/view/authoring/cleaning/authorview_clean_parts.js',
                  'vle/view/authoring/cleaning/authorview_clean_problem.js',
@@ -310,16 +409,19 @@ var scriptloader = function(){
 		ddMenu: ['vle/common/dropdown.js'],
 		topMenu: ['vle/view/vle/vleview_topmenu.js'],
 		vle: ['vle/util/icon.js',
+		      'vle/jquery/jquery-validation/jquery.validate.min.js',
 		      'vle/view/vle/vleview_core.js',
 		      'vle/view/vle/vleview_utils.js',
-		      'vle/view/vle/vleview_studentwork.js'],
+		      'vle/view/vle/vleview_studentwork.js',
+              'vle/swfobject/swfobject.js'],
 		studentwork: ['vle/data/vlestate.js',
 		              'vle/data/nodevisit.js'
 		              ],
 		studentwork_min: ['vle/minified/studentwork_min.js'
 		    		              ],		   
 		annotations: ['vle/grading/Annotations.js',
-		              'vle/grading/Annotation.js'],
+		              'vle/grading/Annotation.js',
+		              'vle/view/vle/vleview_annotation.js'],
 		annotations_min: ['vle/minified/annotations_min.js'],
 		maxscores: ['vle/grading/MaxScores.js',
 		            'vle/grading/MaxScore.js'],
@@ -338,7 +440,7 @@ var scriptloader = function(){
 		            'vle/navigation/constraints/workonxconstraint.js',
 		            'vle/navigation/constraints/workonxbeforeadvancingconstraint.js',
 		            'vle/navigation/constraints/constraintmanager.js'],
-		menu:['vle/ui/menu/sdmenu.js',
+		menu:['vle/ui/menu/wmenu.js',
 		      'vle/ui/menu/NavigationPanel.js',
 		      'vle/view/vle/vleview_menu.js'],
 		uicontrol:['vle/ui/control/RunManager.js',
@@ -360,10 +462,11 @@ var scriptloader = function(){
                 'vle/view/authoring/components/authorview_linkto.js',
                 'vle/view/authoring/components/authorview_studentresponseboxsize.js',
                 'vle/view/authoring/components/authorview_richtexteditortoggle.js',
-                'vle/view/authoring/components/authorview_startersentenceauthoring.js'],
-        premadecomments:['vle/jquery/js/jquery-1.6.1.min.js',
+                'vle/view/authoring/components/authorview_startersentenceauthoring.js',
+                'vle/view/authoring/components/authorview_cRater.js'],
+        premadecomments:[jquerySrc,
                          'vle/jquery/js/jquery.editinplace.js',
-                         'vle/jquery/js/jquery-ui-1.8.7.custom.min.js'],
+                         jqueryUISrc],
         ideabasket:['vle/ideaBasket/basket.js']
 	};
 	
@@ -371,24 +474,26 @@ var scriptloader = function(){
 	 * Css urls specified for all component css
 	 */
 	var css = {
-		bootstrap:['vle/jquery/css/custom-theme/jquery-ui-1.8.7.custom.css'],
-		bootstrap_min:['vle/jquery/css/custom-theme/jquery-ui-1.8.7.custom.css'],
-		core: ['vle/css/message.css'],
-		core_min: ['vle/css/message.css'],
+		bootstrap:["vle/css/globalstyles.css"],
+		bootstrap_min:["vle/css/globalstyles.css"],
+		core: [/*'vle/css/message.css'*/],
+		core_min: [/*'vle/css/message.css'*/],
 		author: ['vle/css/authoring/authoring.css',
-		         'vle/css/ui-tools.css'
+		         'vle/css/ui-tools.css',
+		         'vle/jquery/miniTip/miniTip.css',
+		         jqueryUICss
 		         ],
-		wise: ["vle/css/wise/WISE_styles.css"],
-		uccp: ["vle/css/uccp/UCCP_styles.css"],
-		vle: ["vle/css/niftycube.css"],
-    	navigation:["vle/css/navigation.css"],
-    	menu:["vle/css/sdmenu.css"],
+		//wise: ["vle/css/wise/WISE_styles.css"],
+		//uccp: ["vle/css/uccp/UCCP_styles.css"],
+		vle: [/*"vle/css/niftycube.css"*/],
+    	navigation:[/*"vle/css/navigation.css"*/],
+    	menu:[/*"vle/css/sdmenu.css"*/],
  		grading: ['vle/css/portal/teachergrading.css',
- 		         //'vle/jquery/css/blue/style.css',
  		         'vle/jquery/jquery-dataTables/css/datatable.css',
- 		         'vle/jquery/css/tels-theme/jquery-ui-1.8.14.custom.css'],
+ 		         jqueryUICss],
  		grading_min: ['vle/css/portal/teachergrading.css',
- 		 		         'vle/jquery/css/blue/style.css'],
+ 	 		         'vle/jquery/jquery-dataTables/css/datatable.css',
+ 	 		         jqueryUICss],
  		ideabasket: ['vle/css/ideaManager/jquery-validate/cmxformTemplate.css']
     	         
 	};
@@ -396,8 +501,9 @@ var scriptloader = function(){
 	/**
 	 * Known dependencies for a script
 	 */
-	var dependencies = {	
+	var dependencies = {
 		"vle/node/setupNodes.js": ["vle/node/nodefactory.js"],
+		"vle/themes/setupThemes.js": ["vle/util/componentloader.js"],
     	"vle/project/Project.js": ["vle/node/Node.js"],
     	'vle/node/NodeUtils.js': ['vle/node/Node.js'],
     	"vle/node/DrawNode.js": ["vle/node/HtmlNode.js"],
@@ -409,9 +515,13 @@ var scriptloader = function(){
         'vle/node/BranchNode.js':['vle/node/Node.js','vle/node/MultipleChoiceNode.js'],
         "vle/ui/vleui.js": ["vle/VLE.js"],
         "vle/util/projectutils.js": ["vle/project/Project.js"],
-        'vle/jquery/js/jquery-ui-1.8.7.custom.min.js':['vle/jquery/js/jquery-1.6.1.min.js'],
-        'vle/jquery/js/jsonplugin.js':['vle/jquery/js/jquery-1.6.1.min.js'],
-        'vle/jquery/js/jqueryhelper.js':['vle/jquery/js/jquery-1.6.1.min.js'],
+        'vle/jquery/js/jsonplugin.js':[jquerySrc],
+        'vle/jquery/js/jqueryhelper.js':[jquerySrc],
+        'vle/jquery/js/jquery.form.js':[jquerySrc],
+        'vle/jquery/js/jquery.tools.tooltip.min.js':[jquerySrc],
+        'vle/jquery/js/jquery.tablesorter.min.js':[jquerySrc],
+        'vle/jquery/jquery-validation/jquery.validate.min.js':[jquerySrc],
+        'vle/jquery/miniTip/jquery.miniTip.min.js':[jquerySrc],
         'vle/navigation/constraints/nonvisitablexconstraint.js':['vle/navigation/constraints/constraint.js'],
         'vle/navigation/constraints/visitxafteryconstraint.js':['vle/navigation/constraints/constraint.js'],
         'vle/navigation/constraints/visitxbeforeyconstraint.js':['vle/navigation/constraints/constraint.js'],
@@ -421,10 +531,17 @@ var scriptloader = function(){
         'vle/navigation/constraints/workonxbeforeadvancingconstraint.js':['vle/navigation/constraints/constraint.js'],
         'vle/xmpp/js/sail.js/sail.strophe.js':['vle/xmpp/js/sail.js/deps/strophe.js'],
         'vle/xmpp/js/student.js':['vle/xmpp/js/sail.js/sail.js','vle/xmpp/js/sail.js/sail.strophe.js'],
-        'vle/xmpp/js/teacher.js':['vle/xmpp/js/sail.js/sail.js','vle/xmpp/js/sail.js/sail.strophe.js']
+        'vle/xmpp/js/teacher.js':['vle/xmpp/js/sail.js/sail.js','vle/xmpp/js/sail.js/sail.strophe.js'],
+        'vle/view/authoring/authorview_startup.js':['vle/view/i18n/view_i18n.js']
     };
 	
+	// add jQuery UI/jQuery core dependency
+	dependencies[jqueryUISrc] = [jquerySrc];
+	
 	return {
+		jquerySrc:jquerySrc,
+		jqueryUISrc:jqueryUISrc,
+		jqueryUICss:jqueryUICss,
 		loadScripts:function(name, doc, cid, em){
 			loaded = [];
 			currentDoc = doc;
@@ -432,7 +549,27 @@ var scriptloader = function(){
 			callerId = cid;
 			eventManager = em;
 			baseUrl = currentDoc.location.toString().substring(0, currentDoc.location.toString().lastIndexOf('/vle/') + 1);
-			timer = setTimeout(function(){alert(scriptloader.getTimeoutMessage());}, scriptLoaderWait);
+			
+			timer = setTimeout(function(){
+					/*
+					 * check if there are any scripts that have not been loaded
+					 * because sometimes the queue.length will be 0 and this
+					 * function will be called. this usually occurs because the
+					 * "previewFrameLoaded" event gets fired multiple times for
+					 * the same preview step so it tries to load the scripts for
+					 * the page multiple times but after the scripts are returned
+					 * the first time, only one of these setTimeout calls are 
+					 * disabled. the rest of the setTimeout calls eventually run
+					 * even though we have already retrieved all the files we need
+					 * and the queue is empty. this will check the queue before
+					 * displaying the message to avoid unnecessary popup alerts
+					 * which can get annoying to authors. 
+					 */
+					if(queue.length > 0) {
+						alert(scriptloader.getTimeoutMessage());						
+					}
+				}, scriptLoaderWait);
+				
 			loadScripts();
 		},
 		bootstrap:function(win, fun, isMinifiedEnabled){

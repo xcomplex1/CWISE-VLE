@@ -68,8 +68,8 @@ View.prototype.DataGraphNode.generateOptions = function(){
 	var o4 = createElement(document, 'input', {type: 'radio', name: 'displayRadio', id: 'displayJoint', onclick: 'eventManager.fire("datagraphDisplayOptionChanged")', value: '3'});
 	var o1Text = document.createTextNode('只有資料表格');
 	var o2Text = document.createTextNode('只有圖');
-	var o3Text = document.createTextNode('間隔顯示表格與圖');
-	var o4Text = document.createTextNode('間隔顯示表格與表格+圖');
+	var o3Text = document.createTextNode('輪流顯示表格與圖');
+	var o4Text = document.createTextNode('輪流顯示表格與表格+圖');
 	
 	var s1 = createElement(document, 'input', {type: 'radio', name: 'startMode', id: 'startModeData', onclick: 'eventManager.fire("datagraphStartModeChanged")', value: '0'});
 	var s2 = createElement(document, 'input', {type: 'radio', name: 'startMode', id: 'startModeGraph', onclick: 'eventManager.fire("datagraphStartModeChanged")', value: '1'});
@@ -133,12 +133,12 @@ View.prototype.DataGraphNode.generateOptions = function(){
 	var g3 = createElement(document, 'input', {type: 'checkbox', id: 'pointCheck', name: 'graphOptions', onclick: 'eventManager.fire("datagraphGraphOptionChanged","point")'});
 	var g4 = createElement(document, 'input', {type: 'checkbox', id: 'linePointCheck', name: 'graphOptions', onclick: 'eventManager.fire("datagraphGraphOptionChanged","linePoint")'});
 	var editOptsText = document.createTextNode('學生可編輯： ');
-	var c1Text = document.createTextNode(' 編輯範圍');
+	var c1Text = document.createTextNode(' 編輯X、Y軸顯示範圍');
 	var graphOptsText = document.createTextNode('學生可使用圖類型： ');
 	var g1Text = document.createTextNode(' 長條圖');
 	var g2Text = document.createTextNode(' 折線圖');
-	var g3Text = document.createTextNode(' 散點圖');
-	var g4Text = document.createTextNode(' 散點折線圖');
+	var g3Text = document.createTextNode(' 散布圖');
+	var g4Text = document.createTextNode(' 散布+折線圖');
 	
 	r2.appendChild(td3);
 	r2.appendChild(td4);
@@ -202,18 +202,18 @@ View.prototype.DataGraphNode.generateTable = function(){
 						'<td><input type="checkbox" id="titleEditable" onclick="eventManager.fire(\'datagraphEditableChanged\',\'title\')"></input> 學生可編輯</td>' +
 					'</tr>' +
 					'<tr id="xLabelEditableDiv">' +
-						'<td>X軸標記：</td><td><input type="text" id="xLabelInput" value="' + this.content.table.xLabel + '" onkeyup="eventManager.fire(\'datagraphTableMetadataChanged\')"></input></td>' +
-						'<input type="checkbox" id="xLabelEditable" onclick="eventManager.fire(\'datagraphEditableChanged\',\'xLabel\')"></input> 學生可編輯</td>' +
+						'<td>X軸標題：</td><td><input type="text" id="xLabelInput" value="' + this.content.table.xLabel + '" onkeyup="eventManager.fire(\'datagraphTableMetadataChanged\')"></input></td>' +
+						'<td><input type="checkbox" id="xLabelEditable" onclick="eventManager.fire(\'datagraphEditableChanged\',\'xLabel\')"></input> 學生可編輯</td>' +
 					'</tr>' + 
 					'<tr id="yLabelEditableDiv">' +
-						'<td>Y軸標記：</td><td><input type="text" id="yLabelInput" value="' + this.content.table.yLabel + '" onkeyup="eventManager.fire(\'datagraphTableMetadataChanged\')"></input></td>' +
+						'<td>Y軸標題：</td><td><input type="text" id="yLabelInput" value="' + this.content.table.yLabel + '" onkeyup="eventManager.fire(\'datagraphTableMetadataChanged\')"></input></td>' +
 						'<td><input type="checkbox" id="yLabelEditable" onclick="eventManager.fire(\'datagraphEditableChanged\',\'yLabel\')"></input> 學生可編輯</td>' +
 					'</tr>' +
 					'<tr id="graphWidth">' +
-						'<td>圖寬度：</td><td><input type="text" id="graphWidthInput" value="' + this.content.table.graphWidth + '" onkeyup="eventManager.fire(\'datagraphGraphWidthChanged\')"></input></td><td> pixels</td>' +
+						'<td>圖寬度：</td><td><input type="text" id="graphWidthInput" value="' + this.content.table.graphWidth + '" onkeyup="eventManager.fire(\'datagraphGraphWidthChanged\')"></input></td><td> 像素</td>' +
 					'</tr>' +
 					'<tr id="graphHeight">' +
-						'<td>圖高度：</td><td><input type="text" id="graphHeightInput" value="' + this.content.table.graphHeight + '" onkeyup="eventManager.fire(\'datagraphGraphHeightChanged\')"></input></td><td> pixels</td>' +
+						'<td>圖高度：</td><td><input type="text" id="graphHeightInput" value="' + this.content.table.graphHeight + '" onkeyup="eventManager.fire(\'datagraphGraphHeightChanged\')"></input></td><td> 像素</td>' +
 					'</tr>' +
 				'</table>' +
 			'</div><br/>' + 
@@ -267,10 +267,10 @@ View.prototype.DataGraphNode.generateTableDiv = function(){
 				for(var b=-1;b<this.content.table.rows[0].cols.length;b++){
 					if(b==-1){
 						/* this is the corner tab which selects all the table cells */
-						$('#datagraphRow_' + a).append('<td><div id="tab_' + a + '_' + b + '" class="cornerTab tableCell" onclick="eventManager.fire(\'datagraphToggleSelected\',[\'' + a + '\',\'' + b + '\'])">編輯全部</div></td>');
+						$('#datagraphRow_' + a).append('<td><div id="tab_' + a + '_' + b + '" class="cornerTab tableCell" onclick="eventManager.fire(\'datagraphToggleSelected\',[\'' + a + '\',\'' + b + '\'])">選取全部</div></td>');
 					} else {
 						/* this is a column tab which selects all cells in this column */
-						$('#datagraphRow_' + a).append('<td><div id="tab_' + a + '_' + b + '" class="columnTab tableCell column_' + b + '" onclick="eventManager.fire(\'datagraphToggleSelected\',[\'' + a + '\',\'' + b + '\'])">編輯欄</div></td>');
+						$('#datagraphRow_' + a).append('<td><div id="tab_' + a + '_' + b + '" class="columnTab tableCell column_' + b + '" onclick="eventManager.fire(\'datagraphToggleSelected\',[\'' + a + '\',\'' + b + '\'])">選取欄</div></td>');
 					}
 				}				
 			} else {
@@ -278,7 +278,7 @@ View.prototype.DataGraphNode.generateTableDiv = function(){
 					/* if this is the first column, this will be a tab td */
 					if(b==-1){
 						/* this is a row tab which selects all cells in this row */
-						$('#datagraphRow_' + a).append('<td><div id="tab_' + a + '_' + b + '" class="rowTab tableCell row_' + a + '" onclick="eventManager.fire(\'datagraphToggleSelected\',[\'' + a + '\',\'' + b + '\'])">編輯列</div></td>');
+						$('#datagraphRow_' + a).append('<td><div id="tab_' + a + '_' + b + '" class="rowTab tableCell row_' + a + '" onclick="eventManager.fire(\'datagraphToggleSelected\',[\'' + a + '\',\'' + b + '\'])">選取列</div></td>');
 					} else {
 						/* this is a table cell */
 						$('#datagraphRow_' + a).append('<td id="datagraphCell_' + a + '_' + b + '"><input type="text" id="datagraphCellInput_' + a + '_' + b + '" class="tableCell row_' + a + ' column_' + b + '" value="' + this.content.table.rows[a].cols[b].value + '" onchange="eventManager.fire(\'datagraphCellChanged\',[\'' + a + '\',\'' + b + '\'])" onclick="eventManager.fire(\'datagraphToggleSelected\',[\'' + a + '\',\'' + b + '\'])"></input></td>');
@@ -345,7 +345,18 @@ View.prototype.DataGraphNode.populatePrompt = function() {
  * Updates the value of xmlPage when prompt value changes
  */
 View.prototype.DataGraphNode.updatePrompt = function(){
-	this.content.prompt = document.getElementById('promptInput').value;
+	/* update content */
+	var content = '';
+	if(typeof tinymce != 'undefined' && $('#promptInput').tinymce()){
+		content = $('#promptInput').tinymce().getContent();
+	} else {
+		content = $('#promptInput').val();
+	}
+	// strip out any urls with the full project path (and replace with 'assets/file.jpg')
+	var assetPath = this.view.getProjectFolderPath() + 'assets/';
+	var assetPathExp = new RegExp(assetPath,"gi");
+	content.replace(assetPathExp,"assets/");
+	this.content.prompt = content;
 	
 	/* fire source updated event */
 	this.view.eventManager.fire('sourceUpdated');
@@ -1403,16 +1414,16 @@ View.prototype.DataGraphNode.getSelectionOptionsObject = function(){
 		},
 		cell: {
 			isGroup: true,
-			html: '<div id="cell_group" class="groupOption">格子選項</div>',
+			html: '<div id="cell_group" class="groupOption">編輯選項</div>',
 			editable: {
 				isOption: true,
 				use: false,
-				html: '<div id="editableOption" class="selectOption" onmouseover="$(this).addClass(\'selected\')" onmouseout="$(this).removeClass(\'selected\')" onclick="eventManager.fire(\'datagraphToggleEditable\')">轉換可編輯</div>'
+				html: '<div id="editableOption" class="selectOption" onmouseover="$(this).addClass(\'selected\')" onmouseout="$(this).removeClass(\'selected\')" onclick="eventManager.fire(\'datagraphToggleEditable\')">轉換可編輯或不可編輯</div>'
 			}
 		},
 		independent: {
 			isGroup: true,
-			html: '<div id="independent_group" class="groupOption">獨立變數(X軸)選項</div>',
+			html: '<div id="independent_group" class="groupOption">X軸選項</div>',
 			addIndependent: {
 				isOption: true,
 				use: false,
@@ -1426,12 +1437,12 @@ View.prototype.DataGraphNode.getSelectionOptionsObject = function(){
 			setIndependent: {
 				isOption: true,
 				use: false,
-				html: '<div id="setIndependentOption" class="selectOption" onmouseover="$(this).addClass(\'selected\')" onmouseout="$(this).removeClass(\'selected\')" onclick="eventManager.fire(\'datagraphSetIndependent\')">設定欄為獨立變數</div>'
+				html: '<div id="setIndependentOption" class="selectOption" onmouseover="$(this).addClass(\'selected\')" onmouseout="$(this).removeClass(\'selected\')" onclick="eventManager.fire(\'datagraphSetIndependent\')">設定選取欄為標題欄</div>'
 			},
 			unsetIndependent: {
 				isOption: true,
 				use: false,
-				html: '<div id="unsetIndependentOption" class="selectOption" onmouseover="$(this).addClass(\'selected\')" onmouseout="$(this).removeClass(\'selected\')" onclick="eventManager.fire(\'datagraphUnsetIndependent\')">取消設定欄為獨立變數</div>'
+				html: '<div id="unsetIndependentOption" class="selectOption" onmouseover="$(this).addClass(\'selected\')" onmouseout="$(this).removeClass(\'selected\')" onclick="eventManager.fire(\'datagraphUnsetIndependent\')">取消設定選取欄為標題欄</div>'
 			},
 			setQuantitative: {
 				isOption: true,
@@ -1446,7 +1457,7 @@ View.prototype.DataGraphNode.getSelectionOptionsObject = function(){
 		},
 		label: {
 			isGroup: true,
-			html: '<div id="label_group" class="groupOption">標記選項</div>',
+			html: '<div id="label_group" class="groupOption">Y軸選項</div>',
 			addLabel: {
 				isOption: true,
 				use: false,
@@ -1460,12 +1471,12 @@ View.prototype.DataGraphNode.getSelectionOptionsObject = function(){
 			setLabel: {
 				isOption: true,
 				use: false,
-				html: '<div id="setLabelOption" class="selectOption" onmouseover="$(this).addClass(\'selected\')" onmouseout="$(this).removeClass(\'selected\')" onclick="eventManager.fire(\'datagraphSetLabel\')">設定列為標記列</div>'
+				html: '<div id="setLabelOption" class="selectOption" onmouseover="$(this).addClass(\'selected\')" onmouseout="$(this).removeClass(\'selected\')" onclick="eventManager.fire(\'datagraphSetLabel\')">設定選取列為標題列</div>'
 			},
 			unsetLabel: {
 				isOption: true,
 				use: false,
-				html: '<div id="unsetLabelOption" class="selectOption" onmouseover="$(this).addClass(\'selected\')" onmouseout="$(this).removeClass(\'selected\')" onclick="eventManager.fire(\'datagraphUnsetLabel\')">取消設定列為標記列</div>'
+				html: '<div id="unsetLabelOption" class="selectOption" onmouseover="$(this).addClass(\'selected\')" onmouseout="$(this).removeClass(\'selected\')" onclick="eventManager.fire(\'datagraphUnsetLabel\')">取消設定選取列為標題列</div>'
 			}
 		}
 	};	

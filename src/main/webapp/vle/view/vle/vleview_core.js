@@ -11,9 +11,11 @@ View.prototype.vleDispatcher = function(type,args,obj){
 	} else if(type=='loadingProjectComplete'){
 		obj.onProjectLoad();
 		obj.setProjectPostLevel();
-		obj.displayGlobalTools();
-		obj.renderStartNode();
 		obj.setDialogEvents();
+	} else if(type=='scriptsLoaded' && args[0]=='theme'){
+		obj.retrieveThemeLocales();
+	} else if (type=='retrieveThemeLocalesComplete'){
+		obj.onThemeLoad();
 	} else if(type=='getUserAndClassInfoComplete'){
 		obj.renderStartNode();
 		// start the xmpp if xmpp is enabled
@@ -27,13 +29,7 @@ View.prototype.vleDispatcher = function(type,args,obj){
 		obj.renderStartNode();
 		obj.processStudentWork();
 	} else if(type=='renderNode'){
-		obj.renderNode(args[0]);
-	} else if(type=='renderNodeStart'){
-		if(args){
-			obj.onRenderNodeStart(args[0]);
-		} else {
-			obj.onRenderNodeStart(null);
-		};
+		obj.renderNode(args[0]);		
 	} else if(type=='renderNodeComplete'){
 		if(args){
 			obj.onRenderNodeComplete(args[0]);
@@ -108,9 +104,14 @@ View.prototype.vleDispatcher = function(type,args,obj){
 		//close the note dialog
 		obj.eventManager.fire('closeDialog','notePanel');
 		// render previously visited node (so WISE will correctly save data if users interact with previous node before moving on to another step)
-		var prevNodeId = obj.state.visitedNodes[obj.state.visitedNodes.length-2].nodeId;
-		var prevNode = obj.getProject().getPositionById(prevNodeId);
-		obj.eventManager.fire("renderNode", prevNode);
+		/*if(obj.state.visitedNodes && obj.state.visitedNodes.length>0){
+			var currNodeId = obj.state.visitedNodes[obj.state.visitedNodes.length-1].nodeId;
+			var prevNodeId = obj.state.visitedNodes[obj.state.visitedNodes.length-2].nodeId;
+			if(currNodeId!=prevNodeId){
+				var prevNode = obj.getProject().getPositionById(prevNodeId);
+				obj.eventManager.fire("renderNode", prevNode);
+			}
+		}*/
 		
 	} else if (type=='importWork') {
 		//get importFrom and importTo node
@@ -164,43 +165,52 @@ View.prototype.startVLE = function(){
 
 	/* load the project based on new config object parameters, lazy load */
 	this.loadProject(this.config.getConfigParam('getContentUrl'), this.config.getConfigParam('getContentBaseUrl'), true);
-
-	this.loadNavMode(this.config.getConfigParam('navMode'));
-
-	/* load theme based on config object parameters */
-	this.loadTheme(this.config.getConfigParam('theme'));
-
+	
 	/* check if xmpp is enabled */
 	this.checkXMPPEnabled();
-	
-	/* fire startVLEComplete event */
-	this.eventManager.fire('startVLEComplete');
 };
 
 /**
- * Loads the Global Tools (top menu items, [idea manager, student file uploader, etc])
- * based on project config and overwritten by run config
+ * Loads the Global Tools (core VLE feature links [like show all work, flagged, etc] as well as
+ * optional components [idea manager, student file uploader, etc]).
+ * Optional components are based on project config and overwritten by run config.
  */
-View.prototype.displayGlobalTools = function() {	
-	var studentAssetsToolbarHtml=	"<li id='studentAssetsTD' style=\"display:none\"><a id=\"studentAssetsLink\" onclick='eventManager.fire(\"viewStudentAssets\")' title=\"View My Files\"><img src=\"images/hint/star.png\" alt=\"Files\" border=\"0\" /><span>&nbsp;"+this.getI18NString("top_toolbar_file_button_text")+"&nbsp;</span></a></li>";                    
-	var ideaBasketToolbarHtml = "<li id='ideaBasketTD' style=\"display:none\"><a id=\"ideaBasketLink\" onclick='eventManager.fire(\"displayIdeaBasket\")' title=\"想法籃\"><img src=\"images/ideaManager/basket2.png\" alt=\"Basket\" border=\"0\" /><span>&nbsp;"+this.getI18NString("top_toolbar_ideas_button_text")+"</span><span id='ideaCount'>(0)</span></a></li>";
-	var addIdeaToolbarHtml = "<li id='addIdeaTD' style=\"display:none\"><a onclick='eventManager.fire(\"displayAddAnIdeaDialog\")' title=\"新增想法\"><img src=\"images/ideaManager/lightBulbPlus.png\" alt=\"Light Bulb\" border=\"0\" />"+this.getI18NString("top_toolbar_addidea_button_text")+"</a></li>";
-	var myWorkToolbarHtml = "<li id='myWorkTD'><a class=\"\" onclick='eventManager.fire(\"showAllWork\")' title=\"檢閱我的作業\"><img src=\"images/reviewAllWork.png\" alt=\"Review My Work\" border=\"0\" />"+this.getI18NString("top_toolbar_mywork_button_text")+"</a></li>";
-	var flagToolbarHtml = "<li id='flaggedWorkTD'><a class=\"\" onclick='eventManager.fire(\"showFlaggedWork\")' title=\"顯示標記的作業\"><img src=\"images/reviewAllWork.png\" alt=\"Show Flagged Work\" border=\"0\" />"+this.getI18NString("top_toolbar_flagged_button_text")+"</a></li>";
-	var journalToolbarHtml = "<li id='journalTD' style=\"display:none\"><a class=\"\" onclick='eventManager.fire(\"showJournal\")' title=\"Show Student Journal\"><img src=\"images/Journal28x28.png\" alt=\"Show My Journal\" border=\"0\" />&nbsp;"+this.getI18NString("top_toolbar_journal_button_text")+"</a></li>";
-	var fullScreenToolbarHtml = "<li id='menuTD'><a class=\"menuSwitcher\" onclick='eventManager.fire(\"toggleNavigationPanelVisibility\")' title=\"選單切換\"><img src=\"images/NavBar-Switch32.png\" alt=\"Full Screen On/Off \" border=\"0\" />"+this.getI18NString("top_toolbar_fullscreen_button_text")+"</a></li>";
-	var prevNodeToolbarHtml = "<li><a onclick='eventManager.fire(\"renderPrevNode\")' title=\"上一個步驟\"><img src=\"images/go-previous.png\" alt=\"Previous Arrow\" border=\"0\" /></a></li>";
-	var nextNodeToolbarHtml = "<li><a onclick='eventManager.fire(\"renderNextNode\")' title=\"下一個步驟\"><img src=\"images/go-next.png\" alt=\"Next Arrow\" border=\"0\" /></a></li>";
+View.prototype.displayGlobalTools = function() {
+	// Insert show all work link
+	var myWorkLink = "<a id='viewMyWorkLink' onclick='eventManager.fire(\"showAllWork\")' title='"+this.getI18NString("mywork_button_title")+"'>"+this.getI18NString("mywork_button_text")+"</a>";
+	$('#viewMyWork').html(myWorkLink);
 	
+	// Insert show flagged work link
+	// TODO: perhaps only show if 1 or more items have been flagged; check for flagged items on step navigation or use XMPP to show/hide?
+	var flaggedLink = "<a id='viewFlaggedLink' onclick='eventManager.fire(\"showFlaggedWork\")' title='"+this.getI18NString("flagged_button_title")+"'>"+this.getI18NString("flagged_button_text")+"</a>";
+	$('#viewFlagged').html(flaggedLink);
+	
+	// Journal is disabled for now in WISE4
+	//var journalLink = "<li id='journalTD' style=\"display:none\"><a class=\"\" onclick='eventManager.fire(\"showJournal\")' title=\"Show Student Journal\"><img src=\"images/Journal28x28.png\" alt=\"Show My Journal\" border=\"0\" />&nbsp;"+this.getI18NString("journal_button_text")+"</a></li>";
+	
+	// Insert navigation toggle
+	var toggleNavLink = "<a id='toggleNavLink' onclick='eventManager.fire(\"toggleNavigationVisibility\")' title='"+this.getI18NString("toggle_nav_button_title")+"'>"+this.getI18NString("toggle_nav_button_text")+"</a>";
+	$('#toggleNav').html(toggleNavLink);
+	
+	// Insert previous and next step links 
+	var prevNodeLink = "<a id='previousStepLink' onclick='eventManager.fire(\"renderPrevNode\")' title='"+this.getI18NString("previous_step_title")+"'></a>";	
+	var nextNodeLink = "<a id='nextStepLink' onclick='eventManager.fire(\"renderNextNode\")' title='"+this.getI18NString("next_step_title")+"'></a>";
+	$('#stepNav').html(prevNodeLink + ' ' + nextNodeLink);
+	
+	// Insert sign out and exit to home links
 	var goHomeHref = "/webapp/student/index.html";
 	var userType = this.config.getConfigParam('userType');
 	if (userType && userType == "teacher") {
 		goHomeHref = "/webapp/teacher/index.html";
 	}
+	var signOutLink = '<a id="signOutLink" title="'+this.getI18NString("signout_button_title")+'" onclick="eventManager.fire(\'logout\')">'+this.getI18NString("signout_button_text")+'</a>';
+	var exitLink = '<a id="exitLink" target="_parent" title="'+this.getI18NString("gohome_button_title")+'" href="' + goHomeHref + '">'+this.getI18NString("gohome_button_text")+'</a>';
+	$("#signOutLinks").html(exitLink +  ' / ' + signOutLink);
 	
-	var signOutGoHomeToolbarHtml = "<li><a id=\"quitAndLogoutLink\" class=\"tightText\" onclick=\"eventManager.fire('logout')\" target=\"_parent\" title=\"儲存 & 登出\" style=\"margin-right:0;\"><img src=\"images/exit.png\" alt=\"Sign Out\" border=\"0\" />"+this.getI18NString("top_toolbar_signout_button_text")+"</a> | <a id=\"goHomeLink\" class=\"tightText\" href=\""+goHomeHref+"\" target=\"_parent\" title=\"回首頁\">"+this.getI18NString("top_toolbar_gohome_button_text")+"</a></li>";
-
-	$("#projectRightUpperBoxUL").html(studentAssetsToolbarHtml+ideaBasketToolbarHtml+addIdeaToolbarHtml+myWorkToolbarHtml+flagToolbarHtml+journalToolbarHtml+fullScreenToolbarHtml+prevNodeToolbarHtml+nextNodeToolbarHtml+signOutGoHomeToolbarHtml);
+	// Insert default text for userNames
+	if($('#userNames').html() == ''){
+		$('#userNames').html(this.getI18NString("welcome_users_default"));
+	}
 	
 	/* show/hide studentAssets, ideaManager, addIdea buttons based on project.metadata.tools config */
 	if (this.projectMetadata != null && this.projectMetadata.tools != null) {
@@ -213,8 +223,12 @@ View.prototype.displayGlobalTools = function() {
 		var runInfo = JSON.parse(runInfoStr);
 		this.showToolsBasedOnConfig(runInfo);
 	}
+	
+	/* get the mode from the config */
+	var mode = this.config.getConfigParam('mode');
 };
 
+// TODO: Add options to enable/disable viewMyWork, viewFlaggedWork in run and project configs (perhaps also navigation controls, full screen button?) 
 View.prototype.showToolsBasedOnConfig = function(runInfo) {
   	if (runInfo == null) {
         return;
@@ -222,37 +236,74 @@ View.prototype.showToolsBasedOnConfig = function(runInfo) {
 
 	if (runInfo.isStudentAssetUploaderEnabled != null &&
 			runInfo.isStudentAssetUploaderEnabled) {
-		$("#studentAssetsTD").show();
+		/*
+		 * display student assets link if run has student asset uploader enabled
+		 */
+		var studentAssetsLink=	"<a id='viewMyFilesLink' onclick='eventManager.fire(\"viewStudentAssets\")' title='View and Upload Files'>"+this.getI18NString("file_button_text")+"</a>";
+		$('#viewMyFiles').html(studentAssetsLink);
+		$('#viewMyFiles').show().css('display','inline');
 	} else if (runInfo.isStudentAssetUploaderEnabled != null &&
 			!runInfo.isStudentAssetUploaderEnabled) {
-		$("#studentAssetsTD").hide();
+		$('#viewMyFiles').hide();
 	}
 	
-	if (this.config.getConfigParam('mode') == "portalpreview" || 
-			(runInfo.isIdeaManagerEnabled != null && runInfo.isIdeaManagerEnabled)) {
-		/*
-		 * display the idea basket icons in the top menu if we are
-		 * in project preview or the run has idea basket enabled
-		 */
-		$("#ideaBasketTD").show();
-		$("#addIdeaTD").show();
-	} else if (runInfo.isIdeaManagerEnabled != null &&
-			!runInfo.isIdeaManagerEnabled) {
-		$("#ideaBasketTD").hide();
-		$("#addIdeaTD").hide();
+	if (runInfo.isIdeaManagerEnabled != null && runInfo.isIdeaManagerEnabled) {
+		// display the idea basket links if the run/project has idea basket enabled
+		// if project is using IM version > 1, set custom link text based on IM settings
+		var basketLinktext = this.getI18NString("ideas_button_text"), addIdeaLinkText = this.getI18NString("addidea_button_text");
+		if (this.projectMetadata != null && this.projectMetadata.tools != null){
+			if('ideaManagerSettings' in this.projectMetadata.tools){
+				var imSettings = this.projectMetadata.tools.ideaManagerSettings;
+				if(imSettings.version > 1){
+					if('ideaTermPlural' in imSettings && this.utils.isNonWSString(imSettings.ideaTermPlural)){
+						basketLinktext = this.utils.capitalize(imSettings.ideaTermPlural);
+					}
+					if('addIdeaTerm' in imSettings && this.utils.isNonWSString(imSettings.addIdeaTerm)){
+						addIdeaLinkText = imSettings.addIdeaTerm;
+					}
+				}
+			}
+		}
+		var ideaBasketLink = "<a id='viewIdeaBasketLink' onclick='eventManager.fire(\"displayIdeaBasket\")'>"+basketLinktext+" <span id='ideaCount' class='count'>(0)</span></a>";
+		var addIdeaLink = "<a id='addIdeaLink' onclick='eventManager.fire(\"displayAddAnIdeaDialog\")'>"+addIdeaLinkText+"</a>";
+		$("#viewIdeaBasket").html(ideaBasketLink);
+		$("#addIdea").html(addIdeaLink);
+		$("#ideaBasketLinks").show().css('display','inline');
+	} else {
+		$("#ideaBasketLinks").hide();
 	}
 };
 /**
  * Loads the theme given theme in the VLE view. Default is the wise theme.
+ * @param themeName the name of the theme to load
  */
-View.prototype.loadTheme = function(theme){
-	/* maps to array name in scriptloader's css array. */
-	var cssArrayName = "wise";
+View.prototype.loadTheme = function(themeName){
+	var view = this;
+	// set default step icon directory path
+	// TODO: remove when glue icon path is resolved; not used anymore - steps specify their own icons
+	this.iconUrl = 'images/stepIcons/';
 	
-	if (theme && theme != null) {
-		cssArrayName = theme.toLowerCase();
+	var themeHtml = 'themes/' + themeName.toLowerCase() + '/vle_body.html'; // TODO: remove toLowerCase()
+	var context = this;
+	
+	// inject theme's body.html into vle.html body
+	$('#vle_body').load(themeHtml,function(){
+		view.displayGlobalTools();
+		view.createAudioManagerOnProjectLoad();
 		
-		if (theme == "UCCP") {
+		var currentTheme = [themeName.toLowerCase()]; // TODO: remove toLowerCase()
+		
+		// get navMode
+		var navMode = context.projectMetadata.navMode;
+		if(navMode && context.themeNavModes[themeName].indexOf(navMode)>-1) {
+			// navMode is set and is in active navModes list for specified theme, so add to currentTheme
+			currentTheme.push(navMode);
+		}
+		
+		/* load scripts for specified theme and navMode */
+		scriptloader.loadScripts(currentTheme, document, 'theme', context.eventManager);
+		
+		if (themeName && themeName == "UCCP") { // TODO: move this to UCCP theme setup
 			/* update the project menu links */
 			$("#gotoStudentHomePageLink").attr("href","../../moodle/index.php");
 			$("#quitAndLogoutLink").attr("href","../index.php");
@@ -260,41 +311,10 @@ View.prototype.loadTheme = function(theme){
 			$("#myWorkTD").hide();
 			$("#journalTD").hide();
 			$("#flaggedWorkTD").hide();
-		} else if (theme == "WISE") {
-			$("#audioControls").hide();
-			
-			// set the "Go Home" link according to the logged-in user
-			//var userType = this.config.getConfigParam('userType');
-			//if (userType && userType == "teacher") {
-			//	$("#goHomeLink").attr("href","/webapp/teacher/index.html");
-			//} else if (userType && userType == "none") {
-			//	$("#goHomeLink").attr("href","/webapp/index.html");
-			//}
+		} else {
+			$("#audioControls").hide(); // TODO: Move, audio functionality should be independent of theme
 		}
-	}
-	
-	/* start in WISE theme */
-	scriptloader.loadScripts(theme, document, 'theme', this.eventManager);
-};
-
-/**
- * Loads the theme given theme in the VLE view. Default is the wise theme.
- */
-View.prototype.loadNavMode = function(navMode){
-	
-	if (navMode && navMode != null) {
-
-		$("#projectLeftBox").css("display","none");		
-		$("#projectRightUpperBox").css("marginLeft","0");
-		$("#projectRightLowerBox").css("marginLeft", "0");
-		$("#menuTD").hide();
-
-		if (navMode == "dropDownTree") {
-			$("#projectLeftBox").remove();
-		} else if (navMode == "none") {
-			$("#projectLeftBox").remove();
-		}
-	}
+	});
 };
 
 /**
@@ -304,23 +324,18 @@ View.prototype.loadLearnerData = function(userUrl){
 	if (userUrl && userUrl != null) {
 		this.loadUserAndClassInfo(createContent(userUrl));
 		
-		//set the user name in the vle at the upper left if not in dropdowntree mode
-		if (this.config.getConfigParam("navMode") != null &&
-				this.config.getConfigParam("navMode") == "dropDownTree") {
-			// do nothing
-		} else {
-			document.getElementById('userNames').innerHTML = this.getUserAndClassInfo().getUserName();
+		//set the user names in the vle html
+		document.getElementById('userNames').innerHTML = this.getI18NString("welcome") + ' ' + this.getUserAndClassInfo().getUserName() + '!';
 		
-			//get the date
-			var currentDate = new Date();
-			var month = currentDate.getMonth() + 1;
-			var day = currentDate.getDate();
-			var year = currentDate.getFullYear();
+		//get the date
+		/*var currentDate = new Date();
+		var month = currentDate.getMonth() + 1;
+		var day = currentDate.getDate();
+		var year = currentDate.getFullYear();*/
 
-			//set the date in the vle at the upper left in format mm/dd/yyyy
-			document.getElementById('dateTime').innerHTML = month + "/" + day + "/" + year;
-		}
-		
+		//set the date in the vle at the upper left in format mm/dd/yyyy
+		//document.getElementById('dateTime').innerHTML = month + "/" + day + "/" + year;
+				
 		this.loadVLEState();
 	}
 };
@@ -369,12 +384,75 @@ View.prototype.setViewState = function(viewState) {
 };
 
 /**
+ * Sets the theme based on project parameters.
+ */
+View.prototype.onProjectLoad = function(){
+	this.notificationManager.notify('vleInitializerListener', 4);
+	
+	/* Set the VLE's current position as the project start position. This will be
+	/* overwritten by the state if/when it loads. This ensures that getCurrentPosition
+	 * will always return a position. */
+	this.currentPosition = this.getProject().getStartNodePosition();
+	
+	/* load the theme based on project parameters */
+	if(this.getProject()){
+		var themeName = this.projectMetadata.theme;
+		
+		if(themeName && this.activeThemes.indexOf(themeName)>-1){
+			// theme specified by project matches an active theme, so load specified theme
+			this.loadTheme(themeName);
+		} else {
+			// either project paramters don't contain a theme or theme specified by project
+			// is not active, so load vle default
+			this.loadTheme(this.activeThemes[0]);
+			//this.loadTheme(this.config.getConfigParam('theme'));
+		}
+	} else {
+		this.notificationManager.notify('VLE and project not ready to load theme', 3);
+	}
+};
+
+View.prototype.retrieveThemeLocales = function(){
+	if('theme' in this){
+		this.theme.config = this.config;
+		this.theme.retrieveLocales();
+	} else {
+		this.onThemeLoad();
+	}
+}
+
+/**
  * Sets the values of html elements based on the loaded project's attributes
  * and creates the necessary values for fields for components that have
  * been loaded.
  */
-View.prototype.onProjectLoad = function(){
-	this.notificationManager.notify('vleInitializerListener', 4);
+View.prototype.onThemeLoad = function(){
+	
+	/* set html elements' values */
+	if(this.getProject()){
+		//display the title of the project in the runTitle div
+		if(this.getProject().getTitle() != null) {
+			$('#runTitle').html(this.getProject().getTitle());
+			document.title = this.getProject().getTitle();
+			
+			if (window.parent) {
+				window.parent.document.title = window.parent.document.title + ": " + this.getProject().getTitle();
+			}
+		}
+		
+		// insert menu into vle DOM
+		var navigationHtml = "<div id='my_menu' class='wmenu'></div>";
+		$("#navigation").prepend(navigationHtml);
+        
+		//display the show flagged work link if flagging is enabled
+		// TODO: remove - I don't think this is used anymore
+		if(this.runManager != null && this.runManager.isFlaggingEnabled) {
+			$("#viewFlagged").html("<a id='viewFlaggedLink' onclick='eventManager.fire(\"showFlaggedWork\")' title='Show Flagged Work'>"+this.getI18NString("flagged_button_text")+"</a>");
+		}
+		
+	} else {
+		this.notificationManager.notify('VLE and project not ready to load any nodes', 3);
+	}
 	
 	/* load learner data based on config object parameters */
 	if (this.config.getConfigParam('mode') == "run") {
@@ -383,55 +461,35 @@ View.prototype.onProjectLoad = function(){
 	} else if (this.config.getConfigParam('mode') == "portalpreview") {
 		//if preview mode, only get the user and class info and not learner data
 		this.loadUserAndClassInfo(createContent(this.config.getConfigParam('getUserInfoUrl')));
+		
+		
+		/* if (TODO: check for any constraints in project) {*/
+			// we are in preview mode (and the project contains constraints)
+			var path = '/webapp/vle/preview.html?projectId=' + this.projectMetadata.projectId;
+			if(this.getConfig().getConfigParam("isConstraintsDisabled")){
+				// constraints are disabled, so show enable constraints link
+				this.notificationManager.notify('目前無學生探索限制。欲用所有限制條件預覽專題， <a href="' + path + '">按此</a>。', 3, 'keepMsg');
+			} else {
+				// constraints are enabled, so show disable constraints link
+				path += '&isConstraintsDisabled=true';
+				this.notificationManager.notify('目前有學生探索限制。欲取消所有限制預覽專題， <a href="' + path + '">按此</a>。', 3, 'keepMsg');
+			}
+		//}	
 	}
 	
 	if(this.config.getConfigParam('mode') == "portalpreview") {
 		//we are previewing the project so we will create a dummy idea basket
-		this.ideaBasket = new IdeaBasket('{"ideas":[],"deleted":[],"nextIdeaId":1,"id":-1,"runId":-1,"workgroupId":-1,"projectId":-1}');
+		var imSettings = null;
+		if('ideaManagerSettings' in this.projectMetadata.tools){
+			imSettings = this.projectMetadata.tools.ideaManagerSettings;
+		}
+		this.ideaBasket = new IdeaBasket('{"ideas":[],"deleted":[],"nextIdeaId":1,"id":-1,"runId":-1,"workgroupId":-1,"projectId":-1}',null,null,imSettings);
 	}
 	
-	if (this.config.getConfigParam('navMode') == "dropDownTree") {
-		$("#stepInfoBar").css("left","15px");
-		$("#projectMenuButton").html('<a onclick="eventManager.fire(\'showNavigationTree\')"><img src=\'images/expanded.gif\'/></a>');
-		$("#projectMenuButton").show();
-	};
+	this.renderStartNode();
 	
-	/* set html elements' values */
-	if(this.getProject()){
-		//display the title of the project in the upper left box
-		if(this.getProject().getTitle() != null) {
-			$('#title').html(this.getProject().getTitle());
-			document.title = this.getProject().getTitle();
-			
-			if (window.parent) {
-				window.parent.document.title = window.parent.document.title + ": " + this.getProject().getTitle();
-			}
-		}
-		
-		//display the user name in the upper left box
-		if(document.getElementById("logInBox") != null && this.userAndClassInfo) {
-			document.getElementById("logInBox").innerHTML = "Hello " + this.userAndClassInfo.getUserName();
-		}
-
-		// display ExpandAll/CollapseAll buttons
-		var expandAllText = this.getI18NString("navigation_expand_all");
-		var collapseAllText =  this.getI18NString("navigation_collapse_all");
-		var navigationHtml = "<div id=\"navMenuControls\"><input type=\"button\" value=\""+expandAllText+"\" onclick='eventManager.fire(\"menuExpandAll\")'/><input type=\"button\" value=\""+collapseAllText+"\" onclick='eventManager.fire(\"menuCollapseAll\")'/></div><div id=\"navigationMenuBox\"><div id=\"my_menu\" class=\"sdmenu\"></div></div>";
-		
-        $("#navigationArea").prepend(navigationHtml);
-        
-		//display the "Show Me Flagged Items" link if flagging is enabled
-		if(this.runManager != null && this.runManager.isFlaggingEnabled) {
-			document.getElementById("flagDiv").innerHTML = "<a href='#' id='flagButton' onClick='javascript:vle.displayFlaggedItems();' >Show Me Flagged Items</a>";
-		}
-		
-		/* Set the VLE's current position as the project start position. This will be
-		/* overwritten by the state if/when it loads. This ensures that getCurrentPosition
-		 * will always return a position. */
-		this.currentPosition = this.getProject().getStartNodePosition();
-	} else {
-		this.notificationManager.notify('VLE and project not ready to load any nodes', 3);
-	}
+	/* fire startVLEComplete event */
+	this.eventManager.fire('startVLEComplete');
 };
 
 /**
@@ -531,17 +589,25 @@ View.prototype.isAnyNavigationLoadingCompleted = function(){
 };
 
 /**
- * Handles cleanup of previously rendered node.
+ * Handles cleanup of previously rendered node, specified by position argument.
+ * Save nodevisit state for current position, close popups, remove highlighted steps, etc.
  */
-View.prototype.onRenderNodeStart = function(position){
+View.prototype.renderNodePrep = function(position){
 	/* ensures that only one popup (any notes and journal) is open at any given time */
 	this.eventManager.fire('closeDialogs');
-	
+		
 	/* retrieve previous node */
 	var prevNode = this.getProject().getNodeByPosition(position);
-
+	
 	/* tell previous step (if exists) to clean up */ 
 	if(prevNode) {
+		//get the node id
+		var nodeId = prevNode.id;
+		
+		//remove the bubble and remove the highlight for the step the student is now visiting
+		eventManager.fire('removeMenuBubble', [nodeId]);
+		eventManager.fire('unhighlightStepInMenu', [nodeId]);
+		
 		prevNode.onExit();  
 		if(this.state) {
 			this.state.endCurrentNodeVisit();  // set endtime, etc.	
@@ -560,12 +626,14 @@ View.prototype.onRenderNodeComplete = function(position){
 	
 	/* Set icon in nav bar */
 	if(this.currentNode.getNodeClass() && this.currentNode.getNodeClass()!='null' && this.currentNode.getNodeClass()!=''){
-		document.getElementById('stepIcon').innerHTML = '<img src=\'' + this.iconUrl + this.currentNode.getNodeClass() + '28.png\'/>';
+		var nodeIconPath = this.nodeIconPaths[this.currentNode.type];
+		//document.getElementById('stepIcon').innerHTML = '<img src=\'' + this.iconUrl + this.currentNode.getNodeClass() + '28.png\'/>';
+		document.getElementById('stepIcon').innerHTML = '<img src=\'' + nodeIconPath + this.currentNode.getNodeClass() + '28.png\'/>';
 	}
 	
 	/* set title in nav bar */
-    if(document.getElementById('topStepTitle') != null) {
-    	document.getElementById('topStepTitle').innerHTML = this.currentNode.getTitle();
+    if(document.getElementById('stepTitle') != null) {
+    	document.getElementById('stepTitle').innerHTML = this.currentNode.getTitle();
     }
     
 	/* get project completion and send to teacher, if xmpp is enabled */
@@ -588,31 +656,42 @@ View.prototype.onRenderNodeComplete = function(position){
 			status:this.studentStatus});	
 	}
 	
-	this.displayHint();
-
-	/* adjust height of iframe. If nav bar is visible, set iframe height=navbarheight. else, leave it untouched */
-	//if (parseInt($('#projectLeftBox').attr('offsetHeight')) > 0) {
-		//$('#projectRightLowerBox').height($('#projectLeftBox').height());
-	//}
-    
-	/* if centered div is not displayed, display it */
-	$('#centeredDiv').css("display", "block");
+	this.displayHint();  // display hint for the current step, if any
+	
+	this.displayNodeAnnotation(this.currentNode.id);  // display annotation for the current step, if any
+	
+	// remove any content overlays (if previous node was a note)
+	if(this.currentNode.getType() && this.currentNode.getType() != 'NoteNode'){
+		$('#contentOverlay',$('#ifrm')[0].contentWindow.document).remove();
+		
+		// reset note dialog title
+		var title = this.getI18NString("note_title");
+		$('#notePanel').dialog({
+			title: title
+		});
+	}
+	
+	this.eventManager.fire("navNodeRendered",this.currentNode);
 };
 
 /**
  * Renders the node at the given position in the vle view
+ * RenderNode lifecycle:
+ * 1. Check (e.g. constraints) to see if user can move to the specified position
+ * 2. Prepare to move to the specified position. save nodevisit state for current position, close popups, remove highlighted steps, etc.
+ * 3. Do the actual rendering of the new node
+ * 4. Render Node Complete.
  */
 View.prototype.renderNode = function(position){
 	//get the node
 	var node = this.getProject().getNodeByPosition(position);
 	
-	if(node != null) {
-		//get the node id
-		var nodeId = node.id;
-		
-		//remove the bubble and remove the highlight for the step the student is now visiting
-		eventManager.fire('removeMenuBubble', [nodeId]);
-		eventManager.fire('unhighlightStepInMenu', [nodeId]);
+	//get the previous node
+	var prevNode = this.getProject().getNodeByPosition(this.currentPosition);
+	
+	// if the previous node has exit restrictions set, return without rendering new node
+	if(prevNode != null && !prevNode.canExit()){
+		return;
 	}
 	
 	/* check to see if we can render the given position and if we should render it
@@ -627,6 +706,7 @@ View.prototype.renderNode = function(position){
 		//this.notificationManager.notify(status.msg, 3);
 		
 		//display any navigation logic constraint messages in an alert
+		if(status.msg)
 		alert(status.msg);
 		
 		if(status.value==2){
@@ -634,7 +714,10 @@ View.prototype.renderNode = function(position){
 		}
 	}
 	
-	this.eventManager.fire('renderNodeStart', this.currentPosition);
+	// Prepare to move to the specified position. 
+	// Save nodevisit state for current position, close popups, remove highlighted steps, etc.
+	this.renderNodePrep(this.currentPosition);
+	
 	this.notificationManager.notify('rendering  node, pos: ' + position,4);
 	
     var nodeToVisit = null;
@@ -699,21 +782,41 @@ View.prototype.createKeystrokeManagerForFrame = function(){
 };
 
 View.prototype.onFrameLoaded = function(){
-	var node = this.getProject().getNodeByPosition(this.getCurrentPosition());
+	//get the position in the project
+	var position = this.getCurrentPosition();
 	
-	//check if this node is a mirror/duplicate node
-	if(node.type == 'DuplicateNode') {
-		//get the real node this duplicate node points to 
-		node = node.realNode;
+	if(position == null) {
+		/*
+		 * the position is set to the first step in the project or the last step
+		 * the student was on, so if the position is null, it means there are no 
+		 * steps in the project.
+		 */
+		alert("Error: This project does not have any steps");
+		
+		//close the loading learning environment popup message
+		$('#loading').dialog('close');
+	} else {
+		//we have a position
+		var node = this.getProject().getNodeByPosition(position);
+		
+		if(node != null) {
+			//check if this node is a mirror/duplicate node
+			if(node.type == 'DuplicateNode') {
+				//get the real node this duplicate node points to 
+				node = node.realNode;
+			}
+			
+			//set the event manager into the content panel so the html has access to it
+			if(node.contentPanel){
+				node.contentPanel.eventManager = this.eventManager;
+				node.contentPanel.nodeId = node.id;
+				node.contentPanel.node = node;
+				node.contentPanel.scriptloader = this.scriptloader;
+			}
+			
+			this.eventManager.fire('pageRenderComplete', node.id);	
+		}
 	}
-	
-	//set the event manager into the content panel so the html has access to it
-	node.contentPanel.eventManager = this.eventManager;
-	node.contentPanel.nodeId = node.id;
-	node.contentPanel.node = node;
-	node.contentPanel.scriptloader = this.scriptloader;
-	
-	this.eventManager.fire('pageRenderComplete', node.id);
 };
 
 /**

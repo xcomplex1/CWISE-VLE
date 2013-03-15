@@ -11,11 +11,11 @@ var coreMinScripts = ['vle/node/surge/surge_core_min.js'];
 
 //the scripts used in the vle
 var studentVLEScripts = [
+	scriptloader.jquerySrc,
+	scriptloader.jqueryUISrc,
 	'vle/node/common/nodehelpers.js',
 	'vle/node/surge/surge.js',
-	'vle/node/surge/surgeState.js',
-	'vle/jquery/js/jquery-1.6.1.min.js',
-	'vle/jquery/js/jquery-ui-1.8.7.custom.min.js'
+	'vle/node/surge/surgeState.js'
 ];
 
 //the scripts used in the authoring tool
@@ -34,8 +34,11 @@ var dependencies = [
 ];
 
 var nodeClasses = [
-	{nodeClass:'display', nodeClassText:'SURGE *'}
+	{nodeClass:'display', nodeClassText:'Surge'}
 ];
+
+var nodeIconPath = 'node/surge/icons/';
+componentloader.addNodeIconPath('SurgeNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);

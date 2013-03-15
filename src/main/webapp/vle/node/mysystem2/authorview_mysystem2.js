@@ -6,9 +6,6 @@
  */
 /*globals View createBreak createElement eventManager*/
 
-/**
- * @constructor
- */
 View.prototype.Mysystem2Node = {};
 View.prototype.Mysystem2Node.commonComponents = ['Prompt', 'LinkTo'];
 
@@ -54,11 +51,11 @@ View.prototype.Mysystem2Node.getBuildInfoDiv = function() {
   var sc_build_time_div   = createElement(document, 'div', {id: 'sc_build_time'  }) ;
   var sc_build_number_div = createElement(document, 'div', {id: 'sc_build_number'}) ;
 
-  var git_sha         = document.createTextNode("commit sha  : 72cb000dc1b4f9b91484b0a023fde690a9eb045e ");
-  var git_time        = document.createTextNode("commit time : Fri Sep 23 18:55:43 2011 -0400 ");
-  var git_branch      = document.createTextNode("git branch  : (HEAD, usingVisibilityBindingsInInspector, master) ");
-  var sc_build_time   = document.createTextNode("build time  : 2011-09-23 19:00:42 -0400 ");
-  var sc_build_number = document.createTextNode("build no.   : b7496a1eec79ffecb2969797c585818a31348044 ");
+  var git_sha         = document.createTextNode("commit sha  : 92876fac5c56caa95cc9666e594b31d48b2fc4d4 ");
+  var git_time        = document.createTextNode("commit time : Tue Apr 10 17:37:44 2012 -0400 ");
+  var git_branch      = document.createTextNode("git branch  : (HEAD, origin/master, origin/HEAD, master) ");
+  var sc_build_time   = document.createTextNode("build time  : 2012-04-10 17:38:07 -0400 ");
+  var sc_build_number = document.createTextNode("build no.   : 9cb8d6b612145eb83b7f198727e7935e90004e49 ");
   
   git_sha_div.appendChild(git_sha);
   git_time_div.appendChild(git_time);
@@ -117,7 +114,16 @@ View.prototype.Mysystem2Node.populatePrompt = function() {
  * Updates the html with the user entered prompt
  */
 View.prototype.Mysystem2Node.updatePrompt = function(){
-  this.content.prompt = document.getElementById('promptInput').value;
+  //get the prompt content
+  var promptContent = '';
+  if(typeof tinymce != 'undefined' && $('#promptInput').tinymce()){
+    promptContent = $('#promptInput').tinymce().getContent();
+  } else {
+    promptContent = $('#promptInput').val();
+  }
+
+  //set the prompt content
+  this.content.prompt = promptContent;
 
   /* fire source updated event */
   this.view.eventManager.fire('sourceUpdated');

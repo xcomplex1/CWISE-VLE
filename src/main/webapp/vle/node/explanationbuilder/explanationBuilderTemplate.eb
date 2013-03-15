@@ -1,6 +1,10 @@
-{
+﻿{
    "background": "",
-   "prompt": "",
-   "instructions": "",
+   "bgPosition": "left-top",
+   "prompt": "在這裡輸入 提示/問題",
+   "instructions": "在這裡輸入提示",
+   "enableStudentTextArea": false,
+   "isMustComplete": false,
+   "selectedAttribute": "",
    "type": "ExplanationBuilder"
 }

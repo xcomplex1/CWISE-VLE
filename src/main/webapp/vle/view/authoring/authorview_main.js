@@ -268,8 +268,9 @@ View.prototype.generateNodeElement = function(node, parentNode, el, depth, pos){
 			}
 		}
 		if(node.getNodeClass() && node.getNodeClass()!='null' && node.getNodeClass()!=''){
+			var nodeIconPath = this.nodeIconPaths[node.type];
 			//mainDiv.innerHTML = reviewHtml + tabs + '<img src=\'' + iconUrl + node.getNodeClass() + '16.png\'/> ';
-			mainDiv.innerHTML = '<img src=\'' + this.iconUrl + node.getNodeClass() + '16.png\'/> ';
+			mainDiv.innerHTML = '<img src=\'' + nodeIconPath + node.getNodeClass() + '16.png\'/> ';
 		} //else {
 			//mainDiv.innerHTML = reviewHtml + tabs;
 			//mainDiv.innerHTML = reviewHtml;
@@ -300,14 +301,17 @@ View.prototype.generateNodeElement = function(node, parentNode, el, depth, pos){
 		mainDiv.appendChild(selectDrop);
 		
 		var nodeClassesForNode = [];
+		var nodeIconPath;
 
 		/* check to see if current node is in nodeTypes, if not ignore so that authoring 
 		 * tool will continue processing remaining nodes. Resolve duplicate nodes to the
 		 * type of the node that they represent */
 		if(node.type=='DuplicateNode'){
 			nodeClassesForNode = this.nodeClasses[node.getNode().type];
+			nodeIconPath = this.nodeIconPaths[node.getNode().type];
 		} else {
 			nodeClassesForNode = this.nodeClasses[node.type];
+			nodeIconPath = this.nodeIconPaths[node.type];
 		}
 		
 		//populate select with icons for its step type
@@ -321,7 +325,7 @@ View.prototype.generateNodeElement = function(node, parentNode, el, depth, pos){
 				var nodeClassObj = nodeClassesForNode[x];
 				var opt = createElement(document, 'option');
 				opt.value = nodeClassObj.nodeClass;
-				opt.innerHTML = '<img src=\'' + this.iconUrl + nodeClassObj.nodeClass + '16.png\'/> ' + nodeClassObj.nodeClassText;
+				opt.innerHTML = '<img src=\'' + nodeIconPath + nodeClassObj.nodeClass + '16.png\'/> ' + nodeClassObj.nodeClassText;
 				selectDrop.appendChild(opt);
 				if(node.getNodeClass() == nodeClassObj.nodeClass){
 					selectDrop.selectedIndex = x + 1;
@@ -418,6 +422,7 @@ View.prototype.nodeTitleChanged = function(id){
  */
 View.prototype.projectTitleChanged = function(){
 	/* get user input title */
+	// modified by Richard 2012/1/10 專案標題中文寫入mysql編碼
 	var newTitle = document.getElementById('projectTitleInput').value;
 	
 	/* if not defined, set it to an empty string */
@@ -426,11 +431,11 @@ View.prototype.projectTitleChanged = function(){
 	};
 	
 	/* update metadata and save */
-	this.projectMeta.title = newTitle;
+	this.projectMeta.title = encodeURIComponent(newTitle);
 	this.updateProjectMetaOnServer(true,true);
 	
 	/* update project and save */
-	this.project.setTitle(newTitle);
+	this.project.setTitle(encodeURIComponent(newTitle));
 	this.saveProject();
 };
 
@@ -668,8 +673,7 @@ View.prototype.initializeAssetEditorDialog = function(){
 		eventManager.fire('browserResize');
 	};
 	
-	// set default buttons for asset editor dialog
-	// Modified by Richard 2011/12/12
+	// set default buttons for asset editor dialog	
 	this.assetEditorButtons = {'關閉': done, '移除選取的檔案': remove};
 	$('#assetEditorDialog').dialog({autoOpen:false, draggable:true, modal:true, width:600, title: '專題檔案', buttons: this.assetEditorButtons, close: cancel, open:show});
 };
@@ -684,7 +688,7 @@ View.prototype.uploadAsset = function(view){
 
 		var callback = function(text, xml, o){
 			if(text >= o.MAX_ASSET_SIZE){
-				o.notificationManager.notify('Maximum storage allocation exceeded! Maximum allowed is ' + o.utils.appropriateSizeText(o.MAX_ASSET_SIZE) + ', total on server is ' + o.utils.appropriateSizeText(text) + '.', 3);
+				o.notificationManager.notify(' 上傳檔案限制：' + o.utils.appropriateSizeText(o.MAX_ASSET_SIZE) + '，全部上傳空間： ' + o.utils.appropriateSizeText(text) , 3);
 			} else if(view){
 				document.getElementById('sizeDiv').innerHTML = "您已從 " + o.utils.appropriateSizeText(o.MAX_ASSET_SIZE) + " 的儲存空間中使用了 " + o.utils.appropriateSizeText(text) ;
 			} else {
@@ -719,7 +723,7 @@ View.prototype.submitUpload = function() {
 			form.appendChild(createElement(document,'input',{type:'hidden', name:'projectId', value:view.portalProjectId}));
 
 			/* set up the event and callback when the response comes back to the frame */
-			frame.addEventListener('load',view.assetUploaded,false);
+			frame.addEventListener('load',function(){view.assetUploaded(this,view);},false);
 			
 			/* change the name attribute to reflect that of the file selected by user */
 			document.getElementById('uploadAssetFile').setAttribute("name", filename);
@@ -737,6 +741,23 @@ View.prototype.submitUpload = function() {
 			
 			$('#assetProcessing').show();
 			
+			if(filename.indexOf(' ') != -1) {
+				/*
+				 * the file name contains a space so we will alert a message to
+				 * notify them that they may need to replace the spaces with
+				 * %20 when they reference the file in steps.
+				 */ 
+				
+				/*
+				 * replace all the spaces with %20 so we can show the author how
+				 * they should reference the file
+				 */
+				var fixedFileName = filename.replace(/ /g, '%20');
+				
+				//display the popup message
+				alert('Note: Your file name contains a space character so when you reference it in steps\nyou may need to replace all the spaces with %20 in order for the image to work.\n\nIt should look like this\nassets/' + fixedFileName);
+			}
+			
 			/* close the dialog */
 			//$('#assetUploaderDialog').dialog('close');
 		}
@@ -749,11 +770,15 @@ View.prototype.submitUpload = function() {
  * Retrieves a list of any assets associated with the current project
  * from the server, populates a list of the assets in the assetEditorDialog
  * and displays the dialog.
+ * 
+ * @param params Object (optional) specifying asset editor options (type, extensions to show, optional text for new button, callback function)
  */
 View.prototype.viewAssets = function(params){
 	if(this.project){
 		if (params){
 			this.assetEditorParams = params;
+		} else {
+			this.assetEditorParams = null;
 		}
 		showElement('assetEditorDialog');
 		var populateOptions = function(names, view){
@@ -786,9 +811,15 @@ View.prototype.viewAssets = function(params){
 						if (!view.utils.fileFilter(extensions,fileName)){
 							continue;
 						}
+					} else if(view.assetEditorParams && view.assetEditorParams.extensions 
+						&& view.assetEditorParams.extensions.length > 0){
+						var extensions = view.assetEditorParams.extensions;
+						if (!view.utils.fileFilter(extensions,fileName)){
+							continue;
+						}
 					}
 					
-					//create a drop down option for each file name
+					//create an entry for each file
 					var opt = createElement(document, 'option', {name: 'assetOpt', id: 'asset_' + fileName});
 					opt.text = fileName;
 					opt.value = fileName;
@@ -843,8 +874,12 @@ View.prototype.viewAssets = function(params){
 							alert("Please select a file to link to from the list.");
 						}
 					};
-				} else if (type == "flash"){
-					buttons['Choose Selected File'] = function(){
+				} else {
+					var buttonText = '選定檔案';
+					if(view.assetEditorParams.buttontext && typeof view.assetEditorParams.buttontext == 'string'){
+						buttonText = view.assetEditorParams.buttontext;
+					}
+					buttons[buttonText] = function(){
 						var url = $('#assetSelect option:selected').val();
 						if(url){
 							callback(field_name, url, type, win);
@@ -1031,8 +1066,7 @@ View.prototype.copyProject = function(){
 View.prototype.toggleProjectMode = function(){
 	this.projectStructureViolation = false;
 	
-	//toggle modes and set associated text 
-	// modified by Richard 2011/12/7
+	//toggle modes and set associated text
 	if(this.simpleProject){
 		this.simpleProject = false;
 		$('#projectModeDiv > span').text('進階模式');
@@ -1052,8 +1086,19 @@ View.prototype.toggleProjectMode = function(){
 View.prototype.editProjectMetadata = function(){
 	if(this.getProject()){
 		showElement('editProjectMetadataDialog');
-		document.getElementById('projectMetadataTitle').value = this.utils.resolveNullToEmptyString(this.projectMeta.title);
-		document.getElementById('projectMetadataAuthor').value = this.utils.resolveNullToEmptyString(this.projectMeta.author);
+		$('#projectMetadataTitle').val(this.utils.resolveNullToEmptyString(this.projectMeta.title));
+		$('#projectMetadataAuthor').text(this.utils.resolveNullToEmptyString(this.projectMeta.author)); // TODO: author is null - fix
+		
+		if(this.projectMeta.theme != null){
+			this.utils.setSelectedValueById('projectMetadataTheme', this.projectMeta.theme);
+		}
+		var navMode = '';
+		if(this.projectMeta.navMode != null){
+			navMode = this.projectMeta.navMode;
+		}
+		var themeName = $('#projectMetadataTheme').val();
+		this.populateNavModes(themeName,navMode);
+		
 		this.utils.setSelectedValueById('projectMetadataSubject', this.utils.resolveNullToEmptyString(this.projectMeta.subject));
 		document.getElementById('projectMetadataSummary').value = this.utils.resolveNullToEmptyString(this.projectMeta.summary);
 		this.utils.setSelectedValueById('projectMetadataGradeRange', this.utils.resolveNullToEmptyString(this.projectMeta.gradeRange));
@@ -1082,31 +1127,389 @@ View.prototype.editProjectMetadata = function(){
 			}
 
 			//set the tech details string
-			$('#projectMetadataTechDetails').attr('value', techReqs.techDetails);
+			$('#projectMetadataTechDetails').attr('value', this.utils.resolveNullToEmptyString(this.projectMeta.techReqs.techDetails));
+		}
+		
+		// initialize idea manager settings object and IM version
+		var imSettings = {}, imVersion = '1';
+		
+		if (this.projectMeta.tools != null) {
+			var tools = this.projectMeta.tools;
 			
-			if (this.projectMeta.tools != null) {
-				var tools = this.projectMeta.tools;
-				
-				//determine if enable idea manager needs to be checked
-				if (tools.isIdeaManagerEnabled != null && tools.isIdeaManagerEnabled) {
-					$("#enableIdeaManager").attr('checked', true);
-				}
+			//determine if enable idea manager needs to be checked
+			if (tools.isIdeaManagerEnabled != null && tools.isIdeaManagerEnabled) {
+				$("#enableIdeaManager").attr('checked', true);
+			}
 
-				//determine if enable student asset uploader needs to be checked
-				if (tools.isStudentAssetUploaderEnabled != null && tools.isStudentAssetUploaderEnabled) {
-					$("#enableStudentAssetUploader").attr('checked', true);
+			//determine if enable student asset uploader needs to be checked
+			if (tools.isStudentAssetUploaderEnabled != null && tools.isStudentAssetUploaderEnabled) {
+				$("#enableStudentAssetUploader").attr('checked', true);
+			}
+			
+			// get Idea Manager version
+			if('ideaManagerVersion' in tools){
+				imVersion = tools.ideaManagerVersion;
+			}
+			
+			// get Idea Manager settings
+			if ('ideaManagerSettings' in tools){
+				imSettings = tools.ideaManagerSettings;
+				if('version' in tools.ideaManagerSettings){
+					imVersion = tools.ideaManagerSettings;
 				}
 			}
+		}
+		
+		if(this.projectHasRun && parseInt(imVersion) < 2){
+			// project has run in classroom and uses older version of Idea Manager, so remove IM v2 settings panel
+			$('#ideaManagerSettings').remove();
+		} else {
+			// since project hasn't run and Idea Manager version hasn't been set < 2, we can use IM v2 for this project
+			imVersion = '2';
+			// set version as attribute of enable IM checkbox (will be read and stored when saving project metadata)
+			$('#enableIdeaManager').attr('version',imVersion);
+			
+			// if Idea Manager is enabled, show settings panel
+			if($('#enableIdeaManager').is(':checked')){
+				$('#ideaManagerSettings').show();
+			}
+			
+			//populate Idea Manager settings
+			this.populateIMSettings(imSettings);
 		}
 		
 		document.getElementById('projectMetadataLessonPlan').value = this.utils.resolveNullToEmptyString(this.projectMeta.lessonPlan);
 		document.getElementById('projectMetadataStandards').value = this.utils.resolveNullToEmptyString(this.projectMeta.standards);
 		document.getElementById('projectMetadataKeywords').value = this.utils.resolveNullToEmptyString(this.projectMeta.keywords);
+		var height = $(window).height()-40;
+		$('#editProjectMetadataDialog').dialog({'height':height});
 		$('#editProjectMetadataDialog').dialog('open');
 		eventManager.fire('browserResize');
 	} else {
 		this.notificationManager.notify('Open a project before using this tool.', 3);
 	};
+};
+
+/**
+ * Populates Idea Manager settings fields in the authoring DOM
+ * @param settings Idea Manager settings object
+ */
+View.prototype.populateIMSettings = function(settings){
+	var view = this;
+	
+	// get and populate any custom labels for IM terms
+	if('ideaTerm' in settings && this.utils.isNonWSString(settings.ideaTerm)) {
+		$('#imIdeaTerm').val(settings.ideaTerm);
+	} else {
+		$('#imIdeaTerm').val(this.getI18NString('idea'));
+	}
+	
+	if('ideaTermPlural' in settings && this.utils.isNonWSString(settings.ideaTermPlural)) {
+		$('#imIdeaTermPlural').val(settings.ideaTermPlural);
+	} else {
+		$('#imIdeaTermPlural').val(this.getI18NString('idea_plural'));
+	}
+	
+	if('basketTerm' in settings && this.utils.isNonWSString(settings.basketTerm)) {
+		$('#imBasketTerm').val(settings.basketTerm);
+	} else {
+		$('#imBasketTerm').val(this.getI18NString('idea_basket'));
+	}
+	
+	if('ebTerm' in settings && this.utils.isNonWSString(settings.ebTerm)) {
+		$('#imEBTerm').val(settings.ebTerm);
+	} else {
+		$('#imEBTerm').val(this.getI18NString('explanation_builder'));
+	}
+	
+	if('addIdeaTerm' in settings && this.utils.isNonWSString(settings.addIdeaTerm)) {
+		$('#imAddIdeaTerm').val(settings.addIdeaTerm);
+	} else {
+		$('#imAddIdeaTerm').val(this.getI18NString('idea_basket_add_an_idea'));
+	}
+	
+	// clear active idea attributes
+	$('#ideaAttributes .attribute.active').each(function(){
+		$(this).html('').removeClass('active').addClass('empty');
+	});
+	
+	// get and populate idea attributes for this project
+	if('ideaAttributes' in settings){
+		// idea attributes have been previously set, so get and populate
+		var attributes = settings.ideaAttributes;
+		for(var i=0; i<attributes.length; i++){
+			var type = attributes[i].type;
+			var options = attributes[i].options;
+			var name = attributes[i].name;
+			var isRequired = attributes[i].isRequired;
+			var id = attributes[i].id;
+			var allowCustom = null;
+			if('allowCustom' in attributes[i]){
+				allowCustom = attributes[i].allowCustom;
+			}
+			view.addIdeaAttribute(type,options,name,isRequired,allowCustom,null,id);
+		}
+	} else {
+		// idea attributes haven't been set, so add default attributes
+		view.addIdeaAttribute('source');
+		view.addIdeaAttribute('icon',null,null,false);
+	}
+	
+	// make active attribute fields sortable
+	$('#ideaAttributes').sortable({
+		items:'td.attribute.active, td.attribute.empty',
+		handle:'h6 > span'
+	});
+	
+	// insert add new attribute links to all unused attribute fields
+	$('#ideaAttributes .attribute.empty').each(function(){
+		view.deleteIdeaAttribute($(this));
+	});
+	
+	// add validation
+	
+};
+
+/**
+ * Adds a new idea attribute to the Idea Manager settings authoring panel
+ * @param type String for the type of attribute ('source', 'icon', 'tag', 'label' are allowed)
+ * @param options Array of the available options for the field (optional; allowed values depend on type)
+ * @param name String for the name of the attribute field (optional)
+ * @param isRequired Boolean for whether the attribute field is required or not (optional; default is true)
+ * @param allowCustom Boolean for whether the students can add their own custom field (optional; only applies to 'source' and 'label')
+ * @param target jQuery DOM element to add new attribute content to (optional)
+ * @param id String to uniquely identify the idea attribute (optional)
+ */
+View.prototype.addIdeaAttribute = function(type,options,name,isRequired,allowCustom,target,id){
+	var view = this;
+	
+	function addOption(target,option){
+		// create new option input and add to DOM
+		var newInput = $("<div class='optionWrapper'><span class='ui-icon ui-icon-grip-dotted-vertical move'></span><input type='text' class='option' value='" + option + "' maxlength='25' /><a class='delete' title='Remove option' >X</a></div>");
+		$('.add', target).before(newInput);
+		$('input',newInput).focus();
+		
+		if ($('.option', target).length > 9){
+			// 10 option fields shown, so remove add more link
+			$('.add', target).hide();
+		}
+		
+		// add new item to jquery-ui sortable
+		target.sortable('refresh');
+		
+		// bind delete link click event
+		$('.delete',newInput).click(function(){
+			if($('.option', target).length == 2){
+				alert('You must specify at least two (2) options for this attribute.');
+				return;
+			}
+			newInput.fadeOut(function(){
+				$(this).remove();
+				//if($('.option', target).length < 10){
+					// show add option link
+					$('.add', target).fadeIn();
+				//}
+			});
+		});
+	};
+	
+	// check for unused attribute elements
+	if($('#ideaAttributes .attribute.empty').length > 0){
+		// there are empty attribute fields, so we can add another
+		
+		// get target param if provided or next unused attribute element
+		var newAttribute = null;
+		if(target){
+			newAttribute = target;
+		} else {
+			newAttribute = $('#ideaAttributes .attribute.empty').eq(0);
+		}
+		
+		// if id param wasn't sent, generate unique id for new attribute
+		if(!id || typeof id != 'string'){
+			id = view.utils.generateKey();
+		}
+		
+		var count = 0;
+		var header = null, choices = null;
+		// set header depending on attribute type
+		if(type=='source'){
+			header = $("<h6><span class='ui-icon ui-icon-grip-dotted-vertical move'></span><span>Source</span><a class='action delete' title='Delete attribute'>X</a></h6>");
+		} else if (type=='icon'){
+			header = $("<h6><span class='ui-icon ui-icon-grip-dotted-vertical move'></span><span>Icon</span><a class='action delete' title='Delete attribute'>X</a></h6>");
+		} else if (type=='tags'){
+			header = $("<h6><span class='ui-icon ui-icon-grip-dotted-vertical move'></span><span>Tags</span><a class='action delete' title='Delete attribute'>X</a></h6>");
+		} else if (type=='label'){
+			header = $("<h6><span class='ui-icon ui-icon-grip-dotted-vertical move'></span><span>Label</span><a class='action delete' title='Delete attribute'>X</a></h6>");
+		}
+		
+		if(type=='source' || type=='tags' || type=='label'){
+			choices = $(document.createElement('div')).addClass('options').attr('id','options_' + id);
+			if(type=='tags'){
+				choices.append('<p>Options<span class="details">(students can choose any)</span>:</p>');
+			} else {
+				choices.append('<p>Options<span class="details">(students choose 1)</span>:</p>');
+			}
+			
+			// insert add more link and bind click
+			var moreLink = $("<p class='add'><a>Add more +</a></p>");
+			choices.append(moreLink);
+			$('a',moreLink).click(function(){
+				addOption(choices,'');
+			});
+			
+			// insert saved options
+			if(options && options.length > 0){
+				for(var i=0;i<options.length;i++){
+					if(typeof options[i] == 'string' && count<11){
+						addOption(choices,options[i]);
+						count++;
+					}
+				}
+			}
+			
+			if (count == 0){
+				// no valid options were set, so add default options
+				var defaults = [];
+				if(type=='source'){
+					defaults = ['Evidence Step','Visualization or Model','Movie/Video','Everyday Observation','School or Teacher'];
+				} else if(type=='tags'){
+					defaults = ['Tag1','Tag2'];
+					
+				} else if(type=='label'){
+					defaults = ['Label1','Label2'];
+				}
+				for(var a=0;a<defaults.length;a++){
+					addOption(choices,defaults[a]);
+				}
+			} else if (count == 1){
+				// only one option was set, so add a default second option (minimum of two options allowed for these attribute types)
+				var choice = '';
+				if(type=='source'){
+					choice = 'Source2';
+				} else if (type=='tags'){
+					choice = 'Tag2';
+				} else if (type=='label'){
+					choice = 'Label2';
+				}
+				addOption(choices,choice);
+			}
+			
+			// make options sortable
+			choices.sortable({
+				items: '.optionWrapper',
+				handle: 'span.move'
+			});
+		} else if(type=='icon'){
+			choices = $(document.createElement('div')).addClass('options').attr('id','options_' + id);
+			choices.append('<p>Options<span class="details">(students choose 1)</span>:</p>');
+			var icons = {'blank':'None','important':'Important','question':'Not Sure','check':'Check','favorite':'Favorite','star_empty':'Star Empty','star_half':'Star Half Full','star_full':'Star Full'};
+			for(key in icons){
+				var option = $("<div class='optionWrapper'><input type='checkbox' class='option' value='" + key + "' /><img class='icon' src='images/ideaManager/" + key + ".png' alt='" + key + "' />" + icons[key] + "</div>");
+				choices.append(option);
+				if(options && options.length > 0){
+					for(var i=0;i<options.length;i++){
+						if(options[i] == key){
+							$('.option',option).attr('checked','checked');
+						}
+					}
+				} else {
+					if(key=='blank' || key=='important' || key=='question'){
+						$('.option',option).attr('checked','checked');
+					}
+				}
+			}
+		}
+		
+		if(header && choices){
+			// options have been set and type is valid, so populate new attribute element
+			// create name input
+			var fieldName = view.utils.capitalize(type);
+			if(typeof name == 'string' && view.utils.isNonWSString(name)){
+				fieldName = name;
+			}
+			var nameElement = $(document.createElement('p'));
+			var nameInput = $(createElement(document, 'input', {type: 'text', id: 'fieldName_' + id, name: 'fieldName_' + id, value: fieldName})).addClass('fieldName').addClass('required').attr('maxlength','25');
+			nameElement.append(document.createTextNode('Field Name:')).append(nameInput);
+			
+			// create required checkbox
+			var required = $(document.createElement('p'));
+			var requiredCheck = $(createElement(document, 'input', {type: 'checkbox', id: 'required_' + id})).attr('checked','checked').css('margin-left','0');
+			required.append(requiredCheck).append(document.createTextNode('This field is required'));
+			if(isRequired == false){
+				requiredCheck.removeAttr('checked');
+			}
+			
+			// clear new attribute element and add id
+			newAttribute.html('').attr('id','attribute_' + id);
+			
+			// add header and choices to new attribute element
+			newAttribute.append(header).append(choices);
+			// add name inptu and required toggles to DOM
+			header.after(nameElement);
+			nameElement.after(required);
+			
+			if(type=='source' || type=='label'){
+				// create allow custom field checkbox
+				var custom = $(document.createElement('p'));
+				var customCheck = $(createElement(document, 'input', {type: 'checkbox', id: 'custom_' + id})).css('margin-left','0');
+				custom.append(customCheck).append(document.createTextNode('Allow students specify their own ' + type));;
+				if(allowCustom == true){
+					customCheck.attr('checked','checked');
+				}
+				// add custom field checkbox to attribute element
+				newAttribute.append(custom);
+			}
+			// remove empty class and add active class
+			newAttribute.removeClass('empty').addClass('active').attr('type',type);
+			
+			// bind attribute delete link click event (with confirm dialog)
+			$('.delete', header).click(function(){
+				var answer = confirm('Are you sure you want to permanently delete this attribute?');
+				if (answer){
+					// do delete
+					view.deleteIdeaAttribute($(this).parent().parent());
+				}
+			});
+		} else {
+			// header & choices elements not defined so type is not allowed, fire error notification
+			this.notificationManager.notify('Error adding idea attribute. Invalid type.', 2);
+		}
+	} else {
+		// there are no unused attribute elements left, so fire error notification
+		this.notificationManager.notify('Error adding idea attribute. Too many attributes specified.', 2);
+	}
+};
+
+/**
+ * Clears specified attribute DOM element and inserts add new attribute links
+ * @param target jQuery DOM element
+ */
+View.prototype.deleteIdeaAttribute = function(target){
+	var view = this;
+	
+	// clear content
+	target.html('').removeClass('active').addClass('empty').removeAttr('id');
+	
+	// create new attribute links
+	var newLinks = $(document.createElement('div')).addClass('newLinks');
+	newLinks.append('<h6>Add new attribute +</h6>');
+	var container = $(document.createElement('ul'));
+	container.append('<li><a name="source">Source</a></li><li><a name="label">Label</a></li><li><a name="icon">Icon</a></li><li><a name="tags">Tags</a></li>');
+	newLinks.append(container);
+	
+	// add new attribute links to DOM element
+	target.append(newLinks);
+	
+	// bind click actions to new links
+	$('a',container).click(function(){
+		var type = $(this).attr('name');
+		var isRequired = false;
+		if(type=='source' || type=='label'){
+			isRequired = true;
+		}
+		view.addIdeaAttribute(type,null,null,isRequired,null,target);
+	});
 };
 
 /**
@@ -1116,6 +1519,7 @@ View.prototype.editProjectMetadata = function(){
 View.prototype.onProjectLoaded = function(){
 	if(this.cleanMode){
 		this.retrieveMetaData();
+		this.retrieveProjectRunStatus();
 		eventManager.fire('cleanProject');
 	} else {
 		//make the top project authoring container visible (where project title shows up)
@@ -1170,10 +1574,14 @@ View.prototype.onProjectLoaded = function(){
 
 		//set the project id so it is displayed to the author
 		$('#projectIdDisplay').text(this.portalProjectId);
+		
+		this.populateThemes();
 	
 		this.generateAuthoring();
 	
 		this.retrieveMetaData();
+		
+		this.retrieveProjectRunStatus();
 		
 		//add these two params to the config
 		this.getConfig().setConfigParam('getContentUrl', this.getProject().getUrl());
@@ -1183,9 +1591,46 @@ View.prototype.onProjectLoaded = function(){
 			this.placeNewNode(this.placeNodeId);
 		}
 		
-		this.notificationManager.notify("Loaded Project ID: " + this.portalProjectId, 3);
+		this.notificationManager.notify("載入專題ID: " + this.portalProjectId, 3);
 	}
 };
+
+/**
+ * Checks whether project has been run in classrooms
+ * @returns Boolean
+ */
+View.prototype.retrieveProjectRunStatus = function(){
+	if(this.mode == "portal") {
+		var requestParams = {
+			"projectId":this.portalProjectId,
+			"command":"getNumberOfRuns"
+		};
+		this.connectionManager.request('GET', 1, '/webapp/teacher/projects/projectinfo.html', requestParams, this.retrieveProjectRunStatusSuccess, this, this.retrieveProjectRunStatusFailure);
+	} else {
+		this.projectHasRun = false;
+	}
+	
+};
+
+/**
+ * Success callback for project run check
+ */
+View.prototype.retrieveProjectRunStatusSuccess = function(text,xml,o) {
+	var numRuns = parseInt(text);
+	if(numRuns > 0){
+		o.projectHasRun = true;
+	} else {
+		o.projectHasRun = false;
+	}
+};
+
+/**
+ * Failure callback for project run check
+ */
+function retrieveProjectRunStatusFailure(c,o) {
+	o.notificationManager.notify('Error retrieving run listing for this project. Assuming project has not been run.', 2);
+	o.projectHasRun = false;
+}
 
 /**
  * Notifies portal that this user is now authoring this project
@@ -1352,6 +1797,7 @@ View.prototype.nodeTypeSelected = function(){
 	};
 	
 	if(val && val!=""){
+		var nodeIconPath = this.nodeIconPaths[val];
 		var nodeClassesForNode = this.nodeClasses[val];
 		
 		var selectDiv = createElement(document, 'div', {id: 'selectNodeIconDiv'});
@@ -1362,7 +1808,7 @@ View.prototype.nodeTypeSelected = function(){
 			var nodeClassObj = nodeClassesForNode[x];
 			var opt = createElement(document, 'option', {name: 'nodeClassOption'});
 			opt.value = nodeClassObj.nodeClass;
-			opt.innerHTML = '<img src=\'' + this.iconUrl + nodeClassObj.nodeClass + '16.png\'/> ' + nodeClassObj.nodeClassText;
+			opt.innerHTML = '<img src=\'' + nodeIconPath + nodeClassObj.nodeClass + '16.png\'/> ' + nodeClassObj.nodeClassText;
 			
 			select.appendChild(opt);
 		};
@@ -1497,10 +1943,16 @@ View.prototype.getCurrentNode = function(){
 
 /**
  * Cleans up before exiting the authoring tool.
+ * @param logout whether to log out the user
  */
-View.prototype.onWindowUnload = function(){
-	this.stopEditingInterval();
+View.prototype.onWindowUnload = function(logout){
+	//this.stopEditingInterval();
 	this.notifyPortalCloseProject(true);
+
+	if(logout === true) {
+		//log out the user
+		window.top.location = "/webapp/j_spring_security_logout";		
+	}
 };
 
 /**
@@ -1770,7 +2222,91 @@ View.prototype.openStepTypeDescriptions = function(){
 	$('#stepTypeDescriptions').dialog('open');
 };
 
+/**
+ * Populates the available themes for this VLE installation.
+ */
+View.prototype.populateThemes = function(){
+	var themeSelect = $('#projectMetadataTheme').html('');
+	for(var i=0;i<this.activeThemes.length;i++){
+		var themeName = this.activeThemes[i];
+		// get theme's config file
+		var themepath = 'themes/' + themeName + '/';
+		var configpath = themepath + 'config.json';
+		$.ajax({
+			dataType:'json',
+			async:false,
+			url: configpath,
+			success: function(data){
+				themeSelect.append('<option value="' + themeName + '">' + data.name + '</option>');
+				// TODO: insert thumnail and screenshot
+				
+			},
+			error: function(jqXHR,textStatus,errorThrown){
+				alert('Selected VLE theme "' + themeName + '" is broken: Invalid configuration file.');
+			},
+			statusCode: {
+				404: function(){
+					alert('Selected VLE theme "' + themeName + '" is broken: Configuration file not found.');
+				}
+			}
+		});
+	}
+};
+
+/**
+ * Populates the available navigation modes for selected theme
+ * @param themeName the name of the theme
+ * @param navMode the name of the navMode to set (optional)
+ */
+View.prototype.populateNavModes = function(themeName,navMode){
+	var view = this;
+	// get theme's config file
+	var themepath = 'themes/' + themeName + '/';
+	var configpath = themepath + 'config.json';
+	$.ajax({
+		url: configpath,
+		dataType: 'json',
+		success: function(data){
+			// populate navModes for selected theme
+			var navSelect = $('#projectMetadataNavigation').html('');
+			for(var i=0;i<data.nav_modes.length;i++){
+				navSelect.append('<option value="' + data.nav_modes[i].id + '">' + data.nav_modes[i].name + '</option>');
+			}
+			
+			if(navMode){
+				view.setNavMode(navMode);
+			}
+		},
+		error: function(jqXHR,textStatus,errorThrown){
+			alert('Selected VLE theme "' + themeName + '" is broken: Invalid configuration file.');
+		},
+		statusCode: {
+			404: function(){
+				alert('Selected VLE theme "' + themeName + '" is broken: Configuration file not found.');
+			}
+		}
+	});
+};
+
+/**
+ * Sets the project's navigation mode in the project metadata dialog based
+ * on the project's metadata
+ * @param navMode the navigation mode identifer
+ */
+View.prototype.setNavMode = function(navMode){
+	if(navMode != ''){
+		this.utils.setSelectedValueById('projectMetadataNavigation', navMode);
+	}
+};
+
+/**
+ * Reload the project from the server
+ */
+View.prototype.reloadProject = function() {
+	this.loadProject(this.getProject().getContentBase() + this.utils.getSeparator(this.getProject().getContentBase()) + this.getProject().getProjectFilename(), this.getProject().getContentBase(), true);
+};
+
 //used to notify scriptloader that this script has finished loading
 if(typeof eventManager != 'undefined'){
 	eventManager.fire('scriptLoaded', 'vle/view/authoring/authorview_main.js');
-}
+};

@@ -8,10 +8,10 @@ var coreMinScripts = [
 ];
 
 var studentVLEScripts = [
+	scriptloader.jquerySrc,
+	scriptloader.jqueryUISrc,
 	'vle/node/cargraph/cargraph.js',
-	'vle/node/cargraph/cargraphstate.js',
-    'vle/jquery/js/jquery-1.6.1.min.js',
-	'vle/jquery/js/jquery-ui-1.8.7.custom.min.js',	
+	'vle/node/cargraph/cargraphstate.js',	
 	'vle/jquery/js/flot/excanvas.js',
 	'vle/jquery/js/flot/jquery.js',
 	'vle/jquery/js/flot/jquery.flot.js',
@@ -36,8 +36,11 @@ var dependencies = [
 ];
 
 var nodeClasses = [
-	{nodeClass:'simulation', nodeClassText:'位置-時間圖'}
+	{nodeClass:'simulation', nodeClassText:'位置-時間圖 *'}
 ];
+
+var nodeIconPath = 'node/cargraph/icons/';
+componentloader.addNodeIconPath('CarGraphNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);

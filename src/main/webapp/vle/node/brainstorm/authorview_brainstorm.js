@@ -57,7 +57,6 @@ View.prototype.BrainstormNode.generateOptions = function(){
 	
 	//create new options elements
 	var optionsDiv = createElement(document, 'div', {id:'optionsDiv'});
-	//var optionsText = document.createTextNode('Available Options:');
 	var optionsText = document.createTextNode('可利用之選項：');
 	var optionsTable = createElement(document, 'table', {id:'optionsTable'});
 	var optionsRow1 = createElement(document, 'tr', {id:'optionsRow1'});
@@ -462,7 +461,20 @@ View.prototype.BrainstormNode.populatePrompt = function() {
  * Updates the value of the prompt element in xmlPage
  */
 View.prototype.BrainstormNode.updatePrompt = function(){
-	this.content.assessmentItem.interaction.prompt = document.getElementById('promptInput').value;
+	/* update content */
+	var content = '';
+	if(typeof tinymce != 'undefined' && $('#promptInput').tinymce()){
+		content = $('#promptInput').tinymce().getContent();
+	} else {
+		content = $('#promptInput').val();
+	}
+	
+	// strip out any urls with the full project path (and replace with 'assets/file.jpg')
+	var assetPath = this.view.getProjectFolderPath() + 'assets/';
+	var assetPathExp = new RegExp(assetPath,"gi");
+	content.replace(assetPathExp,"assets/");
+	
+	this.content.assessmentItem.interaction.prompt = content;
 	
 	/* fire source updated event */
 	this.view.eventManager.fire('sourceUpdated');

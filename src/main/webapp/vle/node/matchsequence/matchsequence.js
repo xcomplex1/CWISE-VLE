@@ -726,11 +726,10 @@ MS.prototype.checkAnswer = function() {
 			}
 			
 			//display which attempt number was just attempted
-			//Modifiey by Richard 2011/12/22
 			this.displayPreviousAttemptNumber();
 			
 			var totalNumChoices = numCorrectChoices + numWrongChoices;
-			feedbackDiv.innerHTML = "您已經從 "+ totalNumChoices +" 選項中成功放置 "+ numCorrectChoices + " 個正確的選項";
+			feedbackDiv.innerHTML = "您已經從 "+ totalNumChoices +" 選項中成功放置 "+ numCorrectChoices  +" 個正確的選項";
 			
 			if(this.challengeEnabled()) {
 				//display the linkto so the student can visit the associated step

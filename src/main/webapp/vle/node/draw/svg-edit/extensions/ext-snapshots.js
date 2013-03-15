@@ -47,7 +47,7 @@ svgEditor.addExtension("Snapshots", function(S) {
 	};
 	
 	function setupPanel(){
-		var paneltxt = '<div id="snapshotpanel"><div id="snapshot_header"><h3>影格</h3>' +
+		var paneltxt = '<div id="snapshotpanel"><div id="snapshot_header"><h3>動畫影格</h3>' +
 			'<a id="close_snapshots" title="Close">X</a></div>' +
 			'<div id="play_controls" style="display:none;"><div id="playback">' +
 			'<img id="loop" class="snap_controls" src="'+extPath+'loop.png" alt="loop" title="Play (Loop)" />' +
@@ -81,7 +81,7 @@ svgEditor.addExtension("Snapshots", function(S) {
 	
 	function addLink(){
 		var linktext = '<div id="tool_snapshot" class="extension_link">' +
-			'<a class="label tool_snapshot" title="顯示/隱藏 影格">影格 (快照)</a>' +
+			'<a class="label tool_snapshot" title="顯示/隱藏 影格">顯示(隱藏)動畫影格欄</a>' +
 			'<img class="tool_snapshot" src="'+extPath+'snapshot.png" ' + // image path edited for wise4
 			'title="顯示影格" alt="icon" />' +
 			'</div>';
@@ -103,15 +103,15 @@ svgEditor.addExtension("Snapshots", function(S) {
 			'Warning! Opening this snapshot will delete your current drawing.</div>' +
 			'<div class="ui-dialog-content-content">If you would like to save this drawing, click \'Cancel\' and create a new snapshot.' +
 			'<br /><br />Otherwise, click \'Continue\'.</div</div>' +*/
-			'<div id="deletesnap_dialog" title="Delete Frame">' + 
+			'<div id="deletesnap_dialog" title="刪除影格">' + 
 			'<div class="ui-state-error"><span class="ui-icon ui-icon-alert" style="float:left"></span>' +
-			'Warning! This operation is permanent.</div>' +
-			'<div class="ui-dialog-content-content">Are you sure you want to delete this frame for good?</div></div>' +
+			'警告！刪除就無法回復。</div>' +
+			'<div class="ui-dialog-content-content">您確定要刪除此影格？</div></div>' +
 			'<div id="overlay"></div>' + 
-			'<div id="snapnumber_dialog" title="Too Many Frames"><div class="ui-state-error">' +
+			'<div id="snapnumber_dialog" title="太多影格"><div class="ui-state-error">' +
 			'<span id="snapnum_warning" class="ui-icon ui-icon-alert" style="float:left"></span>' +
-			'Sorry! You are only allowed <span id="maxSnaps">' + svgEditor.maxSnaps + '</span> frames.</div>' +
-			'<div class="ui-dialog-content-content">If you want to create another one, please delete one of your current frames by clicking on the \'X\' in the upper right corner of the snapshot you want to delete. Thank you!' +
+			'抱歉！只能允許 <span id="maxSnaps">' + svgEditor.maxSnaps + '</span> 個影格。</div>' +
+			'<div class="ui-dialog-content-content">如果您想再新增一個，請刪除目前其中一個影格，按下影格右上角的 \'X\'，謝謝！' +
 			'</div></div>';
 		
 		$('#svg_editor').append(dialogtxt);
@@ -169,7 +169,7 @@ svgEditor.addExtension("Snapshots", function(S) {
 			autoOpen:false,
 			width:350,
 			buttons: {
-				'Yes': function() {
+				'是': function() {
 					if ($(".snap:eq(" + svgEditor.index + ")").hasClass("hover")) {
 						svgEditor.snapWarning = true;
 						svgEditor.selected = false;
@@ -195,7 +195,7 @@ svgEditor.addExtension("Snapshots", function(S) {
 						}
 			    	},1100);
 				},
-				Cancel: function() {
+				'取消': function() {
 					$(this).dialog('close');
 					/*svgEditor.snapCheck();
 					$(".snap:eq(" + svgEditor.index + ")").click(function(){snapClick(this);}, 300);*/

@@ -125,9 +125,31 @@ input {
   width: 300px;
 }
 
+textarea {
+  border: 2px #ccc solid;
+  overflow: auto;
+  vertical-align: top;
+}
 
+.diagram_rule {
+  margin-top: 1.2em;
+  border-bottom: 3px solid #aaa;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 1em;
+}
 
+.diagram_rule_name {
+  margin-bottom: 1em;
+  width: 100%;
+  display: block;
+  border-bottom: 1px solid #aaa;
+  vertical-align: bottom;
+}
 
+.diagram_rule_name .value {
+  font-size: 16px;
+}
 
 
 

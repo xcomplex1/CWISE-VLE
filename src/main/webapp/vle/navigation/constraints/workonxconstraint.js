@@ -1,4 +1,4 @@
-/**
+﻿/**
  * A WorkOnXConstraint is an object that represents a constraint specifying
  * that a node or sequence X must have completed work before visiting any other step.
  * 
@@ -17,10 +17,9 @@ function WorkOnXConstraint(opts){
 	
 	/* Set the message if provided, set default if not. The default message is dependent on the modes */
 	var xTitle = this.view.getProject().getNodeById(this.xId).getTitle();
-	var xMsg = (this.xMode=='node') ? 'the step ' + xTitle : (this.xMode=='sequenceAny') ? 'ANY step in activity ' + xTitle :
-		'ALL steps in activity ' + xTitle;
-	this.msg = (opts.msg) ? opts.msg : 'You must complete the work for ' + xMsg + ((this.status==1) ? ' before any other step will ' +
-		'be enabled.' : ' before visiting any other step.');
+	var xMsg = (this.xMode=='node') ? '步驟-' + xTitle : (this.xMode=='sequenceAny') ? '活動-' + xTitle + '的任何步驟' :
+		'活動-' + xTitle+ '的所有步驟';
+	this.msg = (opts.msg) ? opts.msg : '您必須完成這個 ' + xMsg + ((this.status==1) ? '(在任何其他步驟可以瀏覽前)' : ' (在瀏覽任何其他步驟之前)');
 	
 	this.setupPatterns();
 };
@@ -68,7 +67,11 @@ WorkOnXConstraint.prototype.isSatisfied = function(toVisitPosition){
 	var toVisitNode = this.view.getProject().getNodeByPosition(toVisitPosition);
 	this.constraintSatisfaction.toVisitId = (toVisitNode == null) ? null : toVisitNode.id;
 	
-	return this._isConstraintSatisfied(this.constraintSatisfaction);
+	// only invoke the WorkOnXConstraint when the student is on node X.
+	if (this.xId == this.view.getProject().getNodeByPosition(this.view.getCurrentPosition()).id) {
+		return this._isConstraintSatisfied(this.constraintSatisfaction);		
+	}
+	return true;
 };
 
 /**

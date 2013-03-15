@@ -1,4 +1,4 @@
-﻿/**
+/**
  * A DuplicateNode acts as a proxy for any node type.
  * 
  * @author patrick lawler
@@ -115,7 +115,7 @@ DuplicateNode.prototype.nodeJSON = function(){
 	/* create and return node object */
 	var node = {
 		type:this.type,
-		identifier:makeHtmlSafe(this.id),
+		identifier:this.id,
 		title:'',
 		ref:'',
 		previousWorkNodeIds:[],
@@ -230,7 +230,7 @@ DuplicateNode.prototype.copy = function(eventName, project){
 	this.realNode.copy(eventName, project);
 };
 
-NodeFactory.addNode('複製節點', DuplicateNode);
+NodeFactory.addNode('DuplicateNode', DuplicateNode);
 
 //used to notify scriptloader that this script has finished loading
 if(typeof eventManager != 'undefined'){

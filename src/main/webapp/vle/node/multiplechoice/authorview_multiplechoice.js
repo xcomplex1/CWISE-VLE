@@ -22,7 +22,7 @@ View.prototype.MultipleChoiceNode.generatePage = function(view){
 	//create new
 	var pageDiv = createElement(document, 'div', {id:'dynamicPage', style:'width:100%;height:100%'});
 	var answerText = document.createTextNode('答案 & 回饋：');
-	var shuffleText = document.createTextNode('下次回答前將答案選項洗牌');
+	var shuffleText = document.createTextNode('下次回答前將答案選項隨機排列');
 	var feedbackText = document.createTextNode('回饋選擇');
 	var challengeText = document.createTextNode('挑戰問題設定');
 	var branchText = document.createTextNode('Branching Setup');
@@ -90,9 +90,9 @@ View.prototype.MultipleChoiceNode.generateShuffle = function(){
 	var shuffleTrue = createElement(document, 'input', {type: 'radio', name: 'shuffleOption', value: "true", onclick: 'eventManager.fire("mcShuffleChange","true")'});
 	var shuffleFalse = createElement(document, 'input', {type: 'radio', name: 'shuffleOption', value: "false", onclick: 'eventManager.fire("mcShuffleChange","false")'});
 	var trueText = createElement(document, 'label');
-	trueText.innerHTML = '洗牌選項';
+	trueText.innerHTML = '選項隨機排列';
 	var falseText = createElement(document, 'label');
-	falseText.innerHTML = '不洗牌選項';
+	falseText.innerHTML = '選項不隨機排列';
 
 	shuffleDiv.appendChild(shuffleTrue);
 	shuffleDiv.appendChild(trueText);
@@ -418,7 +418,17 @@ View.prototype.MultipleChoiceNode.populatePrompt = function() {
  */
 View.prototype.MultipleChoiceNode.updatePrompt = function(){
 	/* update prompt and answers */
-	this.content.assessmentItem.interaction.prompt = document.getElementById('promptInput').value;
+	var content = '';
+	if(typeof tinymce != 'undefined' && $('#promptInput').tinymce()){
+		content = $('#promptInput').tinymce().getContent();
+	} else {
+		content = $('#promptInput').val();
+	}
+	// strip out any urls with the full project path (and replace with 'assets/file.jpg')
+	var assetPath = this.view.getProjectFolderPath() + 'assets/';
+	var assetPathExp = new RegExp(assetPath,"gi");
+	content.replace(assetPathExp,"assets/");
+	this.content.assessmentItem.interaction.prompt = content;
 	this.updateAnswer();
 	
 	/* fire source updated event */
@@ -462,7 +472,7 @@ View.prototype.MultipleChoiceNode.generateChallengeSetup = function(){
 	var navToSelect = createElement(document,'select', {id:'navigateToSelect', onchange:'eventManager.fire("challengeNavigateToChanged")'});
 	var nodeIds = this.view.getProject().getNodeIds();
 	var noneOption = createElement(document, 'option', {value:''});
-	noneOption.text = '-- none --';
+	noneOption.text = '-- 無 --';
 	navToSelect.appendChild(noneOption);
 	
 	/* add all of the nodes in the project */

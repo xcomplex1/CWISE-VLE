@@ -64,9 +64,9 @@ DATAGRAPH.prototype.renderData = function(both){
 	
 	/* set toggle button with correct text */
 	if(this.content.options.display.which=='2'){
-		$('#switchButt').val('顯示圖表畫面');
+		$('#switchButt').val('顯示圖表');
 	} else if(this.content.options.display.which=='3') {
-		$('#switchButt').val('圖表畫面顯示表格');
+		$('#switchButt').val('顯示資料表格');
 	}
 	
 	if(!(this.content.options.display.which == '2' || this.content.options.display.which == '3')){
@@ -110,7 +110,7 @@ DATAGRAPH.prototype.renderGraph = function(both){
 	}
 	
 	/* set toggle button with correct text */
-	$('#switchButt').val('顯示資料表格畫面');
+	$('#switchButt').val('顯示資料表格');
 	
 	/* make toggle invisible if only one mode specified */
 	if(!(this.content.options.display.which == '2' || this.content.options.display.which == '3')){

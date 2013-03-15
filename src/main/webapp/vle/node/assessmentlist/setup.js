@@ -8,7 +8,7 @@ var coreMinScripts = [
 ];
 
 var studentVLEScripts = [
-   	'vle/jquery/js/jquery-1.6.1.min.js',
+   	scriptloader.jquerySrc,
 	'vle/node/assessmentlist/assessmentlist.js',
 	'vle/node/assessmentlist/assessmentliststate.js',
 	'vle/grading/Annotation.js',
@@ -28,15 +28,18 @@ var dependencies = [
 ];
 
 var css = [
+	scriptloader.jqueryUICss,
 	"vle/node/common/css/htmlAssessment.css",
-	"vle/node/assessmentlist/assessmentlist.css",,
-	"vle/jquery/css/custom-theme/jquery-ui-1.8.7.custom.css"
+	"vle/node/assessmentlist/assessmentlist.css"
 ];
 
 var nodeClasses = [
-	{nodeClass:'instantquiz', nodeClassText:'調查 1'},
-	{nodeClass:'teacherquiz', nodeClassText:'調查 2'}
+	{nodeClass:'instantquiz', nodeClassText:'問卷/測驗 1'},
+	{nodeClass:'teacherquiz', nodeClassText:'問卷/測驗 2'}
 ];
+
+var nodeIconPath = 'node/assessmentlist/icons/';
+componentloader.addNodeIconPath('AssessmentListNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);

@@ -47,10 +47,10 @@ View.prototype.MatchSequenceNode.buildPage = function(){
 	var orderedText = document.createTextNode('選擇填答順序特性：');
 	var orderText = document.createTextNode('填答選項有特定的順序');
 	var notOrderText = document.createTextNode('填答選項沒有順序');
-	var addNewButton = createElement(document, 'input', {type: 'button', id: 'addContainerButton', onclick: 'eventManager.fire("msAddContainer")', value: '新增容器'});
+	var addNewButton = createElement(document, 'input', {type: 'button', id: 'addContainerButton', onclick: 'eventManager.fire("msAddContainer")', value: '新增類別'});
  	var createNew = createElement(document, 'input', {id: 'addChoiceButton', type: 'button', value: '新增選項', onclick: 'eventManager.fire("msAddChoice")'});
 	var removeChoice = createElement(document, 'input', {id: 'removeChoiceButton', type: 'button', value: '移除選項', onclick: 'eventManager.fire("msRemoveChoice")'});
-	var removeContainerButton = createElement(document, 'input', {type: 'button', id: 'removeContainerButton', onclick: 'eventManager.fire("msRemoveContainer")', value: '移除容器'});
+	var removeContainerButton = createElement(document, 'input', {type: 'button', id: 'removeContainerButton', onclick: 'eventManager.fire("msRemoveContainer")', value: '移除類別'});
 	var editFeedback = createElement(document, 'input', {id: 'editFeedbackButton', type: 'button', value: '編輯/新增 回饋', onclick: 'eventManager.fire("msEditFeedback")'});
 	var shuffle = createElement(document, 'input', {type: 'checkbox', id: 'shuffled', onclick: 'eventManager.fire("msShuffleChanged")'});
 	var shuffleText = document.createTextNode('選項洗牌');
@@ -247,7 +247,7 @@ View.prototype.MatchSequenceNode.generateFeedbackTable = function(){
  	var containerLabelDiv = createElement(document, 'div', {id: 'containerLabelDiv', align: 'right'});
  	var choiceLabelDiv = createElement(document, 'div', {id: 'choiceLabelDiv'});
 				 	
- 	containerLabelDiv.innerHTML = '容器：';
+ 	containerLabelDiv.innerHTML = '類別：';
  	choiceLabelDiv.innerHTML = '選項';
  	
  	headerLabel.appendChild(containerLabelDiv);
@@ -381,8 +381,8 @@ View.prototype.MatchSequenceNode.generateContainer = function(field,index){
 	var radioContainer = createElement(document, 'input', {type: 'radio', name: 'radioContainer', id: 'radioContainer_' + identifier, onfocus: 'eventManager.fire("msContainerSelected","radioContainer_' + identifier + '")', value: identifier});
 	var textContainer = createElement(document, 'input', {type: 'text', id: 'textContainer_' + identifier, onfocus: 'eventManager.fire("msContainerSelected","radioContainer_' + identifier + '")', onchange: 'eventManager.fire("msContainerTextUpdated","' + identifier + '")'});
 	var choiceDiv = createElement(document, 'div', {id: 'choiceDiv_' + identifier});
-	var titleText = document.createTextNode('標題： ');
-	var targetText = document.createTextNode('目標填答欄位 ' + index);
+	var titleText = document.createTextNode('類別名稱： ');
+	var targetText = document.createTextNode('類別 ' + index);
 	
 	textContainer.value = field.name;
 	
@@ -460,7 +460,18 @@ View.prototype.MatchSequenceNode.populatePrompt = function() {
  * in prompt textarea box
  */
 View.prototype.MatchSequenceNode.updatePrompt = function(){
-	this.content.assessmentItem.interaction.prompt = document.getElementById('promptInput').value;
+	/* update content */
+	var content = '';
+	if(typeof tinymce != 'undefined' && $('#promptInput').tinymce()){
+		content = $('#promptInput').tinymce().getContent();
+	} else {
+		content = $('#promptInput').val();
+	}
+	// strip out any urls with the full project path (and replace with 'assets/file.jpg')
+	var assetPath = this.view.getProjectFolderPath() + 'assets/';
+	var assetPathExp = new RegExp(assetPath,"gi");
+	content.replace(assetPathExp,"assets/");
+	this.content.assessmentItem.interaction.prompt = content;
 	
 	/* fire source updated event */
 	this.view.eventManager.fire('sourceUpdated');
@@ -798,7 +809,7 @@ View.prototype.MatchSequenceNode.addContainer = function(){
 View.prototype.MatchSequenceNode.removeContainer = function(){
 	var identifier = this.getSelectedContainerIdentifier();
 	if(identifier){
-		if(confirm('Removing a container also removes all associated choices, ordering, etc. This can not be undone. Are you sure you wish to continue?')){
+		if(confirm('移除類別也會一併移除相關的選項，這是不能恢復的，您確定要繼續？')){
 			var vals = this.getResponseValuesByFieldIdentifier(identifier);
 			var choices = this.getChoicesByContainerIdentifier(identifier);
 			
@@ -882,7 +893,7 @@ View.prototype.MatchSequenceNode.setIncorrectExistingChoices = function(containe
 View.prototype.MatchSequenceNode.removeChoice = function(){
 	var choice = this.getChoiceByChoiceIdentifier(this.getSelectedChoiceIdentifier());
 	if(choice){
-		if(confirm('Removing a choice also removes all associated feedback. This can not be undone. Are you sure you wish to continue?')){
+		if(confirm('移除選項也會一併移除相關的回饋，這是不能恢復的，您確定要繼續？')){
 			var vals = this.getResponseValuesByChoiceIdentifier(choice.identifier);
 
 			this.getChoices().splice(this.getChoices().indexOf(choice), 1);
@@ -897,7 +908,7 @@ View.prototype.MatchSequenceNode.removeChoice = function(){
 			this.view.eventManager.fire('sourceUpdated');
 		};
 	} else {
-		this.view.notificationManager.notify('A choice must be selected before removing it.', 3);
+		this.view.notificationManager.notify('選項移除前必須先點選', 3);
 	};
 };
 
@@ -1112,7 +1123,7 @@ View.prototype.MatchSequenceNode.generateChallengeSetup = function(){
 	var navToSelect = createElement(document,'select', {id:'navigateToSelect', onchange:'eventManager.fire("matchSequenceChallengeNavigateToChanged")'});
 	var nodeIds = this.view.getProject().getNodeIds();
 	var noneOption = createElement(document, 'option', {value:''});
-	noneOption.text = '-- none --';
+	noneOption.text = '-- 無 --';
 	navToSelect.appendChild(noneOption);
 	
 	/* add all of the nodes in the project */

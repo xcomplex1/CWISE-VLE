@@ -2091,7 +2091,7 @@ YAHOO.lang.extend(WireIt.Wire, WireIt.CanvasElement, {
       this.options.color = options.color || '#490A3D';
       this.options.bordercolor = options.bordercolor || '#000000';
       this.options.fields = options.fields || {
-       'name': '(在這裡輸入)',
+       'name': '(在此輸入)',
        'width': this.options.width,
        'color': 'color1'
       };
@@ -5994,7 +5994,7 @@ MySystemContainer.openContextFor = new YAHOO.util.CustomEvent("openContextFor");
                     gutter: '5px',
                     collapse: true,
                     collapseSize: 25,
-                    header: '物件：',
+                    header: '節點：',
                     scroll: true,
                     animate: true
                 },
@@ -6671,7 +6671,7 @@ MySystemPropEditor.prototype = {
       'default'           : 'Poperties',
       'MySystemNote'      : 'Note Info',
       'MySystemContainer' : 'Information',
-      'WireIt-Wire'       : '流動資訊'
+      'WireIt-Wire'       : '連結資訊'
     };
     var domThing = $(domName);
     if (domThing) {
@@ -6722,7 +6722,7 @@ MySystemPropEditor.prototype = {
       input.focusout(function() {
         if (self.node) {
           var options = {};
-          options[field_name] = (input.val() || '(在這裡輸入)');
+          options[field_name] = (input.val() || '(在此輸入)');
           self.node.updateFields(options);
         }
       });
@@ -6733,7 +6733,7 @@ MySystemPropEditor.prototype = {
 
   setArrows: function(arrows) {
     var pallet = $('#palette');
-    pallet.html('<h4>類型</h4>');
+    pallet.html('<h4>連結類型</h4>');
     var arrow = null;
     var counter=0;
     for (arrow in arrows) {
@@ -6766,7 +6766,7 @@ MySystemPropEditor.prototype = {
     if (this.node) {
       var options = {};
       for (var name in this.fieldLabelMap) {
-        options[name] = $('#' + name).val() || "(在這裡輸入)";
+        options[name] = $('#' + name).val() || "(在此輸入)";
       }
       options['selected_color'] = this.selected_color;
       this.node.updateFields(options);

@@ -251,6 +251,9 @@ var view;
 	<div id='tagTools'>
 		<button id='displayTagView' title='標籤' onclick='eventManager.fire("displayTagView");'><span class='tool-icon action-icon action-icon-copy action-icon-inactive'></span><span class='tool-label'>標籤</span></button>
 	</div>
+	<div id='importTools'>
+		<button id='displayImportView' title='匯入' onclick='eventManager.fire("displayImportView");'><span class='tool-icon action-icon action-icon-copy action-icon-inactive'></span><span class='tool-label'>匯入</span></button>
+	</div>
 	<div id='visibiltyNodeTools'>
 		<button id='hideNodesBtn' title='隱藏所有專題的步驟' onclick='eventManager.fire("hideNodes");'><span class='tool-icon action-icon action-icon-hide'></span><span class='tool-label'>隱藏步驟</span></button>
 		<button id='showNodesBtn' title='顯示所有專題的步驟' onclick='eventManager.fire("unhideNodes");' class='hidden'><span class='tool-icon action-icon action-icon-show'></span><span class='tool-label'>顯示步驟</span></button>
@@ -374,9 +377,19 @@ var view;
 <div class='bd'>
 	<div id='editProjectMetadataMainDiv'>
 		<table>
-		<tr><td id="col1">專題標題：</td><td class="col2"><div id='projectMetadataTitle'/>[專題標題 (不允許編輯) 顯示在此]</div></td></tr>
-		<tr><td>作者：</td><td> <div id='projectMetadataAuthor'/>[原始作者姓名 (不允許編輯) 顯示在此]</div></td></tr>
+		<tr><td id="col1">專題標題：</td><td class="col2"><input id='projectMetadataTitle' type="text"/></input></td></tr>
+		<tr><td>作者：</td><td> <div id='projectMetadataAuthor'/>[專題標題 (不允許編輯) 顯示在此]</div></td></tr>
 		<tr><td>聯絡 姓名/電子郵件：</td><td>  <input type='text' id='projectMetadataContact'/></td></tr>
+		
+		<!-- TODO: Perhaps load metadata options programmatically based on vle config? -->
+		<tr><td>主題：</td>
+			<td >
+				<select name="theme" id="projectMetadataTheme"></select>
+				<select name="navMode" id="projectMetadataNavigation"></select> 
+			</td>
+		</tr>
+		
+		<!-- TODO: Perhaps load metadata options programmatically based on vle config? -->
 		<tr><td>學科：</td>
 			<td >
 				<select name="searchSubject" id="projectMetadataSubject">
@@ -387,10 +400,11 @@ var view;
 					<option id='subjectBiology' value='Biology'>生物學</option>
 					<option id='subjectChemistry' value='Chemistry'>化學</option>
 					<option id='subjectPhysics'  value='Physics'>物理學</option>
-					<option id='subjectTelsResearch'  value='TelsResearch'>TELS研究</option>
-					<option selected id='subjectAll' disabled="disabled" value="">-- 請選擇 --</option>
+					<option id='subjectWISEResearch'  value='WISE Research'>WISE研究</option>
+					<option selected id='subjectAll' disabled="disabled" value=''>-- 請選擇 --</option>
 				</select> 
-			</td></tr>
+			</td>
+		</tr>
 			
 		<tr><td>分級程度：</td>
 			<td>
@@ -406,12 +420,12 @@ var view;
 		<tr><td>總時數 (小時)：</td>
 			<td>
 				<select name="totalTime" id="projectMetadataTotalTime">
-							<option id='total1' value='2-3 hours'>2-3 小時</option>
-							<option id='total2' value='4-5 hours'>4-5 小時</option>
-							<option id='total3' value='6-7 hours'>6-7 小時</option>
-							<option id='total4' value='8-9 hours'>8-9 小時</option>
-							<option id='total5' value='10-11 hours'>10-11 小時</option>
-							<option id='total6' value='Over 12 hours'>超過 12 小時</option>
+							<option id='total1' value='2-3'>2-3 小時</option>
+							<option id='total2' value='4-5'>4-5 小時</option>
+							<option id='total3' value='6-7'>6-7 小時</option>
+							<option id='total4' value='8-9'>8-9 小時</option>
+							<option id='total5' value='10-11'>10-11 小時</option>
+							<option id='total6' value='> 12'>超過 12 小時</option>
 							<option selected id='totalTime' disabled="disabled" value="">-- 請選擇 --</option>
 				</select>
 			</td></tr>
@@ -419,12 +433,12 @@ var view;
 		<tr><td>電腦時數 (小時)：</td>
 			<td>
 				<select name="totalTime" id="projectMetadataCompTime">
-							<option id='total1' value='2-3 hours'>2-3 小時</option>
-							<option id='total2' value='4-5 hours'>4-5 小時</option>
-							<option id='total3' value='6-7 hours'>6-7 小時</option>
-							<option id='total4' value='8-9 hours'>8-9 小時</option>
-							<option id='total5' value='10-11 hours'>10-11 小時</option>
-							<option id='total6' value='Over 12 hours'>超過 12 小時</option>
+							<option id='total1' value='2-3'>2-3 小時</option>
+							<option id='total2' value='4-5'>4-5 小時</option>
+							<option id='total3' value='6-7'>6-7 小時</option>
+							<option id='total4' value='8-9'>8-9 小時</option>
+							<option id='total5' value='10-11'>10-11 小時</option>
+							<option id='total6' value='> 12'>超過 12 小時</option>
 							<option selected id='computerTime' disabled="disabled" value="">-- 請選擇 --</option>
 				</select>
 			</td></tr>	
@@ -432,11 +446,13 @@ var view;
 		<tr><td>語言：</td>
 			<td>
 				<select name="languageType" id="projectMetadataLanguage">
-							<option id='english' value='English'>英文</option>
-							<option id='hebrew' value='Hebrew'>希伯來文</option>
-							<option id='chinese' value='Chinese'>中文</option>
-							<option id='japanese' value='Japanese'>日文</option>
-							<option id='korean' value='Korean'>韓文</option>
+							<option id='english' value='英文'>英文</option>
+							<option id='spanish' value='西班牙文'>西班牙文</option>
+							<option id='hebrew' value='希伯來文'>希伯來文</option>
+							<option id='chinese' value='中文'>中文</option>
+							<option id='japanese' value='日文'>日文</option>
+							<option id='korean' value='韓文'>韓文</option>
+							<option id='dutch' value='荷蘭文'>荷蘭文</option>
 							<option selected id='languageAll'   disabled="disabled">-- 請選擇 --</option>
 				</select>
 			</td></tr>	
@@ -454,10 +470,52 @@ var view;
 		<tr><td>專題設定：</td>
 			<td>
 				<span style="font-size:85%">(選擇應用到的)</span>&nbsp;&nbsp;
-				<input id='enableIdeaManager' name="enableIdeaManager" type="checkbox"></input><label for="enableIdeaManager">想法管理員</label>&nbsp;&nbsp;
+				<input id='enableIdeaManager' name="enableIdeaManager" type="checkbox"></input><label for="enableIdeaManager">想法管理</label>&nbsp;&nbsp;
 				<input id='enableStudentAssetUploader' name="enableStudentAssetUploader" type="checkbox"></input><label for="enableStudentAssetUploader">學生檔案上傳</label>&nbsp;&nbsp;
 
-			</td></tr>		
+			</td>
+		</tr>
+		<tr>
+			<td colspan='2'>
+				<div class='featureSettings' id='ideaManagerSettings'>
+					<form id='imSettings'>
+						<h5>Idea Manager Settings</h5>
+						<div class='setting'>
+							<div class='settingLabel'>Idea Attributes
+								<span class='details'>Specify up to three (3) additional attributes (data fields) for each idea in this project</span>
+								<img src='images/icons/teal/question.png' alt='More Information' class='tooltip' tooltip-maxW='300px' i18n-title='authoring_imsettings_attribute_help' />
+							</div>
+							<p class='warning' style='font-size:.85em;'>WARNING: If this project is currently running in a classroom, changing idea attributes WILL result in student data loss. Be careful!</p>
+							<table id='ideaAttributes'>
+								<tr>
+									<td class='attribute required'>
+										<h6>Text<span class='details'>(Required)</span><span class='action'><img src='images/icons/red/lock.png' alt='locked' class='tooltip' i18n-title='authoring_imsettings_text_required' tooltip-anchor='top' /></span></h6>
+										<p>Students type the text of their idea into a textbox.</p>
+										<p>A maximum of 150 characters is allowed per idea.</p>
+									</td>
+									<td class='attribute empty'></td>
+									<td class='attribute empty'></td>
+									<td class='attribute empty'></td>
+								</tr>
+							</table>
+						</div>
+						<div class='setting'>
+							<div class='settingLabel'>Labels & Terminology
+								<span class='details'>Optional: Customize the names of Idea Manager components for this project</span>
+								<img src='images/icons/teal/question.png' alt='More Information' class='tooltip' tooltip-maxW='300px' i18n-title='authoring_imsettings_terminology_help' />
+							</div>
+							<ul class='inline'>
+								<li>Term for "idea": <input type='text' id='imIdeaTerm' name='imIdeaTerm' class='required' minlength='2' maxlength='20' /></li>
+								<li>Term for "idea" (plural): <input type='text' id='imIdeaTermPlural' name='imIdeaTermPlural' class='required' minlength='2' maxlength='20' /></li>
+								<li>Term for "Idea Basket": <input type='text' id='imBasketTerm' name='imBasketTerm' class='required' minlength='2' maxlength='30' /></li>
+								<li>Term for "Explanation Builder": <input type='text' id='imEBTerm' name='imEBTerm' class='required' minlength='2' maxlength='30' /></li>
+								<li>Text for "Add Idea" buttons: <input type='text' id='imAddIdeaTerm' name='imAddIdeaTerm' class='required' minlength='2' maxlength='20' /></li>
+							</ul>
+						</div>
+					</form>
+				</div>
+			</td>
+		</tr>
 		<tr><td colspan="2">課程規劃：</td></tr>
 		<tr><td colspan="2"><textarea class="size4" id='projectMetadataLessonPlan'></textarea></td></tr>
 		<tr><td colspan="2">課程目標與標準：</td></tr>
@@ -560,7 +618,7 @@ var view;
 	起始句： <textarea id='starterSentenceAuthoringInput' cols='60' rows='4' wrap='soft' onchange='eventManager.fire("stepStarterSentenceAuthoringSentenceChanged")'></textarea>
 </div>
 
-<div id='promptDiv' style='display:none;'>
+<div id='promptDiv' class='authoringComponent' style='display:none;'>
 	<textarea id='promptInput' name='promptInput' cols='85' wrap='hard' onkeyup="eventManager.fire('stepPromptChanged')"></textarea>
 </div>
 
@@ -575,6 +633,21 @@ var view;
 		<input type='button' value='新增連結' onclick='eventManager.fire("createLink")'></input>
 	</div>
 </div>
+</div>
+
+<div id='cRaterDiv' style='display:none;'>
+	Enable CRater <input id='enableCRaterCheckbox' name='enableCRaterCheckbox' type='checkbox' onclick='eventManager.fire("enableCRater")' />
+	<div id='cRaterSettingsDiv' style='display:none;'>
+		CRater Item Id: <input id='cRaterItemIdInput' name='cRaterItemIdInput' type='text' size=15 onkeyup='eventManager.fire("cRaterItemIdChanged")' /> <input id='cRaterVerifyButton' type='button' value='Verify' onclick="eventManager.fire('cRaterVerify')"/> <div id='cRaterItemIdStatus' style='display:inline'></div>
+		<br>
+		Display CRater Score to Student <input id='cRaterDisplayScoreToStudent' name='cRaterDisplayScoreToStudent' type='checkbox' onclick='eventManager.fire("cRaterDisplayScoreToStudentChanged")' />
+		<br>
+		Display CRater Feedback to Student <input id='cRaterDisplayFeedbackToStudent' name='cRaterDisplayFeedbackToStudent' type='checkbox' onclick='eventManager.fire("cRaterDisplayFeedbackToStudentChanged")' />
+		<br>
+		CRater Max Check Answers <input id='cRaterMaxCheckAnswers' name='cRaterMaxCheckAnswers' type='text' size=5 onkeyup='eventManager.fire("cRaterMaxCheckAnswersChanged")' />
+		<br>
+		<div id='cRaterFeedback'></div>
+	</div>
 </div>
 
 <div id='cleanProjectDialog' style='display:none;'>
@@ -632,6 +705,10 @@ var view;
 	<div id='projectTagView'></div>
 </div>
 
+<div id='importViewDialog' style="display: none;">
+	<div id='importView'></div>
+</div>
+
 <div id="reviewUpdateProjectDiv" style='display:none;'>
 </div>
 
@@ -646,7 +723,7 @@ browsers that don't support iframes goes here.] </iframe>
 
 <div id='coverDiv'>
 	<!--<div id='coverPlace' style='height:40%;'></div>0-->
-	<div id='coverTextDiv'>WISE 4 編輯工具下載中</div>
+	<div id='coverTextDiv'>編輯工具下載中...</div>
 	<!--<div id='coverTextUpdateDiv'></div>
 	<br/>
 	<div id='coverImgDiv'>

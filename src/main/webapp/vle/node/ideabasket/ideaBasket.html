@@ -91,7 +91,7 @@
 			 you may delete all of these divs and create the body however you like -->
 		<div id='promptDiv' style="font-size:15px"></div>
 			
-		<h3 align="center">這個專案的想法</h3>
+		<header><h3 id='basketTitle'>這個專案的想法</h3></header>
 		  
 		<div id="main" role="main">
 			<button id="addNew" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false">
@@ -149,15 +149,15 @@
 						<label for="source">來源*： </label>
 						<select id="source" name="source" class="required" style='height:24px;'>
 						  <option value="empty">選一個：</option>
-						  <option value="Evidence Step">證據步驟</option>
-						  <option value="Visualization or Model">視覺化或模型</option>
-						  <option value="Movie/Video">電影/電視</option>
-						  <option value="Everyday Observation">每日的觀察</option>
-						  <option value="School or Teacher">學校或老師</option>
-						  <option value="Other">其他</option>
+						  <option value="證據頁面">證據頁面</option>
+						  <option value="科學動畫或模型">科學動畫或模型</option>
+						  <option value="電影/電視">電影/電視</option>
+						  <option value="日常生活">日常生活</option>
+						  <option value="學校或老師">學校或老師</option>
+						  <option value="其他">其他</option>
 						</select>
 					</p>
-					<p id='otherSource'><label for="other">請詳細說明*： </label><input id='other' name='other' size='25' minlength='2' maxlength='25'></textarea></p>
+					<p id='otherSource'><label for="other">請詳細說明*： </label><input type='text' id='other' name='other' size='25' minlength='2' maxlength='25'></input></p>
 					
 					<p><label for="tags">關鍵字： </label><input id='tags' name='tags' size='20' maxlength='20'></input></p>
 					<p>
@@ -179,15 +179,15 @@
 					<p style='height:24px; line-height:24px;'>
 						<label for="editSource">來源 (選一個)*： </label>
 						<select id="editSource" name="editSource" class="required" style='height:24px;'>
-							<option value="Evidence Step">證據步驟</option>
-						  <option value="Visualization or Model">視覺化或模型</option>
-						  <option value="Movie/Video">電影/電視</option>
-						  <option value="Everyday Observation">每日的觀察</option>
-						  <option value="School or Teacher">學校或老師</option>
-						  <option value="Other">其他</option>
+							<option value="證據頁面">證據頁面</option>
+						  <option value="科學動畫或模型">科學動畫或模型</option>
+						  <option value="電影/電視">電影/電視</option>
+						  <option value="日常生活">日常生活</option>
+						  <option value="學校或老師">學校或老師</option>
+						  <option value="其他">其他</option>
 						</select>
 					</p>
-					<p id='editOtherSource'><label for="editOther">請詳細說明*： </label><input id='editOther' name='editOther' size='25' minlength='2' maxlength='25'></textarea></p>
+					<p id='editOtherSource'><label for="editOther">請詳細說明*： </label><input type='text' id='editOther' name='editOther' size='25' minlength='2' maxlength='25'></input></p>
 					
 					<p><label for="editTags">關鍵字： </label><input id='editTags' name='editTags' size='20' maxlength='20'></input></p>
 					<p>

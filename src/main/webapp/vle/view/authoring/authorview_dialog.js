@@ -61,7 +61,7 @@ View.prototype.initializeCreateProjectDialog = function(){
 		$('#projectInput').val('');
 	};
 	
-	$('#createProjectDialog').dialog({autoOpen:false, modal:true, draggable:false, title:'新增專案', width:650, buttons: {'送出':submit, '取消': function(){$(this).dialog("close");}}});
+	$('#createProjectDialog').dialog({autoOpen:false, modal:true, draggable:false, title:'新增專題', width:650, buttons: {'送出':submit, '取消': function(){$(this).dialog("close");}}});
 };
 
 /**
@@ -319,7 +319,7 @@ View.prototype.populateCreateNodeChoices = function() {
 		var nodeName = authoringToolNamesToNodeNames[authoringToolName];
 		
 		//create the option html
-		var optionHtml = "<option value='" + nodeName + "'>" + authoringToolName + "</option>";
+		var optionHtml = "<option value='" + nodeName + "' name='selectStepTypeOption'>" + authoringToolName + "</option>";
 		
 		//add the option to the select drop down box
 		$('#createNodeType').append(optionHtml);
@@ -354,6 +354,8 @@ View.prototype.initializeEditProjectFileDialog = function(){
 		}
 		
 		var filename = view.getProject().getProjectFilename();
+		
+		text = encodeURIComponent(text);
 		
 		view.connectionManager.request('POST',1,view.requestUrl,{forward:'filemanager',projectId:view.portalProjectId,command:'updateFile',fileName:filename,data:text},success,view,failure);
 	};
@@ -396,7 +398,7 @@ View.prototype.initializeAssetUploaderDialog = function(){
 				frame.addEventListener('load',view.assetUploaded,false);
 				
 				/* change the name attribute to reflect that of the file selected by user */
-				document.getElementById('uploadAssetFile').setAttribute("name", filename);
+				document.getElementById('uploadAssetFile').setAttribute("name", filename).setAttribute("size","40");
 				
 				/* remove file input from the dialog and append it to the frame before submitting, we'll put it back later */
 				var fileInput = document.getElementById('uploadAssetFile');
@@ -472,7 +474,7 @@ View.prototype.initializeCopyProjectDialog = function (){
 		$('#copyProjectDialog').dialog('close');
 	};
 	
-	$('#copyProjectDialog').dialog({autoOpen:false, modal: true, draggable:false, title:'複製專案', width:500, buttons: {'取消': cancel, '複製': submit}});
+	$('#copyProjectDialog').dialog({autoOpen:false, modal: true, draggable:false, title:'複製專題', width:500, buttons: {'取消': cancel, '複製': submit}});
 };
 
 /**
@@ -481,31 +483,94 @@ View.prototype.initializeCopyProjectDialog = function (){
 View.prototype.initializeEditProjectMetadataDialog = function(){
 	var view = this;
 	
+	// setup idea manager toggle change action
+	$('#enableIdeaManager').click(function() {
+		if(this.checked){
+			$("#ideaManagerSettings").slideDown();
+		} else {
+			$("#ideaManagerSettings").slideUp();
+		}
+	});
+	
 	var updateProjectMetadata = function(){
+		var imVersion = $('#enableIdeaManager').attr('version');
+		
 		view.projectMeta.title = $('#projectMetadataTitle').val();
 		view.projectMeta.author = $('#projectMetadataAuthor').val();
+		view.projectMeta.theme = $('#projectMetadataTheme').val();
+		view.projectMeta.navMode = $('#projectMetadataNavigation').val();
 		view.projectMeta.subject = $('#projectMetadataSubject').val();
 		view.projectMeta.summary = $('#projectMetadataSummary').val();
-		view.projectMeta.gradeRange = view.utils.getSelectedValueById('projectMetadataGradeRange');
-		view.projectMeta.totalTime = view.utils.getSelectedValueById('projectMetadataTotalTime');
-		view.projectMeta.compTime = view.utils.getSelectedValueById('projectMetadataCompTime');
+		view.projectMeta.gradeRange = $('#projectMetadataGradeRange').val();
+		view.projectMeta.totalTime = $('#projectMetadataTotalTime').val();
+		view.projectMeta.compTime = $('#projectMetadataCompTime').val();
 		view.projectMeta.contact = $('#projectMetadataContact').val();
-		view.projectMeta.techReqs = {};		
-		view.projectMeta.techReqs.java = $("#java").attr("checked");
-		view.projectMeta.techReqs.flash = $("#flash").attr("checked");
-		view.projectMeta.techReqs.quickTime = $("#quickTime").attr("checked");
+		view.projectMeta.techReqs = {};
+		view.projectMeta.techReqs.java = $("#java").is(':checked');
+		view.projectMeta.techReqs.flash = $("#flash").is(':checked');
+		view.projectMeta.techReqs.quickTime = $("#quickTime").is(':checked');
 		view.projectMeta.techReqs.techDetails = $('#projectMetadataTechDetails').val();
 		view.projectMeta.tools = {};
-		view.projectMeta.tools.isIdeaManagerEnabled = $("#enableIdeaManager").attr("checked");
-		view.projectMeta.tools.isStudentAssetUploaderEnabled = $("#enableStudentAssetUploader").attr("checked");
+		view.projectMeta.tools.isIdeaManagerEnabled = $("#enableIdeaManager").is(':checked');
+		view.projectMeta.tools.isStudentAssetUploaderEnabled = $("#enableStudentAssetUploader").is(':checked');
 		view.projectMeta.lessonPlan = $('#projectMetadataLessonPlan').val();
 		view.projectMeta.standards = $('#projectMetadataStandards').val();
 		view.projectMeta.keywords = $('#projectMetadataKeywords').val();
 		view.projectMeta.language = $('#projectMetadataLanguage').val();
 		
-		view.updateProjectMetaOnServer(true);
+		if(parseInt(imVersion) > 1){
+			if(typeof $('#enableIdeaManager').attr('version') == 'string' ){
+				$.extend(jQuery.validator.messages, {
+				  required: ' *This item is required.'
+				});
+				if($('#imSettings').validate().form()){
+					view.projectMeta.tools.ideaManagerSettings = {};
+					view.projectMeta.tools.ideaManagerSettings.version = imVersion;
+					view.projectMeta.tools.ideaManagerSettings.ideaTerm = $('#imIdeaTerm').val();
+					view.projectMeta.tools.ideaManagerSettings.ideaTermPlural = $('#imIdeaTermPlural').val();
+					view.projectMeta.tools.ideaManagerSettings.basketTerm = $('#imBasketTerm').val();
+					view.projectMeta.tools.ideaManagerSettings.ebTerm = $('#imEBTerm').val();
+					view.projectMeta.tools.ideaManagerSettings.addIdeaTerm = $('#imAddIdeaTerm').val();
+					view.projectMeta.tools.ideaManagerSettings.ideaAttributes = [];
+					// loop through each of the active attributes and add to metadata
+					$('#ideaManagerSettings .attribute.active').each(function(){
+						var attribute = {};
+						var id = $(this).attr('id').replace('attribute_','');
+						var type = $(this).attr('type');
+						attribute.type = type;
+						attribute.id = id;
+						attribute.name = $('#fieldName_' + id).val();
+						attribute.isRequired = $('#required_' + id).is(':checked');
+						if($('#custom_' + id).length > 0){
+							attribute.allowCustom = $('#custom_' + id).is(':checked');
+						}
+						var options = [];
+						if(type=='icon'){
+							$('input.option',$('#options_' + id)).each(function(){
+								if($(this).is(':checked')){
+									options.push($(this).val());
+								}
+							});
+						} else {
+							$('input.option',$('#options_' + id)).each(function(){
+								var val = $(this).val();
+								if(view.utils.isNonWSString(val)){
+									options.push(val);
+								}
+							});
+						}
+						attribute.options = options;
+						view.projectMeta.tools.ideaManagerSettings.ideaAttributes.push(attribute);
+					});
+					view.updateProjectMetaOnServer(true);
+					$('#editProjectMetadataDialog').dialog('close');
+				}
+			}
+		} else {
+			view.updateProjectMetaOnServer(true);
+			$('#editProjectMetadataDialog').dialog('close');
+		}
 	};
-	
 
 	var undoProjectMetadata = function(){
 		view.editProjectMetadata();
@@ -611,7 +676,7 @@ View.prototype.initializeConstraintAuthoringDialog = function(){
  * Initializes the open project dialog.
  */
 View.prototype.initializeOpenProjectDialog = function(){
-	$('#openProjectDialog').dialog({autoOpen:false, draggable:false, width:650, modal:true, title:'開啟專案', buttons: {'開啟': function(){eventManager.fire('projectSelected');}, '取消': function(){$(this).dialog("close");}}});
+	$('#openProjectDialog').dialog({autoOpen:false, draggable:false, width:650, modal:true, title:'開啟專題', buttons: {'開啟': function(){eventManager.fire('projectSelected');}, '取消': function(){$(this).dialog("close");}}});
 };
 
 /**
@@ -722,7 +787,15 @@ View.prototype.initializeStepTypeDescriptionsDialog = function() {
  */
 View.prototype.initializeTagViewDialog = function() {
 	//create the dialog element so we can use it later
-	$('#tagViewDialog').dialog({autoOpen:false, draggable:true, resizable:true, width:800, height:600, title:'標籤', buttons: {'關閉': function(){$(this).dialog("close");}}});
+	$('#tagViewDialog').dialog({autoOpen:false, draggable:true, resizable:true, width:800, height:600, title:'標籤', buttons: {'Close': function(){$(this).dialog("close");}}});
+};
+
+/**
+ * Create the import view dialog popup
+ */
+View.prototype.initializeImportViewDialog = function() {
+	//create the dialog element so we can use it later
+	$('#importViewDialog').dialog({autoOpen:false, draggable:true, resizable:true, width:800, height:600, title:'匯入', buttons: {'Close': function(){$(this).dialog("close");}}});
 };
 
 //used to notify scriptloader that this script has finished loading

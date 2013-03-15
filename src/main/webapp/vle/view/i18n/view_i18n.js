@@ -18,6 +18,37 @@ View.prototype.getI18NString = function(key) {
 };
 
 /**
+ * Finds any DOM elements with i18n and i18n-title attributes and inserts
+ * translation text as the inner html and/or title for each element.
+ * @param onComplete Callback function to run when i18n insertion is complete.
+ */
+View.prototype.insertTranslations = function(onComplete){
+	var view = this;
+	// process and insert i18n text
+	var count = $('[i18n], [i18n-title]').length;
+	$('[i18n], [i18n-title]').each(function(){
+		// get i18n and i18n-title attributes from elements
+		var i18n = $(this).attr('i18n'), i18nTitle = $(this).attr('i18n-title');
+		
+		// insert i18n translations
+		if (typeof i18n !== 'undefined' && i18n !== false) {
+			$(this).html(view.getI18NString(i18n));
+		}
+		if (typeof i18nTitle !== 'undefined' && i18nTitle !== false) {
+			$(this).attr('title',view.getI18NString(i18nTitle));
+		}
+		// remove i18n attributes from DOM element
+		$(this).removeAttr('18n').removeAttr('i18n-title');
+		// when all i18n text has been inserted, run the callback function
+		if(--count == 0){
+			if(typeof onComplete === 'function'){
+				onComplete();
+			}
+		}
+	});
+};
+
+/**
  * Injects provided params into the translated string
  * key is the key used to lookup the value in i18n_XX.js file
  * params is an array of values to replace in the translated string.
@@ -36,7 +67,7 @@ View.prototype.i18n.defaultLocale = "en_US";
 
 //"ja","zh_TW",
 View.prototype.i18n.supportedLocales = [
-                                        "en_US","ja","zh_TW"
+                                        "en_US","ja","zh_TW","nl_NL"
                                         ];
 
 /**
@@ -52,8 +83,10 @@ View.prototype.i18n.getString = function(key,locale) {
 	}
 	if (this[locale][key] !== undefined) {
 		return this[locale][key].value;
-	} else {
+	} else if (this[View.prototype.i18n.defaultLocale][key] !== undefined) {
 		return this[View.prototype.i18n.defaultLocale][key].value;		
+	} else {
+		return "N/A";
 	}
 };
 

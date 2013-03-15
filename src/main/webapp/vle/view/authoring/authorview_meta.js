@@ -44,7 +44,7 @@ View.prototype.projectMetaSuccess = function(text,xml,o){
  */
 View.prototype.projectMetaFailure = function(c,o){
 	o.hasProjectMeta = false;
-	o.projectMeta = {title: '', subject: '', summary: '', author: '', gradeRange: '', totalTime: '', compTime: '', contact: '', techReqs: '', tools: '', lessonPlan: '', standards: '', keywords:'', language:''};
+	o.projectMeta = {title: '', subject: '', theme:'', navMode:'', summary: '', author: '', gradeRange: '', totalTime: '', compTime: '', contact: '', techReqs: '', tools: '', lessonPlan: '', standards: '', keywords:'', language:''};
 };
 
 /**
@@ -56,7 +56,7 @@ View.prototype.updateProjectMetaOnServer = function(publish, silent){
 		$('#editProjectMetadataDialog').dialog('close');
 		
 		if(!silent){
-			o.notificationManager.notify('專題後設資料已儲存到專題目錄', 3);
+			o.notificationManager.notify('專題後設資料已儲存', 3);
 		}
 		
 		if(publish){
@@ -79,7 +79,8 @@ View.prototype.updateProjectMetaOnServer = function(publish, silent){
 		this.projectMeta.maxScores = $.stringify(this.maxScores.maxScoresArray);
 		
 		//create a JSON string from the metadata and then escape the JSON string
-		var metadataString = escape($.stringify(this.projectMeta));
+		//var metadataString = escape($.stringify(this.projectMeta));
+		var metadataString = $.stringify(this.projectMeta,null,3);
 		
 		var postMetadataParams = {
 			"projectId":this.portalProjectId,
@@ -131,12 +132,12 @@ View.prototype.maxScoreUpdated = function(id){
 			//save the max score to the server and to our local variable
 			this.saveMaxScore(projectId, id);
 		} else {
-			this.notificationManager.notify('The max score value is either not a number, is less than 0, or could not be determined, aborting update.', 3);
+			this.notificationManager.notify('The max score value is either not a number, is less than 0, or could not be determined.  Please try again.', 3);
 			this.populateMaxScores();
 			return;
 		};
 	} else {
-		this.notificationManager.notify('Could not find max score element for node, aborting update.', 3);
+		this.notificationManager.notify('Could not find max score element for step. Please try again.', 3);
 	};
 };
 

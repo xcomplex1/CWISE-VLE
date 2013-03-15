@@ -1,0 +1,664 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="chrome=1" /> 
+<script type='text/javascript' src='events/eventmanager.js'></script>
+<script type="text/javascript" src="util/scriptloader.js"></script>
+<script type='text/javascript' src='author/pac.js'></script>
+
+<link rel="shortcut icon" href="images/favicon.ico"></link>
+<link rel='stylesheet' media='screen' type='text/css' href="author/css/pac.css"></link>
+<script type='text/javascript'>
+/*
+ * Loads scripts when body is loaded 
+ */
+function loaded(){
+	//initializeLoading();
+	scriptloader.bootstrap(this, bootstrapListener);
+};
+
+/*
+ * Starts the preview of the project once the vle is loaded
+ */
+function startWithParams(em){
+	eventManager.fire('startPreview',em);
+};
+
+/*
+ * Listener that is run when the bootstrap loading is complete.
+ * Loads and starts the authoring view.
+ */
+function bootstrapListener(type,args,obj){
+	if(args[0]=='bootstrap'){
+		createEnvironment('env', eventManager);
+		env.startView('authoring');
+	}
+};
+
+/**
+ * Check if the text area is over the max length, if so, display an alert
+ * and reduce the text value in the text area to the max length
+ * @param textAreaName the name of the text area from the user's perspective
+ * @param textAreaId the dom id of the text area
+ * @param maxLength the max length for that text area
+ */
+function checkTextAreaLength(textAreaName, textAreaId, maxLength) {
+    //get the text area
+	var textArea = document.getElementById(textAreaId);
+
+    //get the text in the text area
+	var textAreaValue = textArea.value;
+
+    //check if the length of the text is over the limit
+	if(textAreaValue.length > maxLength) {
+		//the length is over the limit
+		
+		//display an alert message
+		alert(textAreaName + " is limited to " + maxLength + " characters\n\nCharacters will be deleted from the end");
+
+		/*
+		 * crop the text in the text area by removing characters at the end
+		 * of the text area
+		 */
+		textArea.value = textAreaValue.substring(0, maxLength);
+	}
+}
+
+var view;
+
+</script>
+</head>
+
+<body id="w4_author" onload='loaded();' onScroll='eventManager.fire("authorWindowScrolled");'>
+	
+<div id="centeredDiv" style="display:none;">
+
+<div id="authorHeader">
+	<div id="authorToolHeader"><div>WISE 4&nbsp;<img src="images/favicon_panda.ico" alt="WISE Panda" border="0" /><span class="betaTag">Beta 2.2</span></div>
+		<div>編修工具</div>
+		<div><span id="authorToolLinks"><a href="./author/authorToolInstructions.html" title="Author Tool Instructions" target="_blank">教學指引</a>
+		<!--<a href="./author/authorToolKeyboardShortcuts.html" title="Author Tool Keyboard Shortcuts" target="_blank">Keyboard
+		Shortcuts</a>--></span></div>
+	</div>  
+	
+	 
+	
+	<div id="authorButtons">
+		<div>
+			<button onclick="top.location.href='/webapp/teacher/index.html';" id="gotoDashboard" title='離開前往教師頁面'><img src="images/go-home.png" alt="goto Teacher Dashboard icon" /><br />
+				回首頁</button>
+			<button onclick="eventManager.fire('openProject');" id="openProjectButton" title='開啟現有的專題編輯'><img src="images/openProject.png" alt="open project icon" /><br />
+				開啟<br>專題</button>
+			<button onclick="eventManager.fire('createNewProject')" id="createProjectButton" title='新增一個專題'><img src="images/createProject.png" alt="create project icon" /><br />
+				新增<br>專題</button>
+			<button onclick='eventManager.fire("copyProject")' id='copyProjectButton' title='複製現有的專題以進一步編輯'><img src="images/copyProject.png" alt="create project icon" /><br />
+				複製<br>專題</button>
+		</div>
+		<div id="projectButtons">
+			<button disabled="true" onclick="eventManager.fire('saveProject');" id="saveProjectButton" title='儲存專題'><img src="images/saveProject.png" alt="save project icon" /><br />
+				儲存<br>專題</button>
+			<button disabled="true" onclick="eventManager.fire('viewAssets')" title='新增/編輯專題所屬檔案'><img src="images/uploadArt.png" alt="Manage Art/Files" /><br />
+				管理上傳檔案</button>
+			<button disabled="true" onclick='eventManager.fire("editProjectMetadata")' id='editprojectmetaLI' title='編輯課程規劃 & 專題說明'><img src="images/editProjectFile.png"
+				alt="edit project file icon" /><br/>編輯<br>資訊</button>
+			<button disabled="true" onclick='eventManager.fire("previewProject");' id="previewProjectButton" title='預覽目前的專題'><img src="images/previewproject.png"
+				alt="preview project icon" /><br />預覽<br>專題</button>
+		</div>
+		<!--<li><a onclick="eventManager.fire('createNewSequence');" id="createActivityButton"><img src="images/addSequence.png"
+			alt="Add Activity icon" /><br />Add Activity</a></li>
+		<li><a onclick="eventManager.fire('createNewNode');" id="createNodeButton"><img src="images/addNode.png" alt="Add Step icon" /><br />
+			Add<br />Step</a>
+		<li><img src="images/separatorIcon2.png" alt="tool separator icon" /></li>
+		<li><a onclick='eventManager.fire("moveSelected");' id='moveButton'><img src="images/move.png" alt="Move Selected Item" />
+			Move Selected</a></li>
+		<li><a onclick="eventManager.fire('deleteSelected');" id="deleteNodeButton"><img src="images/trash.png"
+			alt="delete selected icon" /><br />Delete Selected</a></li>
+		<li><a onclick="eventManager.fire('duplicateSelected');" id="duplicateodeButton"><img src="images/duplicateNode.png"
+			alt="duplicate selected icon" /><br />Duplicate Selected</a></li>-->
+		<!-- batch audio creation disabled for now <input type="button" value="Update Audio Files" onclick="updateAudioFiles()" id="updateAudioFilesButton"/>  -->
+	</div>
+
+	 <div id="toolsAreaAuthor">
+	    <dl class="dropdownAuthor">
+	        <dt id="one-ddheader" onmouseover="ddMenu('one',1);" onmouseout="ddMenu('one',-1);">
+	            <span id="menuTitle">
+	                特殊功能
+	            </span>
+	            <img src="images/go-down.png" alt="Menu Arrow" width="15" height="14" border="0" />
+	        </dt>
+	        <dd id="one-ddcontent" onmouseover="cancelHide('one');" onmouseout="ddMenu('one',-1);" onmouseup="ddMenu('one',-1);">
+	            <ul>
+	     
+	                <li style="text-decoration:line-through;"><a onclick="" id="importNodeButton">
+	                <img src="images/importNode.png" alt="匯入步驟"  />匯入活動或步驟<br/>(從專題庫、客製化或分享的專題)</a></li>
+	
+	                <!--
+	         	    <li style="text-decoration:line-through;"><a onclick="" class="underline"><img src="images/shareProject.png"
+					alt="share project icon"  />Share Project</a></li>	
+					-->
+			
+				<!--<td><a onclick="eventManager.fire('createNewProject')" id="createProjectButton"><img src="images/createProject.png" alt="create project icon" />
+				Create Project</a></td>-->
+	
+				<!--<td><a onclick='eventManager.fire("copyProject")' id='copyProjectButton'><img src="images/copyProject.png" alt="create project icon" />
+				Copy Project</a></td>-->
+				
+				<!--<li id='editProjectTagsMenu' style='display:none;'><a onclick='eventManager.fire("editProjectTags")'>Add/Edit project tags</a></li>-->
+	
+				<!--<li><a onclick="eventManager.fire('uploadAsset')"><img src="images/uploadArt.png" alt="Upload Art/Files" />
+				Upload Art/Files</a></li>-->
+			
+				<!--<li><a onclick="eventManager.fire('viewAssets')"><img src="images/manageArt.png" alt="Manage Art/Files" />
+				Manage Art/Files</a></li>-->
+			
+				<!--<li><a onclick='eventManager.fire("useSelected")' id='useButton'>
+					<img src="images/link_copy2.png" alt="Mirror Copy Selected Item(s)" />Mirror Selected Step<br/>(make data-clone of selected step)</a></li>-->
+	
+				<li><a onclick="eventManager.fire('startCreateReviewSequence', 'Peer')"><img src="images/manageArt.png" alt="建立同儕評論序列" />
+				建立同儕評論序列</a></li>
+				
+				<li><a onclick="eventManager.fire('startCreateReviewSequence', 'Teacher')"><img src="images/manageArt.png" alt="建立教師評論序列" />
+				建立教師評論序列</a></li>
+				
+			<div id="listTitle">進階使用者</div>
+			<li><a onclick="eventManager.fire('cleanProject')"><img src="images/edit-clear.png" alt="清除專題" />清除專題</a></li>
+			
+			 <li><a onclick="eventManager.fire('editProjectFile')"><img src="images/document-properties.png"
+			alt="編輯專題資料檔案" />編輯專題資料檔案</a></li>
+			
+			<li><a onclick="eventManager.fire('authorConstraints')"><img src="images/constraint.png" alt="編輯限制"/>編輯學生探索限制</a></li>
+			
+			<li><a onclick="eventManager.fire('updateAudio')" ><img src="images/textToSpeech.png"
+			alt="產生語音文字"  />語音文字</a></li>
+			
+			<li><a class='last' onclick="eventManager.fire('reviewUpdateProject')" ><img src="images/constraint.png"
+			alt="更新專題"  />更新專題</a></li>
+			
+			<!-- 
+			        <li><a onclick="eventManager.fire('importProject')" id="importProjectButton"><img
+			src="images/importProject.png" alt="import project icon"  />Restore Project</a></li>
+			 -->
+				    <!-- 	<li><a onclick="eventManager.fire('retrieveArchive')" id="retrieveArchiveButton">Retrieve Archived Project</a></li>  -->
+			
+			        <!--  <li><a onclick='eventManager.fire("createTODOTask")' id='createTODOTaskLI'>Create TODO Task</a></li>  -->
+			        
+			        <!--  <li><a onclick='eventManager.fire("editTODOTasks")' id='editTODOTasksLI'>Edit TODO Tasks</a></li>  -->
+			        
+	            </ul>
+	        </dd>
+	    </dl>
+	</div>
+                
+</div>   <!--end of div  authorHeader-->
+
+<div id="currentProjectContainer">
+<div id="currentProjectContent">
+	<div id='projectTitle'>專題標題： 
+		<input type="text" id='projectTitleInput' title='編輯專題標題' size='40' onchange='eventManager.fire("projectTitleChanged")'/>
+		<a id='editProjectTitle' onclick='$("#projectTitleInput").focus();' title='編輯專題標題'>編輯</a>
+		<div id='projectID'>ID:&nbsp;<span id='projectIdDisplay'></span></div>
+		<div id='projectModeDiv'><span>簡易模式</span><a id='toggleMode' onclick='eventManager.fire("toggleProjectMode")' title='轉換專題模式 (簡易或進階)'>轉換</a></div>
+	</div>
+	<div id="authorOptions">
+		<div class='authorOption'>步驟編號方式： 
+			<select id='numberStepSelect' onchange='eventManager.fire("stepNumberChanged")'>
+				<option value='0'>專題</option>
+				<option value='1'>活動</option>
+			</select>
+			<!--<input align="middle" type='checkbox' name='autoStepCheck' id='autoStepCheck1' onclick='eventManager.fire("autoStepChanged")'/>
+			<span class="spacer">Number steps per Project</span>-->
+		</div>
+		<!--<div class='authorOption'>
+			<input align="middle" type='checkbox' name='stepLevelNumbering' id='stepLevel' onclick='eventManager.fire("stepLevelChanged")'/>
+			<span class="spacer">Number steps per Activity</span>
+		</div>-->
+		<div class="authorOption">
+			步驟術語：
+			<input type='text' name='stepTerm' title='編輯步驟項目' id='stepTerm' onchange='eventManager.fire("stepTermChanged")' size='8'/>
+			<a id='editStepTerm' onclick='$("#stepTerm").focus();' title='編輯步驟項目'>編輯</a>
+		</div>
+		<div class='authorOption' id="postLevelOption">記錄等級：
+			<select id='postLevelSelect' onchange='eventManager.fire("postLevelChanged")'>
+				<option value='5'>高 (所有步驟)</option>
+				<option value='1'>低 (只有學生實作步驟)</option>
+			</select>
+		</div>
+	</div>
+	<div id='notificationDiv'></div>
+		<!-- this modal div appears to display instructional messages to the user while MOVING item(s) -->
+	<div id='selectModeDiv' style="display:none;">
+		<div id='selectModeSpan'><span id='selectModeMessage'></span><a onclick='eventManager.fire("disengageSelectMode","-1")'>取消</a></div>
+	</div>
+	<div id="concurrentAuthorDiv"></div>
+</div>
+</div>
+
+<div id='projectTools'>
+	<div id='selectNodeTools'>
+		<button class='first' title='選擇全部步驟 & 活動' onclick='eventManager.fire("selectAll");'><span class='tool-icon-left action-icon action-icon-select'></span><span class='tool-label'>選擇全部</span></button>
+		<button class='last' title='取消選擇全部步驟 & 活動' onclick='eventManager.fire("clearAll");'><span class='tool-icon-left action-icon action-icon-deselect'></span><span class='tool-label'>取消選擇</span></button>
+	</div>
+	<div id='createNodeTools'>
+		<button id='newSequence' class='first' title='新增這個專題的活動' onclick='eventManager.fire("createNewSequence");'><span class='tool-icon action-icon action-icon-new2'></span><span class='tool-label'>新增活動</span></button>
+		<button id='newNode' class='last' title='新增這個專題的步驟' onclick='eventManager.fire("createNewNode");'><span class='tool-icon action-icon action-icon-new'></span><span class='tool-label'>新增步驟</span></button>
+	</div>
+	<div id='editNodeTools'>
+		<button id='moveSelected' disabled='true' class='first' title='移動選擇的項目' onclick='eventManager.fire("moveSelected");'><span class='tool-icon action-icon action-icon-move action-icon-inactive'></span><span class='tool-label'>移動</span></button>
+		<button id='duplicateSelected' disabled='true' class='mid' title='複製選擇的項目' onclick='eventManager.fire("duplicateSelected");'><span class='tool-icon action-icon action-icon-copy action-icon-inactive'></span><span class='tool-label'>複製</span></button>
+		<button id='useButton' disabled='true' class='mid' title='鏡像選擇的步驟' onclick='eventManager.fire("useSelected");' ><span class='tool-icon action-icon action-icon-clone action-icon-inactive'></span><span class='tool-label'>鏡像</span></button>
+		<button id='deleteSelected' disabled='true' class='last' title='刪除選擇的項目' onclick='eventManager.fire("deleteSelected");'><span class='tool-icon action-icon action-icon-delete action-icon-inactive'></span><span class='tool-label'>刪除</span></button>
+	</div>
+	<div id='tagTools'>
+		<button id='displayTagView' title='標籤' onclick='eventManager.fire("displayTagView");'><span class='tool-icon action-icon action-icon-copy action-icon-inactive'></span><span class='tool-label'>標籤</span></button>
+	</div>
+	<div id='visibiltyNodeTools'>
+		<button id='hideNodesBtn' title='隱藏所有專題的步驟' onclick='eventManager.fire("hideNodes");'><span class='tool-icon action-icon action-icon-hide'></span><span class='tool-label'>隱藏步驟</span></button>
+		<button id='showNodesBtn' title='顯示所有專題的步驟' onclick='eventManager.fire("unhideNodes");' class='hidden'><span class='tool-icon action-icon action-icon-show'></span><span class='tool-label'>顯示步驟</span></button>
+	</div>
+	<!--<td><div id='projectTasks' class='taskInfo' style='display: none;' onMouseOver='eventManager.fire("showTaskBox","project")' onMouseOut='eventManager.fire("hideTaskBox")'>Project Tasks</div></td>
+	<td><div id='userTasks' class='taskInfo' style='display: none;' onMouseOver='eventManager.fire("showTaskBox","users")' onMouseOut='eventManager.fire("hideTaskBox")'>User Tasks</div></td>-->
+</div>
+
+<div id="authoringContainer">
+<div id="authoringTable">
+	<div id="assignedcontainer">
+		<div id="ddTable">
+			<div id='projectLayout'>
+				<div id='dynamicProject'></div>
+			</div>
+			</div>
+		</div>
+	</div>
+</div>
+</div>
+
+<div id="clearFloats" class="clearFloats"></div>
+
+<div id='createProjectDialog' style="display: none;">
+<div>請輸入新專題名稱：</div>
+<div>
+	<input type='text' id='projectInput'/><br/>
+</div>
+</div>
+
+<div id='openProjectDialog' style="display: none;">
+<div class='hd'>從列表中選擇一個專題</div>
+<div class='bd'>
+<form method='POST' action='filemanager.html' id='openProjectForm' style='display:none;'><select id='selectProject'
+		onchange='eventManager.fire("projectSelected")'>
+		<option name='placeholderOption' value='' />
+</select>
+</form>
+<div id='loadingProjectMessageDiv' style='display:none;'>
+	<div>更新專題列表...</div>
+	<div><img src='images/loading.gif'/></div>
+</div>
+</div>
+</div>
+
+<div id='createSequenceDialog' style="display: none;">
+<div class='hd'>請為活動輸入獨一無二的名稱：</div>
+<div class='bd'>
+	<input type='text' size='40' id='createSequenceInput' /><br/>
+</div>
+</div>
+
+<div id='createNodeDialog' style="display: none;">
+<div class='bd'>
+	<div id='createNodeDiv'>
+		<label for='createNodeTitle'>建立步驟標題：</label>
+		<input type='text' size='40' id='createNodeTitle'/><br/>
+		
+		<label for='createNodeType'>選擇步驟類型：</label> 
+		<select id='createNodeType' onchange='eventManager.fire("nodeTypeSelected");'>
+			<option value=""></option>
+		</select>
+		<a onclick='eventManager.fire("openStepTypeDescriptions")' style='color:blue;text-decoration:underline'>步驟類型描述</a>
+		<br/>
+	</div>
+</div>
+</div>
+
+<div id="editProjectFileDialog" style="display: none;">
+<div class='hd'>編修專題</div>
+<div class='bd'>
+	 <div id='editProjectDiv'> 
+	 	<textarea id='projectText' cols='110' rows='32' wrap='hard' name='param3' /></textarea>
+	 </div><br/>
+</div>
+</div>
+
+<!--<div id="assetUploaderDialog" style="display: none;">
+	<div class='hd'>Upload a File to the WISE4 Server</div>
+	<div id='assetUploaderBodyDiv' class='bd'>
+	
+	<input type='file' id='uploadAssetFile' name='dontmatter' size='30'></input><br/>
+
+	<div id="uploaderInstructions">
+		<h5>Example Link to an Uploaded File:</h5>
+		<p>If the uploaded file is called <b>myimage.jpg</b> then your HTML reference will be:</p>
+		<p class="sampleCode">&#60;img src="assets/myimage.jpg" alt="description of graphic here" /&nbsp;&#62;</p>
+	</div>
+	</div>
+</div>-->
+
+<div id='assetEditorDialog' style="display: none;">
+<div class='hd'>
+	<div>上傳檔案到WISE4伺服器：</div>
+	<div id='assetUploaderBodyDiv' class='bd'>
+		<input type='file' id='uploadAssetFile' name='uploadAssetFile' size='50' onchange="eventManager.fire('submitUpload')"></input><div id='assetProcessing' style='display:none;'><img class='loadingImg' src='/vlewrapper/vle/images/ajax-loader.gif' alt='loading...' /></div>
+	</div>
+</div>
+<div class='bd'><div>現存的檔案： </div>
+	<select id='assetSelect' size='10'></select>
+	<div id='sizeDiv'></div>
+	<div id="uploaderInstructions">
+		<p>如果一個上傳圖檔名稱為 <b>myimage.jpg</b>, 它的HTML語法將是：</p>
+		<p class="sampleCode">&#60;img src="assets/myimage.jpg" /&#62;</p>
+	</div>
+</div>
+</div>
+
+<div id='copyProjectDialog' style='display: none;'>
+<div class='hd'>請選擇您想複製的專題：</div>
+<div class='bd'>
+	<div id='copyProjectDiv'>
+		<select id='copyProjectSelect'></select>
+	</div><br/>
+</div>
+</div>
+
+<div id='contextMenu' class='contextMenu' style='display:none;'></div>
+
+<div id='editProjectMetadataDialog' style='display:none;'>
+<div class='bd'>
+	<div id='editProjectMetadataMainDiv'>
+		<table>
+		<tr><td id="col1">專題標題：</td><td class="col2"><div id='projectMetadataTitle'/>[專題標題 (不允許編輯) 顯示在此]</div></td></tr>
+		<tr><td>作者：</td><td> <div id='projectMetadataAuthor'/>[原始作者姓名 (不允許編輯) 顯示在此]</div></td></tr>
+		<tr><td>聯絡 姓名/電子郵件：</td><td>  <input type='text' id='projectMetadataContact'/></td></tr>
+		<tr><td>學科：</td>
+			<td >
+				<select name="searchSubject" id="projectMetadataSubject">
+					<option id='subjectLife'  value='Life Science'>生命科學</option>
+					<option id='subjectPhysical' value='Physical Science'>自然科學</option>
+					<option id='subjectEarth'  value='Earth Science'>地球科學</option>
+					<option id='subjectGeneralScience'  value='General Science'>一般科學</option>
+					<option id='subjectBiology' value='Biology'>生物學</option>
+					<option id='subjectChemistry' value='Chemistry'>化學</option>
+					<option id='subjectPhysics'  value='Physics'>物理學</option>
+					<option id='subjectTelsResearch'  value='TelsResearch'>TELS研究</option>
+					<option selected id='subjectAll' disabled="disabled" value="">-- 請選擇 --</option>
+				</select> 
+			</td></tr>
+			
+		<tr><td>分級程度：</td>
+			<td>
+				<select name="studentGrades" id="projectMetadataGradeRange">
+					<option id='grade1' value='3-5'>3-5 年級</option>
+					<option id='grade2' value='6-8'>6-8 年級</option>
+					<option id='grade3' value='9-12'>9-12 年級</option>
+					<option id='grade4' value='6-12'>6-12 年級</option>
+					<option selected id='gradeAll' disabled="disabled" value="">-- 請選擇 --</option>
+				</select>	
+			</td></tr>
+		
+		<tr><td>總時數 (小時)：</td>
+			<td>
+				<select name="totalTime" id="projectMetadataTotalTime">
+							<option id='total1' value='2-3 hours'>2-3 小時</option>
+							<option id='total2' value='4-5 hours'>4-5 小時</option>
+							<option id='total3' value='6-7 hours'>6-7 小時</option>
+							<option id='total4' value='8-9 hours'>8-9 小時</option>
+							<option id='total5' value='10-11 hours'>10-11 小時</option>
+							<option id='total6' value='Over 12 hours'>超過 12 小時</option>
+							<option selected id='totalTime' disabled="disabled" value="">-- 請選擇 --</option>
+				</select>
+			</td></tr>
+			
+		<tr><td>電腦時數 (小時)：</td>
+			<td>
+				<select name="totalTime" id="projectMetadataCompTime">
+							<option id='total1' value='2-3 hours'>2-3 小時</option>
+							<option id='total2' value='4-5 hours'>4-5 小時</option>
+							<option id='total3' value='6-7 hours'>6-7 小時</option>
+							<option id='total4' value='8-9 hours'>8-9 小時</option>
+							<option id='total5' value='10-11 hours'>10-11 小時</option>
+							<option id='total6' value='Over 12 hours'>超過 12 小時</option>
+							<option selected id='computerTime' disabled="disabled" value="">-- 請選擇 --</option>
+				</select>
+			</td></tr>	
+
+		<tr><td>語言：</td>
+			<td>
+				<select name="languageType" id="projectMetadataLanguage">
+							<option id='english' value='English'>英文</option>
+							<option id='hebrew' value='Hebrew'>希伯來文</option>
+							<option id='chinese' value='Chinese'>中文</option>
+							<option id='japanese' value='Japanese'>日文</option>
+							<option id='korean' value='Korean'>韓文</option>
+							<option selected id='languageAll'   disabled="disabled">-- 請選擇 --</option>
+				</select>
+			</td></tr>	
+
+		<tr><td>專題摘要：<br>(限制255字)</br></td><td><textarea class="size1" id='projectMetadataSummary' onkeyup='checkTextAreaLength("Project Summary", "projectMetadataSummary", 255)'></textarea></td></tr>
+		<tr><td>關鍵字：<br/>(用逗號分隔)</td><td><textarea class="size2" id='projectMetadataKeywords'></textarea></td></tr>
+		<tr><td>科技需求：</td>
+			<td>
+				<span style="font-size:85%">(選擇應用到的)</span>&nbsp;&nbsp;
+				<input type="checkbox" name="flash" value="flash" id="flash"/>&nbsp;<label for="Flash">Flash</label>&nbsp;&nbsp;
+				<input type="checkbox" name="java" value="java" id="java"/>&nbsp;<label for="Java">Java</label>&nbsp;&nbsp;
+				<input type="checkbox" name="quickTime" value="quickTime" id="quickTime"/>&nbsp;<label for="quickTime">QuickTime</label>&nbsp;&nbsp;
+			</td></tr>		
+		<tr><td>科技詳述：</td><td><textarea class="size2" id='projectMetadataTechDetails'></textarea></td></tr>
+		<tr><td>專題設定：</td>
+			<td>
+				<span style="font-size:85%">(選擇應用到的)</span>&nbsp;&nbsp;
+				<input id='enableIdeaManager' name="enableIdeaManager" type="checkbox"></input><label for="enableIdeaManager">想法管理員</label>&nbsp;&nbsp;
+				<input id='enableStudentAssetUploader' name="enableStudentAssetUploader" type="checkbox"></input><label for="enableStudentAssetUploader">學生檔案上傳</label>&nbsp;&nbsp;
+
+			</td></tr>		
+		<tr><td colspan="2">課程規劃：</td></tr>
+		<tr><td colspan="2"><textarea class="size4" id='projectMetadataLessonPlan'></textarea></td></tr>
+		<tr><td colspan="2">課程目標與標準：</td></tr>
+		<tr><td colspan="2"><textarea class="size4" id='projectMetadataStandards'></textarea></td></tr>
+		</table>
+	</div>
+</div>
+</div>
+
+<div id='previousWorkDialog' style='display:none;'>
+<div class='hd'></div>
+<div id='previousWorkPanel' class='bd'>
+<div id='main'>
+	<div id='prompt'><br>顯示先前的實作：</b><BR/>
+	從右邊到左邊欄位移動先前的步驟，先選擇一個步驟項目然後點選 <i>加入</i> 按鈕。這將使學生之前的實作出現在目前步驟中的介紹</div></br>
+	<div id="currentStep">目前步驟：&nbsp;<span id='nodeTitle'>currently selected step content auto-inserted here</span></div>
+	</br>
+	<table id='prevWorkTable' border='0'><thead></thead>
+		<tbody>
+			<tr>
+				<td id='toCol'>
+					將先前的步驟移動到這裡，使它出現在目前步驟中的介紹</br></br>
+					<select id='selectTo' size='15' multiple='multiple'></select>
+				</td>
+				<td id='buttCol'>
+					<input type='button' value='&lt;-- 加入' onclick='eventManager.fire("moveSelectedLeft")'></input></br></br>
+					<input type='button' value='移除 --&gt;' onclick='eventManager.fire("moveSelectedRight")'></input>
+				</td>
+				<td id='fromCol'>
+					先前<br> 步驟：</br></br>
+					<select id='selectFrom' size='15' multiple='multiple'></select>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+</div>
+</div>
+
+<div id='authorStepDialog' style="display:none;">
+	<div id='authorStepHeader' class='authorStepDialog'>
+		<table style='float:left;'>
+			<tr>
+				<td id='iconTD'><div id='iconDiv'></div></td>
+				<td>
+					編輯視窗：
+					<input type='radio' id='easyTrue' name='radioMode' onclick='eventManager.fire("authorStepModeChanged","true")'>簡易</input>
+					<input type='radio' id='easyFalse' name='radioMode' onclick='eventManager.fire("authorStepModeChanged","false")'/>進階</input>
+				</td>
+				<td id='refreshOptions'>
+					<input type='checkbox' id='refreshCheck' onclick='eventManager.fire("updateRefreshOption")' CHECKED>輸入同時更新</input>
+					<input type='button' id='refreshButt' onclick='eventManager.fire("refreshNow")' value='現在更新'></input>
+					<input type='button' id='hintsButt' onclick='eventManager.fire("editHints",[0])' value='編輯提示'></input>
+				</td>
+			</tr>
+		</table>
+		<div id="authorNavButtons" style='float:right'>
+			<input type='button' value='儲存' onclick='eventManager.fire("saveStep")'/>
+			<input type='button' value='儲存 & 關閉' onclick='eventManager.fire("saveAndCloseStep")'/>
+			<input type='button' value='關閉' onclick='eventManager.fire("closeStep")'/>
+		</div>
+	</div>
+	<div id='authorStepPanel' class='authorStepDialog'>
+		<table width='100%' height='100%'>
+			<tr>
+				<td id="dynamicParent" width='50%' style='height:100%;'><div id="dynamicPage"></div></td>
+				<td width='50%'><iframe id='previewFrame' width='99%' style='display: block; height: 100%;' name='previewFrame' onload='(typeof eventManager != "undefined" ? eventManager.fire("previewFrameLoaded") : false)'></iframe></td>
+			</tr>
+		</table>
+	</div>
+	<div id='authorStepFooter' class='authorStepDialog'>
+	</div>
+</div>
+
+<div id='nodeSelectorDialog' style='display:none;'>
+<div class='hd'></div>
+<div class='bd'>
+	<div id='nodeSelectorInstructionsDiv'>
+		從以下的步驟列表中選擇一個您想要連結的步驟，然後選擇一種連結的顏色，按下'建立連結'按鈕，在步驟列表中的步驟連結就會依序出現。 
+	</div>
+	<div id='nodeSelectDiv'>
+	</div>
+</div>
+</div>
+
+<div id='studentResponseBoxSizeDiv' style='display:none;'>
+	學生回應欄位大小 (# 列)：
+	<input id='studentResponseBoxSizeInput' type='text' onkeyup='eventManager.fire("stepStudentResponseBoxSizeChanged")'></input>
+</div>
+
+<div id='richTextEditorToggleDiv' style='display:none;'>
+	使用完整文字編輯器
+	<input id='richTextEditorToggleInput' type='checkbox' onchange='eventManager.fire("stepRichTextEditorToggleChanged")'></input>
+</div>
+
+<div id='starterSentenceAuthoringDiv' style='display:none;'>
+	<input type='radio' name='starterRadio' onclick='eventManager.fire("stepStarterSentenceAuthoringOptionChanged")' value='0'/> 不要使用起始句 <br/>
+	<input type='radio' name='starterRadio' onclick='eventManager.fire("stepStarterSentenceAuthoringOptionChanged")' value='1'/> 在要求時使用起始句 <br/>
+	<input type='radio' name='starterRadio' onclick='eventManager.fire("stepStarterSentenceAuthoringOptionChanged")' value='2'/> 立即顯示起始句 <br/>
+	起始句： <textarea id='starterSentenceAuthoringInput' cols='60' rows='4' wrap='soft' onchange='eventManager.fire("stepStarterSentenceAuthoringSentenceChanged")'></textarea>
+</div>
+
+<div id='promptDiv' style='display:none;'>
+	<textarea id='promptInput' name='promptInput' cols='85' wrap='hard' onkeyup="eventManager.fire('stepPromptChanged')"></textarea>
+</div>
+
+<div id='linkContainer' style='display:none;'>
+<div id='linkDiv'>
+	<div id='instructionDiv'>
+		在這個專題建立一個到其他步驟的連結：反白您想要學生點選的文字，然後點選 '新增連結' 按鈕。
+	</div><br/>
+	現有連結：
+	<div id='existingLinksDiv'></div><br/>
+	<div id='buttonDiv'>
+		<input type='button' value='新增連結' onclick='eventManager.fire("createLink")'></input>
+	</div>
+</div>
+</div>
+
+<div id='cleanProjectDialog' style='display:none;'>
+<div class='hd'></div>
+<div id='cleanProjectPanel' class='bd'>
+	<div id='cleanProjectTitleDiv'><h3>專題清除結果</h3></div><br/>
+	<div id='cleanProjectResultsDiv'>
+		<div id='cleanProjectResultsText'>分析...</div><br/>
+		<table id='cleanProjectTable'>
+			<thead id='cleanProjectTableHead'>
+			</thead>
+			<tbody id='cleanProjectTableBody'>
+			</tbody>
+		</table>
+	</div><br/>
+	<input type='button' value='儲存' id='cleanSave' onclick='eventManager.fire("cleanSave")'/>
+	<input type='button' value='取消' id='cleanCancel' onclick='eventManager.fire("cleanCancel")'/>
+</div>
+</div>
+
+<div id='constraintAuthoringDialog' style='display:none;'>
+	<table id='constraintAuthoringHeaderTable'>
+		<tbody>
+			<tr>
+				<td><div class='constraintButton' onclick='eventManager.fire("constraintShowAll")'>全部顯示</div></td>
+				<td><div class='constraintButton' onclick='eventManager.fire("constraintHideAll")'>全部隱藏</div></td>
+			</tr>
+			<tr>
+				<td id='constraintAuthoringText'>專題輪廓：</td><td></td><td></td><td></td>
+				<td id='helpIcon' class='skipme'><a href='view/authoring/constraints/constrainthelp.html' target='_blank'>&nbsp;&nbsp;&nbsp;&nbsp;</a></td>
+			</tr>
+		</tbody>
+	</table>
+	
+	<div id='constraintProjectLayout'></div>
+</div>
+
+<div id='editProjectTagsDialog' style='display:none;'>
+	<div id='editProjectDialogLoadingDiv'></div>
+	<div class="existingTagsDiv">
+		<div id='existingTagsHeadDiv'>現存標籤</div>
+		<ul id='existingTagsUL' style='display:none;'></ul>
+		<div id='loadingEditProjectTagsDiv' style='display:none;'>
+			<div>取得專題標籤...</div>
+			<div><img src='images/loading.gif'/></div>
+		</div>
+	</div>
+	<div class="createTagsDiv">
+		<div>新增標籤</div>
+		<div><input id="createTagInput" type="text"/><input type="button" value="新增" onclick="eventManager.fire('projectTagCreateTag')"/></div>
+	</div>
+</div>
+
+<div id='tagViewDialog' style="display: none;">
+	<div id='projectTagView'></div>
+</div>
+
+<div id="reviewUpdateProjectDiv" style='display:none;'>
+</div>
+
+<div id='stepTypeDescriptions' style="display: none;"></div>
+
+<iframe id="hiddenifrm" name="hiddenifrm" scrolling="auto" frameborder="0" width="0%" height="0%"> [Content for
+browsers that don't support iframes goes here.] </iframe>
+
+</div>   <!--end of centered div-->
+
+<div id='overlay'></div>
+
+<div id='coverDiv'>
+	<!--<div id='coverPlace' style='height:40%;'></div>0-->
+	<div id='coverTextDiv'>WISE 4 編輯工具下載中</div>
+	<!--<div id='coverTextUpdateDiv'></div>
+	<br/>
+	<div id='coverImgDiv'>
+		<div id='fullDotsDiv' class='fullDots'></div>
+		<div id='pacDiv' class='pacOpen'></div>
+		<div id='flatDotsDiv' class='flatDots'></div>
+	</div>-->
+	<div><img src='images/loading.gif'/></div>
+</div>
+
+<div id="sessionMessageDiv">
+</div>
+</body>
+
+</html>

@@ -86,6 +86,15 @@ View.prototype.initiateGradingDisplay = function() {
 	
 	this.gradingType = this.getConfig().getConfigParam('gradingType');
 	
+	if(this.gradingType != "monitor" && this.gradingType != "export") {
+		this.getRevisions = false;
+
+		//determine if we are getting all revisions or only the latest work
+		if(this.getConfig().getConfigParam('getRevisions') == "true") {
+			this.getRevisions = true;
+		}
+	}
+	
 	this.excelExportRestriction = this.getConfig().getConfigParam('excelExportRestriction');
 	
 	//the array to store the original order of the row ids
@@ -124,12 +133,6 @@ View.prototype.initiateGradingDisplay = function() {
 	}
 
 	if(this.gradingType != "monitor" && this.gradingType != "export") {
-		this.getRevisions = false;
-		
-		if(this.getConfig().getConfigParam('getRevisions') == "true") {
-			this.getRevisions = true;
-		}
-		
 		this.getPeerReviewWork();
 		this.getStudentWork();		
 	}
@@ -257,6 +260,7 @@ View.prototype.displayResearcherToolsPage = function() {
 	getResearcherToolsHtml += "<tr><td><input class='blueButton' type='button' value='"+this.getI18NString("grading_button_export_explanation_builder_work")+"' onClick=\"eventManager.fire('getExplanationBuilderWorkExcelExport')\"></input></td><td>"+this.getI18NString("grading_button_export_explanation_builder_work_description")+" <input class='blueButton' type='button' value='"+this.getI18NString("grading_button_explanation")+"' onClick=\"eventManager.fire('displayExportExplanation', ['explanationBuilder'])\"></input></td></tr>";
 	getResearcherToolsHtml += "<tr><td><input class='blueButton' type='button' value='"+this.getI18NString("grading_button_export_custom_work")+"' onClick=\"eventManager.fire('displayCustomExportPage')\"></input></td><td>"+this.getI18NString("grading_button_export_custom_work_description")+" <input class='blueButton' type='button' value='"+this.getI18NString("grading_button_explanation")+"' onClick=\"eventManager.fire('displayExportExplanation', ['custom'])\"></input></td></tr>";
 	getResearcherToolsHtml += "<tr><td><input class='blueButton' type='button' value='"+this.getI18NString("grading_button_export_student_names")+"' onClick=\"eventManager.fire('getStudentNamesExport')\"></input></td><td>"+this.getI18NString("grading_button_export_student_names_description")+" <input class='blueButton' type='button' value='"+this.getI18NString("grading_button_explanation")+"' onClick=\"eventManager.fire('displayExportExplanation', ['studentNames'])\"></input></td></tr>";
+	//getResearcherToolsHtml += "<tr><td><input class='blueButton' type='button' value='Export Flash' onClick=\"eventManager.fire('getFlashExcelExport')\"></input></td><td>N/A <input class='blueButton' type='button' value='N/A' onClick=\"\"></input></td></tr>";
 	getResearcherToolsHtml += "</table>";
 	getResearcherToolsHtml += "</div></div>";	
 	
@@ -279,12 +283,12 @@ View.prototype.displayExportExplanation = function(exportType) {
 	var exportExplanationPageHtml = "<div class='gradingContent'>";
 	
 	//the button to go back to the previous page
-	exportExplanationPageHtml += "<input class='blueButton' type='button' value='"+"Back To Researcher Tools"+"' onClick=\"eventManager.fire('displayResearcherToolsPage');\"></input>";
+	exportExplanationPageHtml += "<input class='blueButton' type='button' value='"+"回研究工具"+"' onClick=\"eventManager.fire('displayResearcherToolsPage');\"></input>";
 	
 	if(exportType == 'latestStudentWork') {
 		//show the explanation for the latest student work export
-		exportExplanationPageHtml += "<h3>Export Latest Student Work</h3>";
-		exportExplanationPageHtml += "<p>Export the latest work that each student has submitted. Each row represents the work for a workgroup. The columns represent which step the work is for.</p>";
+		exportExplanationPageHtml += "<h3>匯出最新學生作業</h3>";
+		exportExplanationPageHtml += "<p>匯出每個學生最近送出的作業。每一列表示一個小組的作業；欄則表示實作的步驟。</p>";
 		exportExplanationPageHtml += "<table class='exportExplanationTable'>";
 		exportExplanationPageHtml += this.getWorkgroupExportExplanations();
 		exportExplanationPageHtml += this.getRunExportExplanations();
@@ -292,8 +296,8 @@ View.prototype.displayExportExplanation = function(exportType) {
 		exportExplanationPageHtml += "</table>";
 	} else if(exportType == 'allStudentWork') {
 		//show the explanation for the all student work export
-		exportExplanationPageHtml += "<h3>Export All Student Work</h3>";
-		exportExplanationPageHtml += "<p>Export all the work revisions the students have submitted. Each sheet represents a workgroup. The rows represent the student visiting a step along with the work they submitted for that step on that visit. The rows are ordered chronologically from oldest to newest so you can view how the student progressed through the project and if they ever went back to change their answer.</p>";
+		exportExplanationPageHtml += "<h3>匯出全部學生作業</h3>";
+		exportExplanationPageHtml += "<p>匯出學生送出的全部作業版本。每個表單表示一個小組，列表示學生送出作業的步驟瀏覽順序。列按時間先後次序排列(由舊到新)，所以您可以看出學生如何進行專題實作，就算他們回去更改答案也會記錄下來。</p>";
 		exportExplanationPageHtml += "<table class='exportExplanationTable'>";
 		exportExplanationPageHtml += this.getRunExportExplanations();
 		exportExplanationPageHtml += this.getWorkgroupExportExplanations();
@@ -301,8 +305,8 @@ View.prototype.displayExportExplanation = function(exportType) {
 		exportExplanationPageHtml += "</table>";
 	} else if(exportType == 'ideaBaskets') {
 		//show the explanation for the idea baskets export
-		exportExplanationPageHtml += "<h3>Export Idea Baskets</h3>";
-		exportExplanationPageHtml += "<p>Export all the idea basket revisions. All of the revisions for all the workgroups are on a single sheet. The idea basket revisions are grouped together by 'Workgroup Id'. For each revision, there may be one or more ideas. Each idea receives its own row. As an example, if an idea basket revision contains 3 ideas, there will be 3 rows for that revision. You will also see that the 'Basket Revision' number is the same for those 3 rows. An idea basket revision is created anytime the idea basket is modified and then closed.</p>";
+		exportExplanationPageHtml += "<h3>匯出想法籃</h3>";
+		exportExplanationPageHtml += "<p>匯出所有想法籃修正版本。所有小組的修正版本會在單一表單，想法籃修正版本用小組Id分類，每個修正版本可能有一或多個想法，每個想法放在自己的一列。例如，一個想法籃修正版本包含3個想法則會有3列，您也可以看'想法籃修正版本'號碼也會是3列。想法籃修正版本在想法籃任何時間被修改後關閉時建立。</p>";
 		exportExplanationPageHtml += "<table class='exportExplanationTable'>";
 		exportExplanationPageHtml += this.getRunExportExplanations();
 		exportExplanationPageHtml += this.getWorkgroupExportExplanations();
@@ -310,8 +314,8 @@ View.prototype.displayExportExplanation = function(exportType) {
 		exportExplanationPageHtml += "</table>";
 	} else if(exportType == 'explanationBuilder') {
 		//show the explanation for the explanation builder work export
-		exportExplanationPageHtml += "<h3>Export Explanation Builder Work</h3>";
-		exportExplanationPageHtml += "<p>Export all the work revisions for explanation builder steps. Each sheet represents a workgroup. Each time a student submits work for an explanation builder step, the ideas that are used are grouped together by 'Step Work Id'. As an example, if a student used 3 ideas in an explanation builder step, there will be 3 rows with the same 'Step Work Id'.</p>";
+		exportExplanationPageHtml += "<h3>匯出建立解釋作業</h3>";
+		exportExplanationPageHtml += "<p>匯出建立解釋步驟的所有作業版本。每個表單表示一個小組，每次學生送出建立解釋步驟的作業時，用到的想法會以步驟實作Id分類。例如，如果學生在建立解釋步驟中使用3個想法，則該'步驟實作Id'將會出現3列。</p>";
 		exportExplanationPageHtml += "<table class='exportExplanationTable'>";
 		exportExplanationPageHtml += this.getWorkgroupExportExplanations();
 		exportExplanationPageHtml += this.getRunExportExplanations();
@@ -319,11 +323,11 @@ View.prototype.displayExportExplanation = function(exportType) {
 		exportExplanationPageHtml += "</table>";
 	} else if(exportType == 'custom') {
 		//show the explanation for the custom work export
-		exportExplanationPageHtml += "<h3>Export Custom Student Work</h3>";
+		exportExplanationPageHtml += "<h3>匯出客製化步驟作業</h3>";
 		exportExplanationPageHtml += "<p></p>";
 		
-		exportExplanationPageHtml += "<h4><i>Export Custom Latest Student Work</i></h4>";
-		exportExplanationPageHtml += "<p>Export the latest work that each student has submitted for a custom set of steps that you choose. Each row represents the work for a workgroup. The columns represent which step the work is for.</p>";
+		exportExplanationPageHtml += "<h4><i>匯出最近客製化步驟作業</i></h4>";
+		exportExplanationPageHtml += "<p>匯出最近學生針對您所選擇的客製化步驟送出的作業。每一列表示一個小組的作業；欄則表示實作的步驟。</p>";
 		exportExplanationPageHtml += "<table class='exportExplanationTable'>";
 		exportExplanationPageHtml += this.getWorkgroupExportExplanations();
 		exportExplanationPageHtml += this.getRunExportExplanations();
@@ -332,8 +336,8 @@ View.prototype.displayExportExplanation = function(exportType) {
 		
 		exportExplanationPageHtml += "<br>";
 		
-		exportExplanationPageHtml += "<h4><i>Export Custom All Student Work</i></h4>";
-		exportExplanationPageHtml += "<p>Export all the work revisions the students have submitted for a custom set of steps that you choose. Each sheet represents a workgroup. The rows represent the student visiting a step along with the work they submitted for that step on that visit. The rows are ordered chronologically from oldest to newest so you can view how the student progressed through the project and if they ever went back to change their answer.</p>";
+		exportExplanationPageHtml += "<h4><i>匯出所有客製化步驟作業</i></h4>";
+		exportExplanationPageHtml += "<p>匯出學生針對您所選擇的客製化步驟送出的所有作業版本。每個表單表示一個小組，列表示學生送出作業的步驟瀏覽順序。列按時間先後次序排列(由舊到新)，所以您可以看出學生如何進行專題實作，就算他們回去更改答案也會記錄下來。</p>";
 		exportExplanationPageHtml += "<table class='exportExplanationTable'>";
 		exportExplanationPageHtml += this.getWorkgroupExportExplanations();
 		exportExplanationPageHtml += this.getRunExportExplanations();
@@ -352,7 +356,7 @@ View.prototype.displayExportExplanation = function(exportType) {
 	exportExplanationPageHtml += "<br>";
 	
 	//the button to go back to the previous page
-	exportExplanationPageHtml += "<input class='blueButton' type='button' value='"+"Back To Researcher Tools"+"' onClick=\"eventManager.fire('displayResearcherToolsPage');\"></input>";
+	exportExplanationPageHtml += "<input class='blueButton' type='button' value='"+"回研究工具"+"' onClick=\"eventManager.fire('displayResearcherToolsPage');\"></input>";
 	
 	exportExplanationPageHtml += "</div>";
 	
@@ -377,11 +381,11 @@ View.prototype.displayCustomExportPage = function() {
 	customExportPageHtml += "<h3>Custom Export Page</h3>";
 	
 	//the button to go back to the previous page
-	customExportPageHtml += "<input class='blueButton' type='button' value='"+"Back To Researcher Tools"+"' onClick=\"eventManager.fire('displayResearcherToolsPage');\"></input>";
+	customExportPageHtml += "<input class='blueButton' type='button' value='"+"回研究工具"+"' onClick=\"eventManager.fire('displayResearcherToolsPage');\"></input>";
 	
 	//the buttons to generate the excel export
-	customExportPageHtml += "<input class='blueButton' type='button' value='"+"Export Custom Latest Student Work"+"' onClick=\"eventManager.fire('getCustomLatestStudentWorkExport')\"></input>";
-	customExportPageHtml += "<input class='blueButton' type='button' value='"+"Export Custom All Student Work"+"' onClick=\"eventManager.fire('getCustomAllStudentWorkExport')\"></input>";
+	customExportPageHtml += "<input class='blueButton' type='button' value='"+"匯出最近客製化步驟作業"+"' onClick=\"eventManager.fire('getCustomLatestStudentWorkExport')\"></input>";
+	customExportPageHtml += "<input class='blueButton' type='button' value='"+"匯出所有客製化步驟作業"+"' onClick=\"eventManager.fire('getCustomAllStudentWorkExport')\"></input>";
 	customExportPageHtml += "<br>";
 	
 	//the checkbox to select all or unselect all
@@ -400,11 +404,11 @@ View.prototype.displayCustomExportPage = function() {
 	customExportPageHtml += "<br>";
 	
 	//the button to go back to the previous page
-	customExportPageHtml += "<input class='blueButton' type='button' value='"+"Back To Researcher Tools"+"' onClick=\"eventManager.fire('displayResearcherToolsPage');\"></input>";
+	customExportPageHtml += "<input class='blueButton' type='button' value='"+"回研究工具"+"' onClick=\"eventManager.fire('displayResearcherToolsPage');\"></input>";
 	
 	//the buttons to generate the excel export
-	customExportPageHtml += "<input class='blueButton' type='button' value='"+"Export Custom Latest Student Work"+"' onClick=\"eventManager.fire('getCustomLatestStudentWorkExport')\"></input>";
-	customExportPageHtml += "<input class='blueButton' type='button' value='"+"Export Custom All Student Work"+"' onClick=\"eventManager.fire('getCustomAllStudentWorkExport')\"></input>";
+	customExportPageHtml += "<input class='blueButton' type='button' value='"+"匯出最近客製化步驟作業"+"' onClick=\"eventManager.fire('getCustomLatestStudentWorkExport')\"></input>";
+	customExportPageHtml += "<input class='blueButton' type='button' value='"+"匯出所有客製化步驟作業"+"' onClick=\"eventManager.fire('getCustomAllStudentWorkExport')\"></input>";
 	
 	customExportPageHtml += "</div>";
 	
@@ -443,7 +447,7 @@ View.prototype.displayCustomExportPageHelper = function(node) {
 		 */
 		if(this.activityNumber != 0) {
 			//this node is a sequence so we will display a checkbox and label for the current activity
-			displayCustomExportPageHelperHtml += "<tr><td class='chooseStepToGradeActivityTd'><input id='activityCheckBox_" + this.activityNumber + "' class='stepCheckBox' type='checkbox' name='customExportActivityCheckbox' value='" + nodeId + "' onClick='eventManager.fire(\"customActivityCheckBoxClicked\", [\"activityCheckBox_" + this.activityNumber + "\"])' /><h4 style='display:inline'>活動 " + this.activityNumber + ": " + node.getTitle() + "</h4></td></tr>";
+			displayCustomExportPageHelperHtml += "<tr><td class='chooseStepToGradeActivityTd'><input id='activityCheckBox_" + this.activityNumber + "' class='stepCheckBox' type='checkbox' name='customExportActivityCheckbox' value='" + nodeId + "' onClick='eventManager.fire(\"customActivityCheckBoxClicked\", [\"activityCheckBox_" + this.activityNumber + "\"])' /><h4 style='display:inline'>Activity " + this.activityNumber + ": " + node.getTitle() + "</h4></td></tr>";
 		}
 
 		//increment the activity number
@@ -518,6 +522,14 @@ View.prototype.getGradingHeaderTableHtml = function() {
 	}
 	gradingHeaderHtml += "<a class='gradingButton " + stepClass + "' onClick=\"eventManager.fire('displayGradeByStepSelectPage')\">"+this.getI18NString("grading_button_grade_by_step")+"</a>";
 	gradingHeaderHtml += "<a class='gradingButton " + teamClass + "' onClick=\"eventManager.fire('displayGradeByTeamSelectPage')\">"+this.getI18NString("grading_button_grade_by_team")+"</a>";
+
+	//display whether we are showing all revisions or only latest work
+	if(this.getRevisions) {
+		gradingHeaderHtml += "<span> (All Revisions)</span>";
+	} else {
+		gradingHeaderHtml += "<span> (Latest Work)</span>";
+	}
+	
 	// TODO: classroom monitor link button could go here
 	gradingHeaderHtml += "</div>";
 	
@@ -589,19 +601,19 @@ View.prototype.displayClassroomMonitorPage = function() {
 };
 
 View.prototype.createClassroomMonitorTable = function() {
-	var displayGradeByTeamSelectPageHtml = "";
+	var classroomMonitorTableHtml = "";
 	
 	//show the grading header buttons such as export and the other grading pages
 	//displayGradeByTeamSelectPageHtml += this.getGradingHeaderTableHtml();
 	
 	//get the html that will be used to filter workgroups by period
-	displayGradeByTeamSelectPageHtml += this.getPeriodRadioButtonTableHtml("displayGradeByTeamSelectPage");
+	classroomMonitorTableHtml += this.getPeriodRadioButtonTableHtml("displayGradeByTeamSelectPage");
 
 	//start the table that will contain the teams to choose
-	displayGradeByTeamSelectPageHtml += "<table id='chooseTeamToGradeTable' class='chooseTeamToGradeTable tablesorter'>";
+	classroomMonitorTableHtml += "<table id='chooseTeamToGradeTable' class='wisetable tablesorter'>";
 	
 	//the header row
-	displayGradeByTeamSelectPageHtml += "<thead><tr><th class='gradeColumn col1'>"+this.getI18NString("period")+"</th>"+
+	classroomMonitorTableHtml += "<thead><tr><th class='gradeColumn col1'>"+this.getI18NString("period")+"</th>"+
 			"<th class='gradeColumn col2'>"+this.getI18NString("team")+"</th>"+
 			"<th class='gradeColumn col3'>Current Step</th>"+
 			"<th>"+this.getI18NString("grading_grade_by_team_percentage_project_completed")+"</th>"+
@@ -620,7 +632,7 @@ View.prototype.createClassroomMonitorTable = function() {
 	//get all the teacher workgroup ids including owner and shared
 	var teacherIds = this.getUserAndClassInfo().getAllTeacherWorkgroupIds();
 	
-	displayGradeByTeamSelectPageHtml += "<tbody>";
+	classroomMonitorTableHtml += "<tbody>";
 	
 	//loop through all the student work objects
 	for(var x=0; x<classmatesInAlphabeticalOrder.length; x++) {
@@ -640,24 +652,24 @@ View.prototype.createClassroomMonitorTable = function() {
 		var studentTRClass = "showScoreRow classroomMonitorStudentWorkRow studentWorkRow period" + periodName;
 		
 		//add the html row for this workgroup
-		displayGradeByTeamSelectPageHtml += "<tr id='classroomMonitorWorkgroupRow_"+workgroupId+"' class='" + studentTRClass + "' onClick=\"eventManager.fire('displayGradeByTeamGradingPage', ['" + workgroupId + "'])\">";
-		displayGradeByTeamSelectPageHtml += "<td class='showScorePeriodColumn'>" + periodName + "</td>";
-		displayGradeByTeamSelectPageHtml += "<td class='showScoreWorkgroupIdColumn'>" + userNames + "</td>";
-		displayGradeByTeamSelectPageHtml += "<td id='teamCurrentStep_" + workgroupId + "'>N/A</td>";
-		displayGradeByTeamSelectPageHtml += "<td style='padding-left: 0pt;padding-right: 0pt' id='teamPercentProjectCompleted_" + workgroupId + "'>0%</td>";
-		displayGradeByTeamSelectPageHtml += "<td id='teamStatus_" + workgroupId + "'></td></tr>";
+		classroomMonitorTableHtml += "<tr id='classroomMonitorWorkgroupRow_"+workgroupId+"' class='" + studentTRClass + "' onClick=\"eventManager.fire('displayGradeByTeamGradingPage', ['" + workgroupId + "'])\">";
+		classroomMonitorTableHtml += "<td class='showScorePeriodColumn'>" + periodName + "</td>";
+		classroomMonitorTableHtml += "<td class='showScoreWorkgroupIdColumn'>" + userNames + "</td>";
+		classroomMonitorTableHtml += "<td id='teamCurrentStep_" + workgroupId + "'>N/A</td>";
+		classroomMonitorTableHtml += "<td style='padding-left: 0pt;padding-right: 0pt' id='teamPercentProjectCompleted_" + workgroupId + "'>0%</td>";
+		classroomMonitorTableHtml += "<td id='teamStatus_" + workgroupId + "'></td></tr>";
 		
 		//showScoreSummaryHtml += "<tr class='" + studentTRClass + "'><td class='showScorePeriodColumn'>" + periodName + "</td><td class='showScoreWorkgroupIdColumn'>" + userNames + "</td><td class='showScoreScoreColumn'>" + totalScoreForWorkgroup + " / " + maxScoresSum + "</td></tr>";
 	}
 	
-	displayGradeByTeamSelectPageHtml += "</tbody>";
+	classroomMonitorTableHtml += "</tbody>";
 	
-	displayGradeByTeamSelectPageHtml += "</table>";
+	classroomMonitorTableHtml += "</table>";
 	
-	displayGradeByTeamSelectPageHtml += "<div id='teamStatusDialog'></div>";
+	classroomMonitorTableHtml += "<div id='teamStatusDialog'></div>";
 	
 	//set the html into the div so it is displayed
-	return displayGradeByTeamSelectPageHtml;
+	return classroomMonitorTableHtml;
 };
 
 View.prototype.applyTableSorterToClassroomMonitorTable = function() {
@@ -742,7 +754,7 @@ View.prototype.displayGradeByTeamSelectPage = function() {
 	displayGradeByTeamSelectPageHtml += "</div><div class='gradingContent'>";
 	
 	//start the table that will contain the teams to choose
-	displayGradeByTeamSelectPageHtml += "<table id='chooseTeamToGradeTable' class='chooseTeamToGradeTable tablesorter'>";
+	displayGradeByTeamSelectPageHtml += "<table id='chooseTeamToGradeTable' class='wisetable tablesorter'>";
 	
 	//the header row
 	displayGradeByTeamSelectPageHtml += "<thead><tr><th class='gradeColumn col1'>"+this.getI18NString("period")+"</th>"+
@@ -784,8 +796,15 @@ View.prototype.displayGradeByTeamSelectPage = function() {
 		//get the cumulative score for the workgroup
 		var totalScoreForWorkgroup = this.annotations.getTotalScoreByToWorkgroupAndFromWorkgroups(workgroupId, teacherIds);
 		
+		var teacherScorePercentage = "";
+		
+		if(maxScoresSum != null && maxScoresSum != 0) {
+			//get the teacher score percentage
+			teacherScorePercentage = " = " + Math.floor(100 * totalScoreForWorkgroup / maxScoresSum) + "%";
+		}
+		
 		//add the html row for this workgroup
-		displayGradeByTeamSelectPageHtml += "<tr class='" + studentTRClass + "' onClick=\"eventManager.fire('displayGradeByTeamGradingPage', ['" + workgroupId + "'])\"><td class='showScorePeriodColumn'>" + periodName + "</td><td class='showScoreWorkgroupIdColumn'><a>" + userNames + "</a></td><td class='showScoreScoreColumn'>" + totalScoreForWorkgroup + " / " + maxScoresSum + "</td><td id='teamNumItemsNeedGrading_" + workgroupId + "'></td><td style='padding-left: 0pt;padding-right: 0pt' id='teamPercentProjectCompleted_" + workgroupId + "'></td></tr>";
+		displayGradeByTeamSelectPageHtml += "<tr class='" + studentTRClass + "' onClick=\"eventManager.fire('displayGradeByTeamGradingPage', ['" + workgroupId + "'])\"><td class='showScorePeriodColumn'>" + periodName + "</td><td class='showScoreWorkgroupIdColumn'><a>" + userNames + "</a></td><td class='showScoreScoreColumn'>" + totalScoreForWorkgroup + " / " + maxScoresSum + teacherScorePercentage + "</td><td id='teamNumItemsNeedGrading_" + workgroupId + "'></td><td style='padding-left: 0pt;padding-right: 0pt' id='teamPercentProjectCompleted_" + workgroupId + "'></td></tr>";
 		
 		//showScoreSummaryHtml += "<tr class='" + studentTRClass + "'><td class='showScorePeriodColumn'>" + periodName + "</td><td class='showScoreWorkgroupIdColumn'>" + userNames + "</td><td class='showScoreScoreColumn'>" + totalScoreForWorkgroup + " / " + maxScoresSum + "</td></tr>";
 	}
@@ -819,11 +838,19 @@ View.prototype.displayStudentUploadedFiles = function() {
 		$('#studentAssetsDiv').html(assetEditorDialogHtml);		
     }
 	
+	var show = function(){
+		//resize dialog height if larger than grading window
+		var maxHeight = $(window).height() - 20;
+		if($('#studentAssetsDiv').closest('.ui-dialog').height() > maxHeight){
+			$('#studentAssetsDiv').dialog('option','height',maxHeight);
+		}
+	}
+	
 	var done = function(){
 		$('#studentAssetsDiv').dialog('close');			
 	};
 
-	$('#studentAssetsDiv').dialog({autoOpen:false,closeText:'',resizable:true,width:800,height:450,position:'center',modal:true,title:'Students\' Uploaded Files', buttons:{'Done':done}});
+	$('#studentAssetsDiv').dialog({autoOpen:false,closeText:'',resizable:true,width:800,height:450,position:['center',50],show:{effect:"fade",duration:200},hide:{effect:"fade",duration:200},modal:true,title:'Students\' Uploaded Files',open:show,buttons:{'Done':done}});
 
 	var displayStudentAssets = function(workgroupAssetListsStr, view) {
 		// clear out the panel
@@ -928,7 +955,8 @@ View.prototype.displayGradeByStepSelectPageHelper = function(node) {
 		var position = this.getProject().getVLEPositionById(nodeId);
 		
 		/* add the right html to the displayGradeByStepSelectPageHtml based on the given node's type */
-		if(node.type == "HtmlNode" || node.type == "OutsideUrlNode" || (node.type == "FlashNode" && node.getContent().getContentJSON().enableGrading == false)) {
+		if(!node.hasGradingView()) {
+			//step type does not have a grading view
 			displayGradeByStepSelectPageHtml += this.getGradeByStepSelectPageLinklessHtmlForNode(node, position, node.type);
 		} else if(node.type=='DuplicateNode'){
 			displayGradeByStepSelectPageHtml += this.getGradeByStepSelectPageHtmlForDuplicateNode(node, position);
@@ -942,7 +970,9 @@ View.prototype.displayGradeByStepSelectPageHelper = function(node) {
 		 * this.activityNumber is 0, so all the subsequent activities will
 		 * start at 1.
 		 */
-		if(this.activityNumber != 0) {
+		if(node.json.view == "hidden") {
+			//do not display the activity label
+		} else if(this.activityNumber != 0) {
 			//this node is a sequence so we will display the activity number and title
 			displayGradeByStepSelectPageHtml += "<tr><td class='chooseStepToGradeActivityTd'><h4>活動 " + this.activityNumber + ": " + node.getTitle() + "</h4></td><td class='header col2'></td><td class=' header col3'></td><td class='header col4'></td><td class='header col5'></td></tr>";
 		}
@@ -1022,7 +1052,7 @@ View.prototype.getGradeByStepSelectPageLinkedHtmlForNode = function(node, positi
 	var maxScorePermission = this.isWriteAllowed();
 	
 	//the regular link to grade by step, this will show revisions for all steps except MySystemNode and SVGDrawNode
-	var nodeLink = "<a onClick='eventManager.fire(\"displayGradeByStepGradingPage\",[\"" + position + "\", \"" + node.id + "\"])'>步驟 " + position + ":&nbsp;&nbsp;" + node.getTitle() + "&nbsp;&nbsp;&nbsp;<span class='nodeTypeClass'>(" + type + ")</span></a>";
+	var nodeLink = "<a onClick='eventManager.fire(\"displayGradeByStepGradingPage\",[\"" + position + "\", \"" + node.id + "\"])'>Step " + position + ":&nbsp;&nbsp;" + node.getTitle() + "&nbsp;&nbsp;&nbsp;<span class='nodeTypeClass'>(" + type + ")</span></a>";
 	
 	//this is a node that students perform work for so we will display a link
 	return "<tr><td class='chooseStepToGradeStepTd col1'>" + nodeLink + "</td><td class='chooseStepToGradeMaxScoreTd col2 statistic'><input id='maxScore_" + node.id + "' type='text' value='" + maxScore + "' onblur='eventManager.fire(\"saveMaxScore\", [" + this.getConfig().getConfigParam('runId') + ", \"" + node.id + "\"])'" + maxScorePermission + "/></td>" + statisticsForNode + "</tr>";
@@ -1328,6 +1358,16 @@ View.prototype.displayGradeByStepGradingPage = function(stepNumber, nodeId) {
 	gradeByStepGradingPageHtml += "<input type='checkbox' id='enlargeStudentWorkTextCheckBox' value='show filtered items' onClick=\"eventManager.fire('enlargeStudentWorkText')\" " + enlargeStudentWorkTextChecked + "/>"
 		+"<p>"+this.getI18NString("grading_enlarge_student_work_text")+"</p>";
 	
+	//check if only show new student work check box was previously checked
+	var onlyShowNewStudentWorkChecked = '';
+	if(this.gradingOnlyShowNewStudentWork) {
+		onlyShowNewStudentWorkChecked = 'checked';
+	}
+	
+	//check box for only showing new student work
+	gradeByStepGradingPageHtml += "<input type='checkbox' id='onlyShowNewStudentWorkCheckBox' value='show filtered items' onClick=\"eventManager.fire('filterStudentRows')\" " + onlyShowNewStudentWorkChecked + "/>"
+		+"<p>"+this.getI18NString("grading_only_show_new_student_work")+"</p>";
+	
 	//check if show revisions check box was previously checked
 	var showRevisionsChecked = '';
 	if(this.gradingShowRevisions) {
@@ -1441,6 +1481,7 @@ View.prototype.displayGradeByStepGradingPage = function(stepNumber, nodeId) {
 		var annotationData = this.getAnnotationData(runId, nodeId, workgroupId, teacherIds);
 		var annotationCommentValue = annotationData.annotationCommentValue;
 		var annotationScoreValue = annotationData.annotationScoreValue;
+		var annotationCRaterScoreValue = annotationData.annotationCRaterScoreValue;
 		var latestAnnotationPostTime = annotationData.latestAnnotationPostTime;
 		
 		//get the period name for this student
@@ -1504,7 +1545,30 @@ View.prototype.displayGradeByStepGradingPage = function(stepNumber, nodeId) {
 		
 		//display the student workgroup id
 		gradeByStepGradingPageHtml += "<td class='gradeColumn workgroupIdColumn'><div><a onClick=\"eventManager.fire('displayGradeByTeamGradingPage', ['" + workgroupId + "'])\">" + userNamesHtml + "</a></div>"+
-			"<div>"+this.getI18NString("period")+" " + periodName + "</div><div>" + toggleRevisionsLink + "</div></td>";
+			"<div>"+this.getI18NString("period")+" " + periodName + "</div><div>" + toggleRevisionsLink + "</div>";
+
+		//get the groups used in this project, if any
+		var allGroupsUsed = this.project.getAllGroupsUsed();
+		
+		if(allGroupsUsed != null && allGroupsUsed.length > 0) {
+			gradeByStepGradingPageHtml += "<div>";
+			//display the link to edit the groups for this workgroup
+			gradeByStepGradingPageHtml += "<a onclick='eventManager.fire(\"editGroups\", " + workgroupId + ")'>Edit Groups</a>";			
+			gradeByStepGradingPageHtml += "</div>";
+			
+			gradeByStepGradingPageHtml += "<div id='groups_" + workgroupId + "'>";
+			//get the groups that have been assigned to this workgroup
+			var groups = this.getGroupsByWorkgroupId(workgroupId);
+			
+			//create a string from the groups this workgroup is in e.g. "A, B"
+			var groupsString = groups.join(", ");
+			
+			//display the groups this workgroup is in
+			gradeByStepGradingPageHtml += "Groups: " + groupsString;
+			gradeByStepGradingPageHtml += "</div>";
+		}
+		
+		gradeByStepGradingPageHtml += "</td>";
 		
 		//make the css class for the td that will contain the student's work
 		var studentWorkTdClass = "gradeColumn workColumn";
@@ -1525,15 +1589,23 @@ View.prototype.displayGradeByStepGradingPage = function(stepNumber, nodeId) {
 		//make the css class for the td that will contain the score and comment boxes
 		var scoringAndCommentingTdClass = "gradeColumn gradingColumn";
 		
+		var cRaterScore = annotationCRaterScoreValue;
+		var maxCRaterScore = null;
+		
+		//get the maxCRaterScore from the step content
+		if(nodeContent != null && nodeContent.cRater != null && nodeContent.cRater.cRaterMaxScore != null) {
+			maxCRaterScore = nodeContent.cRater.cRaterMaxScore;
+		}
+		
 		//get the html for the score and comment td
-		gradeByStepGradingPageHtml += this.getScoringAndCommentingTdHtml(workgroupId, nodeId, teacherId, runId, stepWorkId, annotationScoreValue, annotationCommentValue, latestAnnotationPostTime, isGradingDisabled, scoringAndCommentingTdClass, studentWork, studentWorkRowId);
+		gradeByStepGradingPageHtml += this.getScoringAndCommentingTdHtml(workgroupId, nodeId, teacherId, runId, stepWorkId, annotationScoreValue, annotationCommentValue, latestAnnotationPostTime, isGradingDisabled, scoringAndCommentingTdClass, studentWork, studentWorkRowId, cRaterScore, maxCRaterScore);
 
 		//make the css class for the td that will contain the flag checkbox
 		var flaggingTdClass = "gradeColumn toolsColumn";
 		
-		//get the html for the flag td
-		gradeByStepGradingPageHtml += this.getFlaggingTdHtml(workgroupId, nodeId, teacherId, runId, stepWorkId, isGradingDisabled, flagChecked, flaggingTdClass);
-		
+		//get the html for the tools td
+		gradeByStepGradingPageHtml += this.getToolsTdHtml(workgroupId, nodeId, teacherId, runId, stepWorkId, isGradingDisabled, flagChecked, flaggingTdClass);
+				
 		//close the row for the student
 		gradeByStepGradingPageHtml += "</tr>";
 		
@@ -1555,6 +1627,7 @@ View.prototype.displayGradeByStepGradingPage = function(stepNumber, nodeId) {
 				var annotationDataForRevision = this.getAnnotationDataForRevision(revisionStepWorkId);
 				var annotationCommentValue = annotationDataForRevision.annotationCommentValue;
 				var annotationScoreValue = annotationDataForRevision.annotationScoreValue;
+				var annotationCRaterScoreValue = annotationDataForRevision.annotationCRaterScoreValue;
 				var latestAnnotationPostTime = annotationDataForRevision.latestAnnotationPostTime;
 				
 				var isGradingDisabled = "disabled";
@@ -1569,12 +1642,14 @@ View.prototype.displayGradeByStepGradingPage = function(stepNumber, nodeId) {
 				//add the row id to our array so we can remember the original order of these rows
 				this.originalStudentWorkRowOrder.push(studentWorkRowRevisionId);
 				
+				var cRaterScore = annotationCRaterScoreValue;
+				
 				//display the data for the revision
 				gradeByStepGradingPageHtml += "<tr id='" + studentWorkRowRevisionId + "' class='studentWorkRow period" + periodName + " studentWorkRevisionRow studentWorkRevisionRow_" + workgroupId + "_" + nodeId + "' style='display:none' isFlagged='" + isFlagged + "'>";
 				gradeByStepGradingPageHtml += "<td class='gradeColumn workgroupIdColumn'><div>" + userNamesHtml + "</div><div>Revision " + (revisionCount + 1) + "</div></td>";
 				gradeByStepGradingPageHtml += this.getStudentWorkTdHtml(revisionWork, node, revisionStepWorkId, studentWorkTdClass, revisionPostTime);
-				gradeByStepGradingPageHtml += this.getScoringAndCommentingTdHtml(workgroupId, nodeId, teacherId, runId, revisionStepWorkId, annotationScoreValue, annotationCommentValue, latestAnnotationPostTime, isGradingDisabled, scoringAndCommentingTdClass, revisionWork);
-				gradeByStepGradingPageHtml += this.getFlaggingTdHtml(workgroupId, nodeId, teacherId, runId, revisionStepWorkId, isGradingDisabled, flagChecked, flaggingTdClass);
+				gradeByStepGradingPageHtml += this.getScoringAndCommentingTdHtml(workgroupId, nodeId, teacherId, runId, revisionStepWorkId, annotationScoreValue, annotationCommentValue, latestAnnotationPostTime, isGradingDisabled, scoringAndCommentingTdClass, revisionWork, null, cRaterScore, maxCRaterScore);
+				gradeByStepGradingPageHtml += this.getToolsTdHtml(workgroupId, nodeId, teacherId, runId, revisionStepWorkId, isGradingDisabled, flagChecked, flaggingTdClass);
 				gradeByStepGradingPageHtml += "</tr>";
 				
 				//get the array of revision objects for this latest studentWorkRowId
@@ -1663,10 +1738,22 @@ View.prototype.calculateGradingStatistics = function(gradingType) {
  */
 View.prototype.calculateGradeByTeamGradingStatistics = function() {
 	/*
+	 * whether we only want to get the node types that have student work.
+	 * if this is false we will get all the node types.
+	 */
+	var onlyGetNodesWithGradingView = false;
+	
+	//check if the post level for the run is set to low
+	if(this.config.getConfigParam('postLevel') == 1) {
+		//post level is set to low so we only want to get the nodes types that have student work
+		onlyGetNodesWithGradingView = true;
+	}
+	
+	/*
 	 * get all the leaf nodes in the project except for HtmlNodes
 	 * this is a : delimited string of nodeIds
 	 */
-	var nodeIds = this.getProject().getNodeIds();
+	var nodeIds = this.getProject().getNodeIds(onlyGetNodesWithGradingView);
 	
 	//get the run id
 	var runId = this.getConfig().getConfigParam('runId');
@@ -1862,9 +1949,8 @@ View.prototype.calculateGradeByStepGradingStatistics = function(node) {
 	if(node.isLeafNode()) {
 		//this node is a leaf/step
 
-		if(node.type == "HtmlNode" || node.type == "OutsideUrlNode" || node.type == 'DuplicateNode' ||
-				(node.type == "FlashNode" && node.getContent().getContentJSON().enableGrading == false)) {
-
+		if(!node.hasGradingView()) {
+			//do nothing since this step is not graded
 		} else {
 			//calculate the grading statistics for this step
 			var gradeByStepGradingStatistics = this.getGradeByStepGradingStatistics(nodeId);
@@ -2217,15 +2303,18 @@ View.prototype.getAnnotationDataHelper = function(runId, nodeId, workgroupId, te
 	var annotationData = new Object();
 	var annotationComment = null;
 	var annotationScore = null;
+	var annotationCRaterScore = null;
 	
 	if(stepWorkId == null) {
 		//obtain the annotation for this workgroup and step if any
-		var annotationComment = this.annotations.getLatestAnnotation(runId, nodeId, workgroupId, teacherIds, "comment");
-		var annotationScore = this.annotations.getLatestAnnotation(runId, nodeId, workgroupId, teacherIds, "score");
+		annotationComment = this.annotations.getLatestAnnotation(runId, nodeId, workgroupId, teacherIds, "comment");
+		annotationScore = this.annotations.getLatestAnnotation(runId, nodeId, workgroupId, teacherIds, "score");
+		annotationCRaterScore = this.annotations.getLatestAnnotation(runId, nodeId, workgroupId, [-1], "cRater");
 	} else {
 		//obtain the annotation for this workgroup and step if any
-		var annotationComment = this.annotations.getAnnotationByStepWorkIdType(stepWorkId, "comment");
-		var annotationScore = this.annotations.getAnnotationByStepWorkIdType(stepWorkId, "score");	
+		annotationComment = this.annotations.getAnnotationByStepWorkIdType(stepWorkId, "comment");
+		annotationScore = this.annotations.getAnnotationByStepWorkIdType(stepWorkId, "score");
+		annotationCRaterScore = this.annotations.getAnnotationByStepWorkIdType(stepWorkId, "cRater");
 	}
 	
 	//the value to display in the comment text box
@@ -2246,6 +2335,26 @@ View.prototype.getAnnotationDataHelper = function(runId, nodeId, workgroupId, te
 		//get the value of the annotationScore
 		annotationData.annotationScoreValue = annotationScore.value;
 		annotationData.annotationScorePostTime = annotationScore.postTime;
+	}
+	
+	//the default values for the cRater score
+	annotationData.annotationCRaterScoreValue = null;
+	annotationData.annotationCRaterScorePostTime = null;
+	
+	if(annotationCRaterScore != null) {
+		//get the cRater annotation array
+		var annotationArray = annotationCRaterScore.value;
+		
+		if(annotationArray != null && Array.isArray(annotationArray) && annotationArray.length > 0) {
+			//get the latest element in the array
+			var cRaterAnnotation = annotationArray[annotationArray.length -1];
+			
+			//get the score
+			annotationData.annotationCRaterScoreValue = cRaterAnnotation.score;
+			
+			//get the timestamp for the node state
+			annotationData.annotationCRaterScorePostTime = annotationCRaterScore.postTime;		
+		}
 	}
 	
 	//get the latest annotation post time for comparing with student work post time
@@ -2381,7 +2490,7 @@ View.prototype.getStudentWorkTdHtml = function(studentWork, node, stepWorkId, st
 		
 		//add the post time stamp to the bottom of the student work
 		studentWork += "<div class='lastAnnotationPostTime'>"+this.getI18NString("timestamp")+": " + new Date(latestNodeVisitPostTime) + "</div>";
-	} else if(studentWork != "" && this.isSelfRenderingGradingViewNodeType(node.type)) {
+	} else if(studentWork != "" && node.hasGradingView()) {
 		//create the student work div that we will insert the student work into later
 		studentWork = '<div id="studentWorkDiv_' + stepWorkId + '" style="overflow:auto;width:500px"></div>';
 	} else {
@@ -2614,7 +2723,7 @@ View.prototype.getPeerOrTeacherReviewData = function(studentWork, node, workgrou
  * of the previous revision rows (optional: only required when a step has an auto grading criteria)
  * @return html for the td that will display the score and comment box
  */
-View.prototype.getScoringAndCommentingTdHtml = function(workgroupId, nodeId, teacherId, runId, stepWorkId, annotationScoreValue, annotationCommentValue, latestAnnotationPostTime, isGradingDisabled, scoringAndCommentingTdClass, studentWork, studentWorkRowId) {
+View.prototype.getScoringAndCommentingTdHtml = function(workgroupId, nodeId, teacherId, runId, stepWorkId, annotationScoreValue, annotationCommentValue, latestAnnotationPostTime, isGradingDisabled, scoringAndCommentingTdClass, studentWork, studentWorkRowId, cRaterScore, maxCRaterScore) {
 	var scoringAndCommentingTdHtml = "";
 	
 	//get the max score for this step, or "" if there is no max score
@@ -2734,6 +2843,14 @@ View.prototype.getScoringAndCommentingTdHtml = function(workgroupId, nodeId, tea
 	//display the score box
 	scoringAndCommentingTdHtml += "<tr><td>"+this.getI18NString("score")+": <input type='text' id='annotationScoreTextArea_" + workgroupId + "_" + nodeId + "' value='" + annotationScoreValue + "' onblur=\"eventManager.fire('saveScore', ['"+nodeId+"','"+workgroupId+"', '"+teacherId+"', '"+runId+"', '"+stepWorkId+"'])\" " + isGradingDisabled + "/> / " + maxScore + "</td></tr>";
 	
+	if(maxCRaterScore != null) {
+		if(cRaterScore == null) {
+			cRaterScore = "(Not Yet Scored)";
+		}
+		
+		scoringAndCommentingTdHtml += "<tr><td>Auto "+this.getI18NString("score")+": " + cRaterScore + " / " + maxCRaterScore + "</td></tr>";
+	}
+	
 	var openPremadeCommentsLink = "";
 	
 	if(isGradingDisabled != "disabled") {
@@ -2851,9 +2968,46 @@ View.prototype.evaluateConditional = function(operator, value1, value2) {
 	return result;
 };
 
-View.prototype.getFlaggingTdHtml = function(workgroupId, nodeId, teacherId, runId, stepWorkId, isGradingDisabled, flagChecked, flaggingTdClass) {
+/**
+ * Returns the HTML string for the tools TD element.
+ * "Flag" and "Flag as inappropriate" checkboxes show up in the TD element
+ * @param workgroupId
+ * @param nodeId
+ * @param teacherId
+ * @param runId
+ * @param stepWorkId
+ * @param isGradingDisabled
+ * @param flagChecked
+ * @param flaggingTdClass
+ * @returns {String} Tools TD element HTML string
+ */
+View.prototype.getToolsTdHtml = function(workgroupId, nodeId, teacherId, runId, stepWorkId, isGradingDisabled, flagChecked, flaggingTdClass) {
+	var node = this.getProject().getNodeById(nodeId);
+	var tdHtml = "<td class='" + flaggingTdClass + "'>"+
+	    "<div></div>"+
+	    "<div class='gradeColumn flagColumn'><input type='checkbox' value='Flag' name='flagButton" + workgroupId + "' id='flagButton_" + stepWorkId + "' onClick='eventManager.fire(\"saveFlag\", [\"" + nodeId + "\", " + workgroupId + ", " + teacherId + ", " + runId + ", null, \""+ stepWorkId +"\"])' " + isGradingDisabled + " " + flagChecked + ">"+this.getI18NString("flag")+"</div>";
 	
-	return "<td class='" + flaggingTdClass + "'><div></div><div class='gradeColumn flagColumn'><input type='checkbox' value='Flag' name='flagButton" + workgroupId + "' id='flagButton_" + stepWorkId + "' onClick='eventManager.fire(\"saveFlag\", [\"" + nodeId + "\", " + workgroupId + ", " + teacherId + ", " + runId + ", null, \""+ stepWorkId +"\"])' " + isGradingDisabled + " " + flagChecked + ">"+this.getI18NString("flag")+"</div></td>";
+	if (node.type == "BrainstormNode") {
+		//get the inappropriate flag value for the stepwork
+		var inappropriateFlagForStepWork = this.annotations.getAnnotationByStepWorkIdType(stepWorkId,'inappropriateFlag');
+		
+		//default will be unchecked/unflagged
+		var flagChecked = "";
+		
+		//we found a flag annotation
+		if(inappropriateFlagForStepWork) {
+			//check if it is 'flagged' or 'unflagged'
+			if(inappropriateFlagForStepWork.value == 'flagged') {
+				//the value of the flag is 'flagged' so the checkbox will be checked
+				flagChecked = " checked";
+			}
+		}
+
+		// add 'flag as inappropriate' checkbox, and have it enabled for all revisions.
+	    tdHtml += "<div class='gradeColumn flagColumn'><input type='checkbox' value='Inappropriate Flag' name='inappropriateFlagButton" + workgroupId + "' id='inappropriateFlagButton_" + stepWorkId + "' onClick='eventManager.fire(\"saveInappropriateFlag\", [\"" + nodeId + "\", " + workgroupId + ", " + teacherId + ", " + runId + ", null, \""+ stepWorkId +"\"])' " + flagChecked + ">"+this.getI18NString("flag_as_inappropriate")+"</div>";
+	}
+	tdHtml += "</td>";
+	return tdHtml;
 };
 
 /**
@@ -2877,7 +3031,7 @@ View.prototype.displayGradeByTeamGradingPage = function(workgroupId) {
 	
 	var userNames = this.getUserNamesByWorkgroupId(workgroupId, 0);
 	
-	gradeByTeamGradingPageHtml += "<div class='gradingHeader'><span class='instructions'>目前組別： " + userNames+ "</span>";
+	gradeByTeamGradingPageHtml += "<div class='gradingHeader'><span class='instructions'>Current Team: " + userNames+ "</span>";
 	gradeByTeamGradingPageHtml += "<div style='float:right;'>";
 	
 	//show the step title and prompt
@@ -2898,10 +3052,31 @@ View.prototype.displayGradeByTeamGradingPage = function(workgroupId) {
 		showRevisionsChecked = 'checked';
 	}
 	
+	gradeByTeamGradingPageHtml += "<div>";
+	
 	if (this.getRevisions) {
 		//check box for showing all revisions
-		gradeByTeamGradingPageHtml += "<div><input type='checkbox' id='showAllRevisions' value='show all revisions' onClick=\"eventManager.fire('filterStudentRows')\" " + showRevisionsChecked + "/><p style='display:inline'>"+this.getI18NString("grading_show_all_revisions")+"</p></div>";
+		gradeByTeamGradingPageHtml += "<input type='checkbox' id='showAllRevisions' value='show all revisions' onClick=\"eventManager.fire('filterStudentRows')\" " + showRevisionsChecked + "/><p style='display:inline'>"+this.getI18NString("grading_show_all_revisions")+"</p>";
 	}
+	
+	//get the groups used in this project, if any
+	var allGroupsUsed = this.project.getAllGroupsUsed();
+	
+	if(allGroupsUsed != null && allGroupsUsed.length > 0) {
+		//get the groups that have been assigned to this workgroup
+		var groups = this.getGroupsByWorkgroupId(workgroupId);
+		
+		//create a string from the groups this workgroup is in e.g. "A, B"
+		var groupsString = groups.join(", ");
+
+		//display the link to edit the groups for this workgroup
+		gradeByTeamGradingPageHtml += "<a onclick='eventManager.fire(\"editGroups\", " + workgroupId + ")'>Edit Groups</a>";
+		
+		//display the groups this workgroup is in
+		gradeByTeamGradingPageHtml += "<p id='groups_" + workgroupId + "' style='display:inline'>Groups: " + groupsString + "</p>";
+	}
+	
+	gradeByTeamGradingPageHtml += "</div>";
 	
 	gradeByTeamGradingPageHtml += "</div></div></div>";
 	
@@ -2954,9 +3129,8 @@ View.prototype.displayGradeByTeamGradingPageHelper = function(node, vleState) {
 
 		//get the position as seen by the student
 		var position = this.getProject().getVLEPositionById(nodeId);
-		if(node.type == "HtmlNode" || node.type == "OutsideUrlNode" ||
-				(node.type == "FlashNode" && node.getContent().getContentJSON.enableGrading == false)) {
-			//the node is an html node so we do not need to display a link for it, we will just display the text
+		if(!node.hasGradingView()) {
+			//the node does not have a grading view so we do not need to display a link for it, we will just display the text
 			displayGradeByTeamGradingPageHtml += "<table class='gradeByTeamGradingPageNonWorkStepTable'><tr><td class='chooseStepToGradeStepTd'><p>" + position + " " + node.getTitle() + " (" + node.type + ")</p></td></tr></table>";
 			displayGradeByTeamGradingPageHtml += "<br>";
 		} else if(node.type == 'DuplicateNode'){
@@ -3103,8 +3277,8 @@ View.prototype.displayGradeByTeamGradingPageHelper = function(node, vleState) {
 			//make the css class for the td that will contain the flag checkbox
 			var flaggingTdClass = "gradeByTeamToolsColumn gradeColumn toolsColumn";
 			
-			//get the html for the flag td
-			displayGradeByTeamGradingPageHtml += this.getFlaggingTdHtml(workgroupId, nodeId, teacherId, runId, stepWorkId, isGradingDisabled, flagChecked, flaggingTdClass);
+			//get the html for the tools td
+			displayGradeByTeamGradingPageHtml += this.getToolsTdHtml(workgroupId, nodeId, teacherId, runId, stepWorkId, isGradingDisabled, flagChecked, flaggingTdClass);
 			
 			displayGradeByTeamGradingPageHtml += "</tr>";
 			
@@ -3138,7 +3312,7 @@ View.prototype.displayGradeByTeamGradingPageHelper = function(node, vleState) {
 					displayGradeByTeamGradingPageHtml += "<tr id='studentWorkRow_"+workgroupId+"_"+nodeId+"_" + revisionStepWorkId + "' class='studentWorkRow period" + periodName + " studentWorkRevisionRow studentWorkRevisionRow_" + workgroupId + "_" + nodeId + "' style='display:none'>";
 					displayGradeByTeamGradingPageHtml += this.getStudentWorkTdHtml(revisionWork, node, revisionStepWorkId, studentWorkTdClass, revisionPostTime);
 					displayGradeByTeamGradingPageHtml += this.getScoringAndCommentingTdHtml(workgroupId, nodeId, teacherId, runId, nodeVisitRevision.id, annotationScoreValue, annotationCommentValue, latestAnnotationPostTime, isGradingDisabled, scoringAndCommentingTdClass, revisionWork);
-					displayGradeByTeamGradingPageHtml += this.getFlaggingTdHtml(workgroupId, nodeId, teacherId, runId, revisionStepWorkId, isGradingDisabled, flagChecked, flaggingTdClass);
+					displayGradeByTeamGradingPageHtml += this.getToolsTdHtml(workgroupId, nodeId, teacherId, runId, revisionStepWorkId, isGradingDisabled, flagChecked, flaggingTdClass);
 					displayGradeByTeamGradingPageHtml += "</tr>";
 				}
 			}
@@ -3158,7 +3332,7 @@ View.prototype.displayGradeByTeamGradingPageHelper = function(node, vleState) {
 		 */
 		if(this.activityNumber != 0) {
 			//this node is a sequence so we will display the activity number and title
-			displayGradeByTeamGradingPageHtml += "<table class='gradeByTeamGradingPageActivityTable'><tr><td colspan='2' class='chooseStepToGradeActivityTd'><h4>活動 " + this.activityNumber + ": " + node.getTitle() + "</h4></td><td></td></tr></table>";
+			displayGradeByTeamGradingPageHtml += "<table class='gradeByTeamGradingPageActivityTable'><tr><td colspan='2' class='chooseStepToGradeActivityTd'><h4>Activity " + this.activityNumber + ": " + node.getTitle() + "</h4></td><td></td></tr></table>";
 			displayGradeByTeamGradingPageHtml += "";
 		}
 
@@ -3308,7 +3482,7 @@ View.prototype.getPeriodRadioButtonTableHtml = function(displayType) {
 		
 		//create a radio button for each period
 		//periodRadioButtonTableHtml += "<div class='periodRadioChoice' ><input type='radio' name='choosePeriod' value='period" + periods[p] + "' onClick=\"eventManager.fire('filterStudentRows')\" " + periodChecked + "> Period " + periods[p] + "</div>";
-		periodRadioButtonTableHtml += "<a id='period" + periods[p] + "' class='periodChoice " + periodChecked + "' onClick=\"eventManager.fire('setSelectedPeriod',this)\">班級 " + periods[p] + "</a>";
+		periodRadioButtonTableHtml += "<a id='period" + periods[p] + "' class='periodChoice " + periodChecked + "' onClick=\"eventManager.fire('setSelectedPeriod',this)\">Period " + periods[p] + "</a>";
 	}
 
 	periodRadioButtonTableHtml += "</div>";
@@ -3434,7 +3608,7 @@ View.prototype.displayFinished = function() {
 	$(window).resize(function(){
 		// fix the height of the gradeWorkDiv so no scrollbars are displayed for the iframe
 		that.fixGradingDisplayHeight();
-	})
+	});
 };
 
 /**
@@ -3463,7 +3637,7 @@ View.prototype.fixGradingDisplayHeight = function() {
 		$('#statisticsTable').width($('#chooseStepToGradeTable').width()+10);
 	} else if (this.gradingType == "team"){
 		//fix the width of the fixedHeader clone to match the team select table
-		// TODO: remove when fixedHeader init option "right": true no long throws error
+		// TODO: remove when fixedHeader init option "right": true no longer throws error
 		$('.fixedHeader').width($('#chooseTeamToGradeTable_wrapper').width());
 	}
 };
@@ -3647,6 +3821,23 @@ View.prototype.isEnlargeStudentWorkText = function() {
 };
 
 /**
+ * Determine if the 'Only Show New Work' checkbox is checked
+ * @returns whether the 'Only Show New Work' checkbox is checked
+ */
+View.prototype.isOnlyShowNewStudentWorkChecked = function() {
+	var result = false;
+	
+	//get the checked attribute
+	var checked = $('#onlyShowNewStudentWorkCheckBox').attr('checked');
+	
+	if(checked == 'checked') {
+		result = true;
+	}
+	
+	return result;
+};
+
+/**
  * Determine if the "Sort By Auto Graded Score" checkbox is checked
  * @return whether the "Sort By Auto Graded Score" checkbox is checked
  */
@@ -3718,6 +3909,13 @@ View.prototype.filterStudentRows = function() {
 
 	if(enlargeStudentWorkText != null) {
 		this.gradingEnlargeStudentWorkText = enlargeStudentWorkText;
+	}
+	
+	//get whether we are only showing new work
+	var onlyShowNewStudentWork = this.isOnlyShowNewStudentWorkChecked();
+	
+	if(onlyShowNewStudentWork != null) {
+		this.gradingOnlyShowNewStudentWork = onlyShowNewStudentWork;
 	}
 	
 	// tell node to show/hide smart filter
@@ -3807,6 +4005,14 @@ View.prototype.filterStudentRows = function() {
 			//filter smart filtered items
 			if(studentRowClass.indexOf('smartFilterHide') != -1 || studentRowClass.indexOf('noWork') != -1) {
 				//the smart filter has set this row to be hidden
+				displayStudentRow = false;
+			}
+		}
+		
+		if(onlyShowNewStudentWork) {
+			//we are only showing new work
+			if(studentRowClass.indexOf('newWork') == -1) {
+				//this is not new work so we will not show it
 				displayStudentRow = false;
 			}
 		}
@@ -4120,7 +4326,7 @@ View.prototype.renderAllStudentWorkForNode = function(node) {
 		 * for new node types at the moment. we will convert all the other steps to
 		 * this way later.
 		 */
-		if(this.isSelfRenderingGradingViewNodeType(node.type)) {
+		if(node.hasGradingView()) {
 			//check if the student submitted any work
 			if(latestNodeVisit != null) {
 				//render the student work for the node visit
@@ -4155,7 +4361,7 @@ View.prototype.renderAllStudentWorkForWorkgroupId = function(workgroupId) {
 		 * for new node types at the moment. we will convert all the other steps to
 		 * this way later.
 		 */
-		if(this.isSelfRenderingGradingViewNodeType(node.type)) {
+		if(node.hasGradingView()) {
 			//get the latest node visit for this workgroup for this node
 			var latestNodeVisit = vleState.getLatestNodeVisitByNodeId(nodeId);
 			
@@ -4195,21 +4401,7 @@ View.prototype.renderStudentWorkFromNodeVisit = function(nodeVisit, workgroupId)
 			//the div is empty so we need to render the student work
 			
 			//tell the node to insert/render the student work into the div
-			if(node.type == "FlashNode"){
-				if(node.getContent().getContentJSON().gradingType == "flashDisplay"){
-					//if node type if FlashNode and grading type is set to flashDisplaty render Flash applet with stored student data
-					var nodeContent = node.getContent().getContentJSON();
-					node.renderGradingViewFlash("studentWorkDiv_" + stepWorkId, nodeVisit, "", workgroupId, nodeContent);
-				} else if (node.getContent().getContentJSON().gradingType == "custom"){
-					//if node type if FlashNode and grading type is set to custom render custom grading output
-					var nodeContent = node.getContent().getContentJSON();
-					node.renderGradingViewCustom("studentWorkDiv_" + stepWorkId, nodeVisit, "", workgroupId, nodeContent);
-				} else {
-					node.renderGradingView("studentWorkDiv_" + stepWorkId, nodeVisit, "", workgroupId);
-				}
-			} else {
-				node.renderGradingView("studentWorkDiv_" + stepWorkId, nodeVisit, "", workgroupId);
-			}
+			node.renderGradingView("studentWorkDiv_" + stepWorkId, nodeVisit, "", workgroupId);
 			
 			//add the post time stamp to the bottom of the student work
 			$("#studentWorkDiv_" + stepWorkId).append("<p class='lastAnnotationPostTime'>"+this.getI18NString("timestamp")+": " + new Date(nodeVisitPostTime) + "</p>");	
@@ -4276,6 +4468,161 @@ View.prototype.getStudentWorkByStudentWorkId = function(studentWorkId, workgroup
 	
 	//we did not find any matching student work id/nodevisit id
 	return null;
+};
+
+/**
+ * Display the popup to allow the teacher to change the groups that
+ * this workgroup is in
+ * @param workgroupId the workgroup id
+ */
+View.prototype.editGroups = function(workgroupId) {
+	//check if the hintsDiv div exists
+    if($('#editGroupsPanel').size()==0){
+    	//the show hintsDiv does not exist so we will create it
+    	$('<div id="editGroupsPanel"></div>').dialog(
+		{	autoOpen:false,
+			closeText:'Close',
+			modal:false,
+			show:{effect:"fade",duration:200},
+			hide:{effect:"fade",duration:200},
+			title:"Edit Groups",
+			zindex:9999,
+			width:600,
+			height:'auto',
+			position:["center","middle"],
+			resizable:true    					
+		}).bind( "dialogbeforeclose", {view:this}, function(event, ui) {
+		    // before the dialog closes, save hintstate
+	    	//if ($(this).data("dialog").isOpen()) {	    		    		
+	    	//	var hintState = new HINTSTATE({"action":"hintclosed","nodeId":event.data.view.getCurrentNode().id});
+	    	//	event.data.view.pushHintState(hintState);
+	    		//$('#hintsHeader').html('&nbsp').addClass('visited');
+	    	//};
+	    });
+    };
+    
+    var editGroupsHtml = "";
+    editGroupsHtml += "<div>";
+
+    //get all the groups used in the project
+    var allGroupsUsed = this.project.getAllGroupsUsed();
+    
+    //get all the groups this workgroup is in
+	var groupsForWorkgroupId = this.getGroupsByWorkgroupId(workgroupId);
+    
+    if(allGroupsUsed != null) {
+    	//loop through all the groups used in the project
+    	for(var x=0; x<allGroupsUsed.length; x++) {
+    		var group = allGroupsUsed[x];
+    		var checked = '';
+    		
+    		if(groupsForWorkgroupId != null && groupsForWorkgroupId.indexOf(group) != -1) {
+    			//this workgroup is in this group so we will check the checkbox
+    			checked = 'checked';
+    		}
+    		
+    		//display a checkbox for this group
+    		editGroupsHtml += "<input type='checkbox' " + checked + " name='groupCheckBox' value='" + group + "' onclick='eventManager.fire(\"groupClicked\", " + workgroupId + ")'/>" + group;
+    		editGroupsHtml += "<br>";
+    	}
+    }
+    
+    editGroupsHtml += "</div>";
+
+    //set the html in the popup
+    $('#editGroupsPanel').html(editGroupsHtml);
+    
+    //open the popup
+    $('#editGroupsPanel').dialog('open');
+};
+
+/**
+ * The teacher has clicked one of the group checkboxes in the edit groups popup
+ */
+View.prototype.groupClicked = function(workgroupId) {
+	var groups = [];
+	
+	//get all the group checkboxes that are checked
+	var checkedGroups = $('input[name=groupCheckBox]:checked');
+	
+	//loop through all the groups that are checked
+	for(var x=0; x<checkedGroups.length; x++) {
+		var checkedGroup = checkedGroups[x];
+		
+		if(checkedGroup != null) {
+			//add the group to our array
+			groups.push($(checkedGroup).val());			
+		}
+	}
+	
+	//get the run annotation for this workgroup
+	var runAnnotation = this.getRunAnnotationByWorkgroupId(workgroupId);
+	
+	if(runAnnotation == null) {
+		runAnnotation = {};
+	}
+	
+	if(runAnnotation.value == null) {
+		runAnnotation.value = {};
+	}
+	
+	//get the run annotation value
+	var runAnnotationValue = runAnnotation.value;
+	
+	//set the groups
+	runAnnotationValue.groups = groups;
+	
+	var nodeId = null;
+	var toWorkgroupId = workgroupId;
+	var fromWorkgroupId = this.getUserAndClassInfo().getTeacherWorkgroupId();
+	var runId = this.config.getConfigParam("runId");
+	var stepWorkId = null;
+	
+	//save the annotation to the server
+	this.saveRunAnnotation(nodeId, toWorkgroupId, fromWorkgroupId, runId, stepWorkId, runAnnotation);
+	
+	//get the string value of the array of groups that this workgroup is in
+	var groupsString = groups.join(", ");
+	
+	//update the grading UI with the new groups
+	$('#groups_' + workgroupId).html('Groups: ' + groupsString);
+};
+
+/**
+ * Get the run annotation by workgroup id
+ * @param workgroupId the workgroup id
+ * @returns the run annotation for the workgroup or null if it does not exist
+ */
+View.prototype.getRunAnnotationByWorkgroupId = function(workgroupId) {
+	//get the run annotations for this workgroup id
+	var runAnnotations = this.annotations.getAnnotationsByToWorkgroupType(workgroupId, "run");
+	var runAnnotation = null;
+	
+	if(runAnnotations != null && runAnnotations.length > 0){
+		//there should only be one run annotation for a workgroup
+		runAnnotation = runAnnotations[0];
+	}
+	
+	return runAnnotation;
+};
+
+/**
+ * Get the groups this workgroup is in
+ * @param workgroupId the workgroup id
+ * @returns an array of groups that this workgroup is in
+ */
+View.prototype.getGroupsByWorkgroupId = function(workgroupId) {
+	var groups = [];
+	
+	//get the run annotation
+	var runAnnotation = this.getRunAnnotationByWorkgroupId(workgroupId);
+	
+	if(runAnnotation != null && runAnnotation.value != null && runAnnotation.value.groups != null) {
+		//get the groups
+		groups = runAnnotation.value.groups;
+	}
+	
+	return groups;
 };
 
 /**

@@ -25,7 +25,7 @@ function hasClass(identifier, classString) {
  * Clears innerHTML of a div with id=feedbackDiv
  */
 function clearFeedbackDiv() {
-	document.getElementById("feedbackDiv").innerHTML = "";
+	$("#feedbackDiv").html('');
 };
 
 /**
@@ -82,17 +82,18 @@ function setResponseBoxEnabled(doEnable) {
  * part2 example: attempt
  * part2 example2: revision
  */
+ // modified by Richard 2012/1/18
 function displayNumberAttempts(part1, part2, states) {
 	var nextAttemptNum = states.length + 1;
 	var nextAttemptString = "";
 	if (nextAttemptNum == 1) {
-		nextAttemptString = "1st";		
+		nextAttemptString = "1";		
 	} else if (nextAttemptNum == 2) {
-		nextAttemptString = "2nd";		
+		nextAttemptString = "2";		
 	} else if (nextAttemptNum == 3) {
-		nextAttemptString = "3rd";		
+		nextAttemptString = "3";		
 	} else {
-		nextAttemptString = nextAttemptNum + "th";		
+		nextAttemptString = nextAttemptNum;		
 	}
 	var numAttemptsDiv = document.getElementById("numberAttemptsDiv");
 	var numAttemptsDivHtml = part1 + " " + nextAttemptString + " " + part2 +".";
@@ -128,13 +129,13 @@ function getNumberAttemptsMessage(part1, part2, numAttempts) {
 	if(numAttempts == null) {
 		
 	} else if (numAttempts == 1) {
-		attemptsMessage = "1st";		
+		attemptsMessage = "1";		
 	} else if (numAttempts == 2) {
-		attemptsMessage = "2nd";		
+		attemptsMessage = "2";		
 	} else if (numAttempts == 3) {
-		attemptsMessage = "3rd";		
+		attemptsMessage = "3";		
 	} else {
-		attemptsMessage = numAttempts + "th";		
+		attemptsMessage = numAttempts;		
 	}
 
 	var numAttemptsDivHtml = part1 + " " + attemptsMessage + " " + part2 +".";

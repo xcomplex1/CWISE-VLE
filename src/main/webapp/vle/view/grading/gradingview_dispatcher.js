@@ -13,6 +13,8 @@ View.prototype.gradingDispatcher = function(type, args, obj) {
 		obj.saveComment(args[0], args[1], args[2], args[3], args[4], args[5]);
 	} else if(type=='saveFlag') {
 		obj.saveFlag(args[0], args[1], args[2], args[3], args[4], args[5]);
+	} else if(type=='saveInappropriateFlag') {
+		obj.saveInappropriateFlag(args[0], args[1], args[2], args[3], args[4], args[5]);
 	} else if(type=='processUserAndClassInfoComplete') {
 		obj.getProjectMetaData();
 	} else if(type=='gradingConfigUrlReceived') {
@@ -30,6 +32,8 @@ View.prototype.gradingDispatcher = function(type, args, obj) {
 		obj.getLatestStudentWorkXLSExport();
 	} else if(type=='getIdeaBasketsExcelExport') {
 		obj.getIdeaBasketsExcelExport();
+	} else if(type=='getFlashExcelExport') {
+		obj.getFlashExcelExport();
 	} else if(type=='getExplanationBuilderWorkExcelExport') {
 		obj.getExplanationBuilderWorkExcelExport();
 	} else if(type=='getCustomLatestStudentWorkExport') {
@@ -98,6 +102,10 @@ View.prototype.gradingDispatcher = function(type, args, obj) {
 		obj.displayExportExplanation(args[0]);
 	} else if(type=='setSelectedPeriod') {
 		obj.setSelectedPeriod(args[0]);
+	} else if(type=='editGroups') {
+		obj.editGroups(args[0]);
+	} else if(type=='groupClicked') {
+		obj.groupClicked(args[0]);
 	}
 };
 

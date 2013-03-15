@@ -169,7 +169,7 @@ MC.prototype.render = function() {
 		document.getElementById("checkAnswerButton").innerHTML = "儲存答案";
 		document.getElementById("tryAgainButton").innerHTML = "編輯答案";
 	} else {
-		displayNumberAttempts("這是您的", "次填答", this.attempts);
+		displayNumberAttempts("這是您的第", "次填答", this.attempts);
 	};
 	
 	//get the latest state
@@ -185,7 +185,7 @@ MC.prototype.render = function() {
 		if(this.isChallengeScoringEnabled()) {
 			//display the score they received
 			var score = this.getScore(this.attempts.length);
-			resultMessage += " You received " + score + " point(s).";
+			resultMessage += " 您得到 " + score + " 分";
 		}
 		
 		$('#resultMessageDiv').html(resultMessage);
@@ -437,7 +437,7 @@ MC.prototype.checkAnswer = function() {
 				mcState.score = score;
 				
 				//display the score they received
-				resultMessage += " You received " + score + " point(s).";
+				resultMessage += " 您得到 " + score + " 分";
 			} else {
 				//student answered incorrectly
 				mcState.score = 0;
@@ -516,10 +516,10 @@ MC.prototype.enforceMaxChoices = function(inputs){
 		};
 		
 		if(countChecked>maxChoices){
-			this.node.view.notificationManager.notify('You have selected too many. Please select only ' + maxChoices + ' choices.',3);
+			this.node.view.notificationManager.notify('您選擇太多選項。 只需選擇 ' + maxChoices + ' 個選項。',3);
 			return false;
 		} else if(countChecked<maxChoices){
-			this.node.view.notificationManager.notify('You have not selected enough. Please select ' + maxChoices + ' choices.',3);
+			this.node.view.notificationManager.notify('您尚未選擇足夠的選項。 請選擇 ' + maxChoices + ' 個選項。',3);
 			return false;
 		};
 	};
@@ -574,7 +574,7 @@ MC.prototype.getResultMessage = function(isCorrect){
 			/* create the linkTo and add it to the message */
 			var linkTo = {key:this.node.utils.generateKey(),nodePosition:position};
 			this.node.addLink(linkTo);
-			msg += '<a style=\"color:blue;text-decoration:underline;font-weight:bold;cursor:pointer\" onclick=\"node.linkTo(\'' + linkTo.key + '\')\">Step ' + stepNumberAndTitle + '</a> 才能再次填答';
+			msg += '<a style=\"color:blue;text-decoration:underline;font-weight:bold;cursor:pointer\" onclick=\"node.linkTo(\'' + linkTo.key + '\')\">Step ' + stepNumberAndTitle + '</a> 才能再次填';
 			
 			//create the message that will display in the alert
 			var optsMsg = 'You must visit "Step ' + stepNumberAndTitle + '" before trying this step again.';

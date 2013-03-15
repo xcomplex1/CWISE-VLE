@@ -12,7 +12,7 @@ var componentloader = function(em, sl){
 	
 	//place components in the order you want them to load
 	var views = {
-		vle: ['topMenu','setup', 'core', 'keystroke', 'config', 'studentXMPP', 'user', 'session','studentwork','vle','hint','navigation','menu','audio','annotations','uicontrol', 'wise', 'maxscores', 'journal', 'peerreviewhelper', 'ideabasket', 'studentasset'],
+		vle: ['topMenu','setup', 'core', 'keystroke', 'config', 'studentXMPP', 'user', 'session','studentwork','vle','hint','navigation','menu','audio','annotations','uicontrol', 'wise', 'maxscores', /*'journal',*/ 'peerreviewhelper', 'ideabasket', 'studentasset'],
 		grading: ['setup', 'core', 'config', 'teacherXMPP', 'studentwork', 'user', 'session', 'grading', 'annotations', 'maxscores', 'ideabasket'],
 		//grading_min: ['setup', 'core', 'config', 'teacherXMPP', 'studentwork', 'user', 'session', 'grading', 'annotations', 'maxscores', 'ideabasket'],
 		grading_min: ['setup', 'core_min', 'config', 'teacherXMPP_min', 'studentwork_min', 'user', 'session', 'grading_min', 'annotations_min', 'maxscores_min', 'ideabasket'],
@@ -30,8 +30,11 @@ var componentloader = function(em, sl){
 				HTML_CONTENT_TEMPLATES:{}, 
 				isLoadedProjectMinified:false, 
 				minifierUrl:'../util/minifier.html',
-				iconUrl:'images/stepIcons/UCCP/',
-				nodeClasses:{}
+				//iconUrl:'images/stepIcons/UCCP/',
+				nodeClasses:{},
+				nodeIconPaths:{},
+				activeThemes: [],
+				themeNavModes: {}
 			},
 			events: {
 				'loadingProjectStart': [null, null], 
@@ -67,29 +70,29 @@ var componentloader = function(em, sl){
 					//define the width of the note dialog
 					var noteWidth = 650;
 					
-					//define the x position of the note dialog so that it shows up in the center of the document
-					var noteXPos = (document.width / 2) - (noteWidth / 2);
+					var maxHeight = $(window).height() - 100;
 					
 					$('#notePanel').dialog({
 						autoOpen:false,
 						width:noteWidth,
-						title:'反思筆記',
+						title:'Reflection Note',
 						resizable:false,
-						position: [noteXPos, 45],
+						show:{effect:"fade",duration:200},
+						hide:{effect:"fade",duration:200},
+						position: ['center','middle'],
 						closeOnEscape: false,
+						zIndex: '99999',
 						open: function(){
-							// add transparent overlay to contentDiv to disable editing of previous step while note is open
-							var height = $('#contentDiv').height()+10000;
-							var width = $('#contentDiv').width()+10000;
-							var contentOverlay = $(document.createElement('div')).attr('id','contentOverlay').css({'position':'absolute', 'left':0, 'top':0, 'height':height, 'width':width, 'overflow':'hidden'});
-							$('#contentDiv').after(contentOverlay);
+							$(this).css({'max-height':maxHeight, 'overflow-y':'auto'});
 							
-							// hide closing "X" for this dialog
-						     $(this).parent().children().children("a.ui-dialog-titlebar-close").remove();
-						},
-						close: function(){
-							// remove transparent overlay on contentDiv
-							$('#contentOverlay').remove();
+							// add transparent overlay to step content to disable editing of previous step when note is opened
+							var contentOverlay = $(document.createElement('div')).attr('id','contentOverlay').css({'position':'fixed', 'left':0, 'width':'100%', 'top':0, 'height':'100%', 'z-index':99999 });
+							$('body',$('#ifrm')[0].contentWindow.document).append(contentOverlay);
+							
+							// bind click event to X link in dialog that saves and closes note
+							$(this).parent().children().children("a.ui-dialog-titlebar-close").click(function(){
+								window.eventManager.fire('saveAndCloseNote');
+							});
 						}
 					});
 				}
@@ -181,9 +184,11 @@ var componentloader = function(em, sl){
 					 'saveScore':[null, null],
 					 'saveComment':[null, null],
 					 'saveFlag':[null, null],
+					 'saveInappropriateFlag':[null, null],
 					 'getAllStudentWorkXLSExport':[null, null],
 					 'getLatestStudentWorkXLSExport':[null, null],
 					 'getIdeaBasketsExcelExport':[null, null],
+					 'getFlashExcelExport':[null, null],
 					 'getExplanationBuilderWorkExcelExport':[null, null],
 					 'getCustomLatestStudentWorkExport':[null, null],
 					 'getCustomAllStudentWorkExport':[null, null],
@@ -213,7 +218,9 @@ var componentloader = function(em, sl){
 					 'addPremadeComment':[null, null],
 					 'deletePremadeComment':[null, null],
 					 'getIdeaBasketsComplete':[null, null],
-					 'setSelectedPeriod':[null, null]},
+					 'setSelectedPeriod':[null, null],
+					 'editGroups':[null, null],
+					 'groupClicked':[null, null]},
    		    methods:{
 			  onWindowUnload:function(view){return function(){view.onWindowUnload();};}
 		    },					 
@@ -234,9 +241,11 @@ var componentloader = function(em, sl){
 					eventManager.subscribe("saveScore", view.gradingDispatcher, view);
 					eventManager.subscribe("saveComment", view.gradingDispatcher, view);
 					eventManager.subscribe("saveFlag", view.gradingDispatcher, view);
+					eventManager.subscribe("saveInappropriateFlag", view.gradingDispatcher, view);
 					eventManager.subscribe("getAllStudentWorkXLSExport", view.gradingDispatcher, view);
 					eventManager.subscribe("getLatestStudentWorkXLSExport", view.gradingDispatcher, view);
 					eventManager.subscribe("getIdeaBasketsExcelExport", view.gradingDispatcher, view);
+					eventManager.subscribe("getFlashExcelExport", view.gradingDispatcher, view);
 					eventManager.subscribe("getExplanationBuilderWorkExcelExport", view.gradingDispatcher, view);
 					eventManager.subscribe("getCustomLatestStudentWorkExport", view.gradingDispatcher, view);
 					eventManager.subscribe("getCustomAllStudentWorkExport", view.gradingDispatcher, view);
@@ -269,6 +278,8 @@ var componentloader = function(em, sl){
 					eventManager.subscribe("deletePremadeComment", view.gradingDispatcher, view);
 					eventManager.subscribe("getIdeaBasketsComplete", view.gradingDispatcher, view);
 					eventManager.subscribe("setSelectedPeriod", view.gradingDispatcher, view);
+					eventManager.subscribe("editGroups", view.gradingDispatcher, view);
+					eventManager.subscribe("groupClicked", view.gradingDispatcher, view);
 					eventManager.initializeLoading([['gradingConfigUrlReceived','projectDataReceived','Project Data'], 
 					                                ['initiateGradingDisplayStart','getStudentWorkComplete','Student Data'],
 					                                ['initiateClassroomMonitorDisplayStart','classroomMonitorDisplayComplete','Classroom Monitor']], false);
@@ -297,7 +308,7 @@ var componentloader = function(em, sl){
 				portalProjectId:undefined, 
 				portalCurriculumBaseDir:undefined, 
 				excludedPrevWorkNodes:['HtmlNode', 'OutsideUrlNode', 'MySystemNode', 'SVGDrawNode', 'MWNode', 'DrawNode','DuplicateNode'], 
-				allowedAssetExtensions:['jpg', 'jpeg', 'gif', 'png', 'swf', 'flv', 'bmp', 'tif', 'pdf', 'nlogo', 'jar', 'cml', 'mml', 'otml', 'mov', 'mp4', 'avi', 'wmv', 'mpg', 'mpeg', 'ogg', 'jnlp'],
+				allowedAssetExtensions:['jpg', 'jpeg', 'gif', 'png', 'swf', 'flv', 'bmp', 'tif', 'pdf', 'nlogo', 'jar', 'cml', 'mml', 'otml', 'mov', 'mp4', 'mp3', 'wav', 'aac', 'avi', 'wmv', 'mpg', 'mpeg', 'ogg', 'css', 'jnlp'],
 				MAX_ASSET_SIZE:52428800, 
 				currentStepNum:undefined, 
 				activeNode:undefined, 
@@ -305,7 +316,7 @@ var componentloader = function(em, sl){
 				defaultSelectModeMessage:'為您選取的項目選擇一個新的位置。',
 				defaultNodeSelectMessage:'為您選取的步驟選擇一個新的位置。 ' +
 					'如果您選取一個活動，該活動的步驟會隨著步驟一起移動。',
-				defaultSequenceSelectMessage:'Select a new location for the selected activity(s).',
+				defaultSequenceSelectMessage:'為您選取的活動選擇一個新的位置。',
 				hasProjectMeta:false, 
 				projectMeta:{title:'', subject:'', summary:'', author:'', gradeRange:'', totalTime:'', compTime:'', contact:'', techReqs:'', tools:'', lessonPlan:'', standards:'', keywords:''},
 				timeoutVars:{}, 
@@ -433,6 +444,7 @@ var componentloader = function(em, sl){
 				'updateProject':[null,null],
 				'openStepTypeDescriptions':[null,null],
 				'displayTagView':[null,null],
+				'displayImportView':[null,null],
 				'populateAddTagSelect':[null,null],
 				'populateAddTagMapSelect':[null,null],
 				'addTag':[null,null],
@@ -440,7 +452,9 @@ var componentloader = function(em, sl){
 				'removeTag':[null,null],
 				'tagNameChanged':[null,null],
 				'tagMapChanged':[null,null],
-				'removeTagMap':[null,null]
+				'removeTagMap':[null,null],
+				'openProjectInImportView':[null,null],
+				'importSelectedItems':[null,null]
 			},
 			methods: {
 				onWindowUnload:function(view){return function(){view.onWindowUnload();};}
@@ -572,6 +586,7 @@ var componentloader = function(em, sl){
 					view.eventManager.subscribe('projectTagRemoveTag', view.projectTagsDispatcher, view);
 					view.eventManager.subscribe('browserResize', view.authorDispatcher, view);
 					view.eventManager.subscribe('displayTagView', view.authorDispatcher, view);
+					view.eventManager.subscribe('displayImportView', view.authorDispatcher, view);
 					view.eventManager.subscribe('populateAddTagSelect', view.authorDispatcher, view);
 					view.eventManager.subscribe('populateAddTagMapSelect', view.authorDispatcher, view);
 					view.eventManager.subscribe('addTag', view.authorDispatcher, view);
@@ -580,6 +595,8 @@ var componentloader = function(em, sl){
 					view.eventManager.subscribe('tagNameChanged', view.authorDispatcher, view);
 					view.eventManager.subscribe('tagMapChanged', view.authorDispatcher, view);
 					view.eventManager.subscribe('removeTagMap', view.authorDispatcher, view);
+					view.eventManager.subscribe('openProjectInImportView', view.authorDispatcher, view);
+					view.eventManager.subscribe('importSelectedItems', view.authorDispatcher, view);
 					
 					if (window.parent && window.parent.portalAuthorUrl) {
 						window.parent.loaded();
@@ -609,8 +626,9 @@ var componentloader = function(em, sl){
 					view.initializeReviewUpdateProjectDialog();
 					view.initializeStepTypeDescriptionsDialog();
 					view.initializeTagViewDialog();
+					view.initializeImportViewDialog();
 										
-					window.onunload = env.onWindowUnload();
+					window.onunload = env.onWindowUnload;
 				}
 			}
 		},
@@ -625,13 +643,13 @@ var componentloader = function(em, sl){
 				MAX_ASSET_SIZE:2097152				
 			},
 			events:{
-				'startVLEFromConfig':[null,null],'startVLEFromParams':[null,null],'retrieveLocalesComplete':[null,null],'renderNode':[null,null], 'renderNodeStart':[null,null],
+				'startVLEFromConfig':[null,null],'startVLEFromParams':[null,null],'retrieveLocalesComplete':[null,null],'retrieveThemeLocalesComplete':[null,null],'renderNode':[null,null],
 				'renderNodeComplete':[null,null],'resizeNote':[null,null],'onNotePanelResized':[null,null], 'startVLEBegin':[null,null],
 				'startVLEComplete':[null,null], 'setStyleOnElement':[null,null], 'closeDialogs':[null,null], 'closeDialog':[null,null],
 				'postAllUnsavedNodeVisits':[null,null], 'pushStudentWork':[null,null],
 				'ifrmLoaded':[null,null], 'processLoadViewStateResponseComplete':[null,null], 'saveNote':[null,null],
 				'saveAndLockNote':[null,null], 'noteHandleEditorKeyPress':[null,null], 'noteShowStarter':[null,null],
-				'renderConstraints':[null,null], 'saveAndCloseNote':[null,null], 'importWork':[null,null]
+				'renderConstraints':[null,null], 'saveAndCloseNote':[null,null], 'importWork':[null,null], 'loadingThemeComplete':[null,null]
 			},
 			methods:{},
 			initialize:{
@@ -640,13 +658,13 @@ var componentloader = function(em, sl){
 						view.eventManager.subscribe('startVLEFromConfig',view.vleDispatcher, view);
 						view.eventManager.subscribe('startVLEFromParams', view.vleDispatcher, view);
 						view.eventManager.subscribe('retrieveLocalesComplete', view.vleDispatcher, view);
+						view.eventManager.subscribe('retrieveThemeLocalesComplete', view.vleDispatcher, view);
 						view.eventManager.subscribe('loadingProjectStart', view.vleDispatcher, view);
 						view.eventManager.subscribe('loadingProjectComplete', view.vleDispatcher, view);
 						view.eventManager.subscribe('getUserAndClassInfoBegin', view.vleDispatcher, view);
 						view.eventManager.subscribe('getUserAndClassInfoComplete', view.vleDispatcher, view);
 						view.eventManager.subscribe('processLoadViewStateResponseComplete', view.vleDispatcher, view);
 						view.eventManager.subscribe('renderNode', view.vleDispatcher, view);
-						view.eventManager.subscribe('renderNodeStart', view.vleDispatcher, view);
 						view.eventManager.subscribe('renderNodeComplete', view.vleDispatcher, view);
 						view.eventManager.subscribe('resizeNote', view.vleDispatcher, view);
 						view.eventManager.subscribe('onNotePanelResized', view.vleDispatcher, view);
@@ -668,6 +686,8 @@ var componentloader = function(em, sl){
 						view.eventManager.subscribe('saveAndCloseNote', view.vleDispatcher, view);
 						view.eventManager.subscribe('importWork', view.vleDispatcher, view);
 						view.eventManager.subscribe('startVLEComplete', view.vleDispatcher, view);
+						view.eventManager.subscribe('loadingThemeComplete', view.vleDispatcher, view);
+						view.eventManager.subscribe('scriptsLoaded', view.vleDispatcher, view);
 						view.eventManager.initializeLoading([['loadingProjectStart','loadingProjectComplete','Project'],
 						                                     ['getUserAndClassInfoBegin','getUserAndClassInfoComplete', 'Learner Data'], 
 						                                     ['getUserAndClassInfoBegin', 'renderNodeComplete', 'Learning Environment']]);
@@ -746,11 +766,11 @@ var componentloader = function(em, sl){
 		},
 		menu:{
 			variables:{myMenu:undefined,navigationPanel:undefined},
-			events:{'toggleNavigationPanelVisibility':[null,null],
+			events:{//'toggleNavigationPanelVisibility':[null,null],
 				'menuExpandAll':[null,null],
 				'menuCollapseAll':[null,null],
 				'menuCollapseAllNonImmediate':[null,null],
-				'toggleMenu':[null,null],
+				'toggleSequence':[null,null],
 				'resizeMenu':[null,null],
 				'logout':[null,null],
 				'displayMenuBubble':[null,null],
@@ -758,17 +778,18 @@ var componentloader = function(em, sl){
 				'removeAllMenuBubbles':[null,null],
 				'highlightStepInMenu':[null,null],
 				'unhighlightStepInMenu':[null,null],
-				'updateStepRightIcon':[null,null]
+				'updateStepStatusIcon':[null,null],
+				'menuCreated': [null,null]
 			},
 			initialize:{
 				init:function(view){
-					view.eventManager.subscribe('loadingProjectComplete', view.menuDispatcher, view);
+					view.eventManager.subscribe('menuCreated', view.menuDispatcher, view);
 					view.eventManager.subscribe('renderNodeComplete', view.menuDispatcher, view);
-					view.eventManager.subscribe('toggleNavigationPanelVisibility', view.menuDispatcher, view);
+					//view.eventManager.subscribe('toggleNavigationPanelVisibility', view.menuDispatcher, view);
 					view.eventManager.subscribe('menuExpandAll', view.menuDispatcher, view);
 					view.eventManager.subscribe('menuCollapseAll', view.menuDispatcher, view);
 					view.eventManager.subscribe('menuCollapseAllNonImmediate', view.menuDispatcher, view);
-					view.eventManager.subscribe('toggleMenu', view.menuDispatcher, view);
+					view.eventManager.subscribe('toggleSequence', view.menuDispatcher, view);
 					view.eventManager.subscribe('resizeMenu', view.menuDispatcher, view);
 					view.eventManager.subscribe('updateNavigationConstraints', view.menuDispatcher, view);
 					view.eventManager.subscribe('displayMenuBubble', view.menuDispatcher, view);
@@ -776,7 +797,7 @@ var componentloader = function(em, sl){
 					view.eventManager.subscribe('removeAllMenuBubbles', view.menuDispatcher, view);
 					view.eventManager.subscribe('highlightStepInMenu', view.menuDispatcher, view);
 					view.eventManager.subscribe('unhighlightStepInMenu', view.menuDispatcher, view);
-					view.eventManager.subscribe('updateStepRightIcon', view.menuDispatcher, view);
+					view.eventManager.subscribe('updateStepStatusIcon', view.menuDispatcher, view);
 				}
 			}
 		},
@@ -828,6 +849,7 @@ var componentloader = function(em, sl){
 					'displayProgress':[null,null],
 					'showFlaggedWork':[null,null],
 					'showStepHints':[null,null],
+					'showNodeAnnotations':[null,null],
 					'adjustHintSize':[null,null],
 					'showNavigationTree':[null,null],
 					'getIdeaBasket':[null,null],
@@ -850,6 +872,7 @@ var componentloader = function(em, sl){
 					view.eventManager.subscribe('displayProgress', view.dropDownMenuDispatcher, view);
 					view.eventManager.subscribe('showFlaggedWork', view.dropDownMenuDispatcher, view);
 					view.eventManager.subscribe('showStepHints', view.dropDownMenuDispatcher, view);
+					view.eventManager.subscribe('showNodeAnnotations', view.dropDownMenuDispatcher, view);
 					view.eventManager.subscribe('adjustHintSize', view.dropDownMenuDispatcher, view);
 					view.eventManager.subscribe('showNavigationTree', view.dropDownMenuDispatcher, view);
 					view.eventManager.subscribe('getIdeaBasket', view.dropDownMenuDispatcher, view);
@@ -888,7 +911,16 @@ var componentloader = function(em, sl){
 				'stepStudentResponseBoxSizeChanged':[null, null],
 				'stepRichTextEditorToggleChanged':[null, null],
 				'stepStarterSentenceAuthoringOptionChanged':[null, null],
-				'stepStarterSentenceAuthoringSentenceChanged':[null, null]
+				'stepStarterSentenceAuthoringSentenceChanged':[null, null],
+				'cRaterVerify':[null, null],
+				'cRaterItemIdChanged':[null, null],
+				'cRaterFeedbackChanged':[null, null],
+				'cRaterDisplayScoreToStudentChanged':[null, null],
+				'cRaterDisplayFeedbackToStudentChanged':[null, null],
+				'cRaterAddFeedback':[null, null],
+				'cRaterRemoveFeedback':[null, null],
+				'cRaterMaxCheckAnswersChanged':[null, null],
+				'enableCRater':[null, null]
 			},
 			methods:{},
 			initialize:{
@@ -904,6 +936,15 @@ var componentloader = function(em, sl){
 					view.eventManager.subscribe('stepRichTextEditorToggleChanged', view.richTextEditorToggleManager.dispatcher, view);
 					view.eventManager.subscribe('stepStarterSentenceAuthoringOptionChanged', view.starterSentenceAuthoringManager.dispatcher, view);
 					view.eventManager.subscribe('stepStarterSentenceAuthoringSentenceChanged', view.starterSentenceAuthoringManager.dispatcher, view);
+					view.eventManager.subscribe('cRaterVerify', view.cRaterManager.dispatcher, view);
+					view.eventManager.subscribe('cRaterItemIdChanged', view.cRaterManager.dispatcher, view);
+					view.eventManager.subscribe('cRaterFeedbackChanged', view.cRaterManager.dispatcher, view);
+					view.eventManager.subscribe('cRaterDisplayScoreToStudentChanged', view.cRaterManager.dispatcher, view);
+					view.eventManager.subscribe('cRaterDisplayFeedbackToStudentChanged', view.cRaterManager.dispatcher, view);
+					view.eventManager.subscribe('cRaterAddFeedback', view.cRaterManager.dispatcher, view);
+					view.eventManager.subscribe('cRaterRemoveFeedback', view.cRaterManager.dispatcher, view);
+					view.eventManager.subscribe('cRaterMaxCheckAnswersChanged', view.cRaterManager.dispatcher, view);
+					view.eventManager.subscribe('enableCRater', view.cRaterManager.dispatcher, view);
 				}
 			}
 		}
@@ -1076,6 +1117,14 @@ var componentloader = function(em, sl){
 			components.core.variables.nodeClasses[nodeType] = nodeClassesArray;
 		},
 		/*
+		 * Add an entry to the nodeIconPaths
+		 * @param nodeType the name of the node type
+		 * @param nodeIconPath a string containing the path to the node type's icon directory
+		 */
+		addNodeIconPath:function(nodeType, nodeIconPath) {
+			components.core.variables.nodeIconPaths[nodeType] = nodeIconPath;
+		},
+		/*
 		 * Add an entry to the nodeTemplateParams object. The template file params
 		 * will be used to load the template files. The template files
 		 * will be loaded and the content will be retrieved from them and used
@@ -1087,7 +1136,16 @@ var componentloader = function(em, sl){
 		 */
 		addNodeTemplateParams:function(nodeType, nodeTemplateParams) {
 			components.author.variables.nodeTemplateParams[nodeType] = nodeTemplateParams;
-		}
+		},
+		/*
+		 * Add an entry to the VLE's activeThemes
+		 * @param themeName the name of the theme
+		 * @param themeNavModes an array containing the names of the theme's navigation modes
+		 */
+		addTheme:function(themeName, themeNavModes) {
+			components.core.variables.activeThemes.push(themeName);
+			components.core.variables.themeNavModes[themeName] = themeNavModes;
+		},
 	};
 }(eventManager, scriptloader);
 

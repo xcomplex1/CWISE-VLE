@@ -8,8 +8,8 @@ var coreMinScripts = [
 ];
 
 var studentVLEScripts = [
-    'vle/jquery/js/jquery-1.6.1.min.js',
-	'vle/jquery/js/jquery-ui-1.8.7.custom.min.js',
+    scriptloader.jquerySrc,
+    scriptloader.jqueryUISrc,
 	'vle/jquery/js/jsonplugin.js',
 	'vle/node/common/nodehelpers.js',
 	'vle/common/helperfunctions.js',
@@ -28,7 +28,8 @@ var gradingScripts = [
 ];
 
 var dependencies = [
-	{child:"vle/node/brainstorm/BrainstormNode.js", parent:["vle/node/Node.js"]}
+	{child:"vle/node/brainstorm/BrainstormNode.js", parent:["vle/node/Node.js"]},
+	{child:"vle/jquery/tinymce/jscripts/tiny_mce/jquery.tinymce.js",parent:[scriptloader.jquerySrc]}
 ];
 
 var css = [
@@ -41,6 +42,9 @@ var nodeClasses = [
 	{nodeClass:'brainstorm', nodeClassText:'腦力激盪'},
 	{nodeClass:'qadiscuss', nodeClassText:'Q&A討論'}
 ];
+
+var nodeIconPath = 'node/brainstorm/icons/';
+componentloader.addNodeIconPath('BrainstormNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);

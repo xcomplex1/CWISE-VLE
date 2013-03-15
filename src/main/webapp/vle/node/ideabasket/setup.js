@@ -20,6 +20,8 @@
 var coreMinScripts = ['vle/node/ideabasket/ideabasket_core_min.js'];
 
 var studentVLEScripts = [
+	scriptloader.jquerySrc,
+	scriptloader.jqueryUISrc,
 	/*
      * TODO: rename template
      * TODO: rename templatestate.js
@@ -28,8 +30,6 @@ var studentVLEScripts = [
      * 'vle/node/quiz/quizstate.js'
 	 */
 	'vle/node/ideabasket/ideaBasketState.js',
-    'vle/jquery/js/jquery-1.6.1.min.js',
-	'vle/jquery/js/jquery-ui-1.8.7.custom.min.js',
 	'vle/jquery/js/jquery-validate/jquery.validate.pack.js',
 	'vle/jquery/js/jquery.form.js',
 	'vle/jquery/js/jsonplugin.js',
@@ -69,7 +69,8 @@ var dependencies = [
 	 * 'vle/node/quiz/QuizNode.js'
 	 */
 	{child:"vle/node/ideabasket/IdeaBasketNode.js", parent:["vle/node/Node.js"]},
-	{child:"vle/jquery/js/jquery.tablesorter.min.js", parent:["vle/jquery/js/jquery-1.6.1.min.js"]}
+	{child:"vle/jquery/js/jquery.tablesorter.min.js", parent:[scriptloader.jquerySrc]},
+	{child:"vle/jquery/js/jquery-validate/jquery.validate.pack.js", parent:[scriptloader.jquerySrc]}
 ];
 
 /*
@@ -81,6 +82,9 @@ var dependencies = [
 var nodeClasses = [
 	{nodeClass:'ideabasket', nodeClassText:'想法籃'}
 ];
+
+var nodeIconPath = 'node/ideabasket/icons/';
+componentloader.addNodeIconPath('IdeaBasketNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);
@@ -113,9 +117,9 @@ componentloader.addNodeClasses('IdeaBasketNode', nodeClasses);
  * 'vle/node/quiz/quiz.css'
  */
 var css = [
+       	scriptloader.jqueryUICss,
        	"vle/css/ideaManager/blue/style.css",
        	"vle/css/ideaManager/basket.css",
-       	"vle/css/ideaManager/custom-theme/jquery-ui-1.8.7.custom.css",
        	"vle/css/ideaManager/jquery-validate/cmxformTemplate.css",
        	"vle/node/ideabasket/ideaBasket.css"
 ];

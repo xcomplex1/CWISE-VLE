@@ -13,6 +13,8 @@ View.prototype.openResponseDispatcher = function(type,args,obj){
 		obj.OpenResponseNode.starterUpdated();
 	} else if(type=='openResponseUpdateRichText'){
 		obj.OpenResponseNode.updateRichText();
+	} else if(type=='openresponseOptionChanged'){
+		obj.OpenResponseNode.optionChanged(args[0]);
 	} else if(type=='openResponseLinesChanged'){
 		obj.OpenResponseNode.linesUpdated();
 	} else if(type=='openResponsePeerReviewAuthoredWorkUpdated'){
@@ -25,6 +27,8 @@ View.prototype.openResponseDispatcher = function(type,args,obj){
 		obj.OpenResponseNode.peerReviewAuthoredReviewUpdated();
 	} else if(type=='openResponsePeerReviewStepNotOpenCustomMessageUpdated'){
 		obj.OpenResponseNode.peerReviewStepNotOpenCustomMessageUpdated();
+	} else if(type=='openResponseUpdateShowPreviousWorkThatHasAnnotation'){
+		obj.OpenResponseNode.updateShowPreviousWorkThatHasAnnotation();
 	};
 };
 
@@ -33,13 +37,15 @@ var events = [
 	'openResponsePromptChanged',
 	'openResponseStarterOptionChanged',
 	'openResponseStarterSentenceUpdated',
+	'openresponseOptionChanged',
 	'openResponseUpdateRichText',
 	'openResponseLinesChanged',
 	'openResponsePeerReviewAuthoredWorkUpdated',
 	'openResponsePeerReviewPercentageTriggerUpdated',
 	'openResponsePeerReviewNumberTriggerUpdated',
 	'openResponsePeerReviewAuthoredReviewUpdated',
-	'openResponsePeerReviewStepNotOpenCustomMessageUpdated'
+	'openResponsePeerReviewStepNotOpenCustomMessageUpdated',
+	'openResponseUpdateShowPreviousWorkThatHasAnnotation'
 ];
 
 /*

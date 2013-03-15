@@ -33,8 +33,17 @@ NavigationLogic.prototype.findVisitingOrder = function(node) {
  * @return 0/1/2, default: 0
  */
 NavigationLogic.prototype.getVisitableStatus = function(position){
+	if (this.view.getConfig().getConfigParam("mode") == "portalpreview"
+		&& this.view.getConfig().getConfigParam("isConstraintsDisabled")) {
+		// if user is previewing and constraints are disabled...
+		// don't add any constraints so they can go on to next steps without having to answer all the questions.
+		// commented out since there were too many message popups
+		//this.view.notificationManager.notify('In the actual run, students must complete all parts on this step before moving on to the next step.', 3); 
+		return {value:0, msg:''};
+	} 
+
 	if(this.constraintManager){
-		return this.constraintManager.getVisitableStatus(position);
+		return this.constraintManager.getVisitableStatus(position);	
 	}
 	
 	return {value:0, msg:''};
@@ -96,7 +105,8 @@ NavigationLogic.prototype.getNextVisitableNode = function(location){
 	var nextNodeLoc = this.getNextNode(location);
 	while (nextNodeLoc != null && 
 			(this.view.getProject().getNodeByPosition(nextNodeLoc).isSequence() ||
-			this.getVisitableStatus(nextNodeLoc).value !== 0)) {
+			 this.view.getProject().getNodeByPosition(nextNodeLoc).isHiddenFromNavigation() ||
+			 this.getVisitableStatus(nextNodeLoc).value !== 0)) {
 		nextNodeLoc = this.getNextNode(nextNodeLoc);
 	}
 	
@@ -133,8 +143,10 @@ NavigationLogic.prototype.getNextStepNodeInProject = function(location){
  */
 NavigationLogic.prototype.getPrevVisitableNode = function(location){
 	var prevNodeLoc = this.getPrevNode(location);
-	while (prevNodeLoc != null && (this.view.getProject().getNodeByPosition(prevNodeLoc).isSequence() || 
-			this.getVisitableStatus(prevNodeLoc).value !== 0)) {
+	while (prevNodeLoc != null && 
+			(this.view.getProject().getNodeByPosition(prevNodeLoc).isSequence() || 
+			 this.view.getProject().getNodeByPosition(prevNodeLoc).isHiddenFromNavigation() ||
+			 this.getVisitableStatus(prevNodeLoc).value !== 0)) {
 		prevNodeLoc = this.getPrevNode(prevNodeLoc);
 	}
 	

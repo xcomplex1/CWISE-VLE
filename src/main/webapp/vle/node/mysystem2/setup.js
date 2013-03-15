@@ -29,8 +29,11 @@ var dependencies = [
 ];
 
 var nodeClasses = [
-	{nodeClass:'display', nodeClassText:'系統圖2'}
+    {nodeClass:'mysystem2', nodeClassText:'系統圖2'}
 ];
+
+var nodeIconPath = 'node/mysystem2/icons/';
+componentloader.addNodeIconPath('Mysystem2Node', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('mysystem2', studentVLEScripts);

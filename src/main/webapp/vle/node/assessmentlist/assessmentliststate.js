@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @constructor
  * @param args
  * @returns
@@ -64,7 +64,7 @@ ASSESSMENTLISTSTATE.prototype.getStudentWork = function(showAutoScoreResult) {
 			}
 			
 			//add the response to the student work
-			studentWorkSoFar += "Part " + (x+1) + ": <br/>";
+			studentWorkSoFar += "項目-" + (x+1) + ": <br/>";
 			var assessment = this.assessments[x];
 
 			if (assessment.type && assessment.response) {

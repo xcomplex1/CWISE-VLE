@@ -43,11 +43,11 @@ var gradingMinScripts = [
 
 var dependencies = [
 	{child:"vle/node/draw/SVGDrawNode.js", parent:["vle/node/Node.js"]},
-	{child:'vle/node/draw/svg-edit/svgdraw.js', parent:['vle/jquery/js/jquery-1.6.1.min.js']}
+	{child:'vle/node/draw/svg-edit/svgdraw.js', parent:[scriptloader.jquerySrc]}
 ];
 
 var css = [
-	'vle/node/draw/svg-edit/jquery-ui/jquery-ui-1.7.2.custom.css',
+	scriptloader.jqueryUICss,
 	'vle/node/draw/svg-edit/jgraduate/css/jPicker-1.0.12.css',
 	'vle/node/draw/svg-edit/jgraduate/css/jgraduate.css',
 	'vle/node/draw/svg-edit/svg-editor.css',
@@ -57,6 +57,9 @@ var css = [
 var nodeClasses = [
 	{nodeClass:'quickdraw', nodeClassText:'手繪圖'}
 ];
+
+var nodeIconPath = 'node/draw/icons/';
+componentloader.addNodeIconPath('SVGDrawNode', nodeIconPath);
 
 scriptloader.addScriptToComponent('core', coreScripts);
 scriptloader.addScriptToComponent('core_min', coreMinScripts);
